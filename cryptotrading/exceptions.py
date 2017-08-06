@@ -1,0 +1,3 @@
+
+class CryptoTradingException(Exception):
+    pass
