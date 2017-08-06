@@ -1,6 +1,5 @@
 
-
-from cryptotrading.strategy.core import BaseStrategy
+from cryptotrading.strategy.base import BaseStrategy
 
 class FollowStrategy(BaseStrategy):
 

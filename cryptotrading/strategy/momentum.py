@@ -1,13 +1,19 @@
 import time
 
-from cryptotrading.data.ohlc import OHLCDataset
-from cryptotrading.strategy.core import BaseStrategy
+from cryptotrading.data.datasets import OHLCDataset
+from cryptotrading.data.mixins import MACDMixin
+from cryptotrading.strategy.base import BaseStrategy
+
+
+class _Dataset(MACDMixin, OHLCDataset):
+    pass
 
 
 class TakeProfitMomentumStrategy(BaseStrategy):
 
     def __init__(self, base_currency, exchange, unit, macd_threshold, target_profit,
-                 stop_loss, quote_currency='USD', sleep_duration=60, macd=(10, 26, 9)):
+                 stop_loss, buffer_percent=0.25, quote_currency='USD', sleep_duration=(15, 30),
+                 macd=(10, 26, 9)):
         """
         :param base_currency:
         :param exchange:
@@ -23,68 +29,50 @@ class TakeProfitMomentumStrategy(BaseStrategy):
                                                          sleep_duration)
 
         self.macd_threshold = macd_threshold
-        self.take_profit_trigger = '+' + str(target_profit) + '%'
-        self.take_profit_limit = '+' + str(target_profit - .25) + '%'
-        self.stop_loss_trigger = '-' + str(stop_loss) + '%'
-        self.stop_loss_limit = '-' + str(stop_loss - .25) + '%'
+        self.take_profit_trigger = '+{}%'.format(target_profit)
+        self.take_profit_limit = '+{}%'.format(target_profit - buffer_percent)
+        self.stop_loss_trigger = '-{}%'.format(stop_loss)
+        self.stop_loss_limit = '-{}%'.format(stop_loss - buffer_percent)
 
-        self.data = OHLCDataset(macd=macd)
-
-    def run(self):
-        while True:
-            self.update()
-
-            # Ensure we only ever have one open position at a time
-            if not self.position:
-                self.open_conditional()
-            else:
-                self.close_conditional()
-
-            time.sleep(self.sleep_duration)
+        self.data = _Dataset(macd_values=macd)
 
     def update(self):
         new_data = self.exchange.recent_ohlc(self.base_currency, self.quote_currency)
         self.data.add_all(new_data)
         print('Price: {}'.format(self.data.last_price()))
 
-    def open_conditional(self):
-        macd_data = self.data.macd()
-        recent_macd, recent_signal = macd_data[-1]
-        macd_difference = recent_macd - recent_signal
+    def open_condition(self):
+        macd_history = self.data.macd()
+        macd, signal = macd_history[-1]
+        macd_difference = macd - signal
         print('MACD: {0:.2f}'.format(macd_difference))
         if macd_difference > self.macd_threshold:
             self.open_position()
 
-    def close_conditional(self):
-        for txid, order_info in self.exchange.get_order_info(self.position).items():
-            status = order_info['status']
-            print('Order {} is {}'.format(txid, status))
-            if status in ['closed', 'canceled', 'expired']:
-                self.position.remove(txid)
-                self.cancel_position()
-                self.sleep_duration = 15
+    def close_condition(self):
+        self.cancel_all_if_any_close()
 
     def open_position(self):
         print('Placing market order for {} {} around {}'.format(self.base_currency, self.unit,
                                                                 self.data.last_price()))
-        order_id = self.exchange.market_order(self.base_currency, True, self.unit)
+        txids = self.exchange.market_order(self.base_currency, 'buy', self.unit)
 
         # Wait for market order to close
         order_open = True
         while order_open:
-            order_info = self.exchange.get_order_info(order_id)
+            time.sleep(2)
+            order_info = self.exchange.get_orders_info(txids).get(txids[0])
             order_open = order_info['status'] not in ['closed', 'canceled', 'expired']
             if order_open:
                 print('Market order still open')
-                time.sleep(1)
             else:
                 print('Market order closed')
 
         print('Placing take-profit order at {} with limit {}'.format(self.take_profit_trigger, self.take_profit_limit))
-        take_profit = self.exchange.take_profit_limit_order(self.base_currency, False, self.take_profit_trigger,
+        take_profit_ids = self.exchange.take_profit_limit_order(self.base_currency, 'sell', self.take_profit_trigger,
                                                             self.take_profit_limit, self.unit)
+        self.positions.extend(take_profit_ids)
         print('Placing stop-loss order at {} with limit {}'.format(self.stop_loss_trigger, self.stop_loss_limit))
-        stop_loss = self.exchange.stop_loss_limit_order(self.base_currency, False, self.stop_loss_trigger,
+        stop_loss_ids = self.exchange.stop_loss_limit_order(self.base_currency, 'sell', self.stop_loss_trigger,
                                                         self.stop_loss_limit, self.unit)
-        self.position.extend([take_profit, stop_loss])
-        self.sleep_duration = 30
+        self.positions.extend(stop_loss_ids)

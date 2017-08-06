@@ -42,30 +42,81 @@ class KrakenAPIAdapter(object):
 
     def _partial_order(self, base_currency, quote_currency, buy_sell):
         pair = self._generate_currency_pair(base_currency, quote_currency)
-        buy_sell = 'buy' if buy_sell else 'sell'
         return partial(self.order_method, pair, buy_sell)
 
+    # Market Info
     def order_book(self, base_currency, quote_currency='USD'):
+        """
+        :returns: {
+            'asks': list of asks,
+            'bids': list of bids
+        }
+        """
         pair = self._generate_currency_pair(base_currency, quote_currency)
         resp = self.api.get_order_book(pair)
         return resp[pair]
 
     def recent_trades(self, base_currency, quote_currency='USD'):
-        return self._get_data_since_last(self.api.get_recent_trades, 'trades', base_currency, quote_currency)
+        data = self._get_data_since_last(self.api.get_recent_trades, 'trades', base_currency, quote_currency)
+        return [{
+            'price': t[0],
+            'volume': t[1],
+            'time': t[2],
+            'buy_sell': t[3],
+            'type': t[4],
+            'misc': t[5]
+        } for t in data]
 
     def recent_ohlc(self, base_currency, quote_currency='USD', interval=1):
-        return self._get_data_since_last(self.api.get_OHLC_data, 'ohlc', base_currency, quote_currency,
+        """
+        :param interval: time period duration in minutes (see KrakenAPI for valid intervals)
+        :returns: {
+            'time': ,
+            'open': opening price for the time period,
+            'high': highest price for the time period,
+            'low': lowest price for the time period,
+            'close': closing price for the time period,
+            'vwap': volume weighted average price,
+            'volume': ,
+            'count': ,
+        }
+        """
+        data = self._get_data_since_last(self.api.get_OHLC_data, 'ohlc', base_currency, quote_currency,
                                          interval=interval)
+        return [{
+            'time': d[0],
+            'open': d[1],
+            'high': d[2],
+            'low': d[3],
+            'close': d[4],
+            'vwap': d[5],
+            'volume': d[6],
+            'count': d[7]
+        } for d in data]
 
     def recent_spread(self, base_currency, quote_currency='USD'):
-        return self._get_data_since_last(self.api.get_recent_spread_data, 'spread', base_currency, quote_currency)
+        data = self._get_data_since_last(self.api.get_recent_spread_data, 'spread', base_currency, quote_currency)
+        return [{
+            'time': s[0],
+            'bid': s[1],
+            'ask': s[2]
+        } for s in data]
 
     def get_orders_info(self, txids):
+        """
+        :returns: {
+            txid: {}
+        }
+        """
         txid_string = ','.join(txids)
-        resp = self.api.query_orders_info(self, txid_string)
+        resp = self.api.query_orders_info(txid_string)
         return resp
 
+    # Orders
     def market_order(self, base_currency, buy_sell, volume, quote_currency='USD'):
+        """
+        :returns: txid of the placed order
+        """
         order_fn = self._partial_order(base_currency, quote_currency, buy_sell)
         resp = order_fn('market', volume)
         return resp['txid']
