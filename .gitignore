@@ -1,0 +1,11 @@
+# Python #
+##########
+*.py[co]
+*.egg
+*.egg-info
+
+# Logs and databases #
+######################
+*.log
+*.sql
+*.sqlite
