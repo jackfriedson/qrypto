@@ -1,6 +1,11 @@
+import logging
+from contextlib import contextmanager
 from functools import partial
 
+from cryptotrading.exchanges.exceptions import APIException
 from cryptotrading.exchanges.kraken.api import KrakenAPI
+
+log = logging.getLogger(__name__)
 
 currency_map = {
     'BTC': 'XXBT',
@@ -8,12 +13,21 @@ currency_map = {
     'USD': 'ZUSD',
 }
 
+
+@contextmanager
+def handle_api_exception():
+    try:
+        yield
+    except APIException as e:
+        log.exception('Kraken returned an error -- {}'.format(e.message))
+        raise
+
 class KrakenAPIAdapter(object):
     """ Adapter from the core Kraken API to the exchange API interface.
     """
 
-    # TODO: Decide on output format and properly format responses
-    # TODO: Add logging
+    # TODO: Add logging/error handling
+    # TODO: Add session functionality (reuse existing HTTP connection)
 
     def __init__(self, api=None, key=None, secret=None, key_path=None):
         if api and issubclass(api, KrakenAPI):
@@ -45,6 +59,7 @@ class KrakenAPIAdapter(object):
         return partial(self.order_method, pair, buy_sell)
 
     # Market Info
+    @handle_api_exception()
     def order_book(self, base_currency, quote_currency='USD'):
         """
         :returns: {
@@ -56,6 +71,7 @@ class KrakenAPIAdapter(object):
         resp = self.api.get_order_book(pair)
         return resp[pair]
 
+    @handle_api_exception()
     def recent_trades(self, base_currency, quote_currency='USD'):
         data = self._get_data_since_last(self.api.get_recent_trades, 'trades', base_currency, quote_currency)
         return [{
@@ -67,6 +83,7 @@ class KrakenAPIAdapter(object):
             'misc': t[5]
         } for t in data]
 
+    @handle_api_exception()
     def recent_ohlc(self, base_currency, quote_currency='USD', interval=1):
         """
         :param interval: time period duration in minutes (see KrakenAPI for valid intervals)
@@ -94,6 +111,7 @@ class KrakenAPIAdapter(object):
             'count': d[7]
         } for d in data]
 
+    @handle_api_exception()
     def recent_spread(self, base_currency, quote_currency='USD'):
         data = self._get_data_since_last(self.api.get_recent_spread_data, 'spread', base_currency, quote_currency)
         return [{
@@ -102,10 +120,12 @@ class KrakenAPIAdapter(object):
             'ask': s[2]
         } for s in data]
 
+    # User Info
+    @handle_api_exception()
     def get_orders_info(self, txids):
         """
         :returns: {
-            txid: {}
+            txid: {order info}
         }
         """
         txid_string = ','.join(txids)
@@ -113,39 +133,60 @@ class KrakenAPIAdapter(object):
         return resp
 
     # Orders
+    @handle_api_exception()
     def market_order(self, base_currency, buy_sell, volume, quote_currency='USD'):
         """
         :returns: txid of the placed order
         """
         order_fn = self._partial_order(base_currency, quote_currency, buy_sell)
+        log.info('Placing market order: %s %f %s', buy_sell, volume, base_currency)
         resp = order_fn('market', volume)
         return resp['txid']
 
+    @handle_api_exception()
     def limit_order(self, base_currency, buy_sell, price, volume, quote_currency='USD'):
         order_fn = self._partial_order(base_currency, quote_currency, buy_sell)
+        log.info('Placing limit order: %s %f %s @ %f %s', buy_sell, volume, base_currency, price, quote_currency)
         resp = order_fn('limit', volume, price=price)
         return resp['txid']
 
+    @handle_api_exception()
     def stop_loss_order(self, base_currency, buy_sell, price, volume, quote_currency='USD'):
         order_fn = self._partial_order(base_currency, quote_currency, buy_sell)
         resp = order_fn('stop-loss', volume, price=price)
         return resp['txid']
 
+    @handle_api_exception()
     def stop_loss_limit_order(self, base_currency, buy_sell, stop_loss_price, limit_price, volume,
                               quote_currency='USD'):
         order_fn = self._partial_order(base_currency, quote_currency, buy_sell)
         resp = order_fn('stop-loss-limit', volume, price=stop_loss_price, price2=limit_price)
         return resp['txid']
 
+    @handle_api_exception()
     def take_profit_order(self, base_currency, buy_sell, price, volume, quote_currency='USD'):
         order_fn = self._partial_order(base_currency, quote_currency, buy_sell)
         resp = order_fn('take-profit', volume, price=price)
         return resp['txid']
 
+    @handle_api_exception()
     def take_profit_limit_order(self, base_currency, buy_sell, take_profit_price, limit_price, volume,
                                 quote_currency='USD'):
         order_fn = self._partial_order(base_currency, quote_currency, buy_sell)
         resp = order_fn('take-profit-limit', volume, price=take_profit_price, price2=limit_price)
+        return resp['txid']
+
+    @handle_api_exception()
+    def trailing_stop_order(self, base_currency, buy_sell, trailing_stop_offset, volume, quote_currency='USD'):
+        order_fn = self._partial_order(base_currency, quote_currency, buy_sell)
+        resp = order_fn('trailing-stop', volume, price=trailing_stop_offset)
+        return resp['txid']
+
+    @handle_api_exception()
+    def trailing_stop_limit_order(self, base_currency, buy_sell, trailing_stop_offset, limit_offset,
+                                  volume, quote_currency='USD'):
+        order_fn = self._partial_order(base_currency, quote_currency, buy_sell)
+        resp = order_fn('trailing-stop-limit', volume, price=trailing_stop_offset, price2=limit_offset)
         return resp['txid']
 
     def cancel_order(self, order_id):

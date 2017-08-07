@@ -32,7 +32,7 @@ class TakeProfitMomentumStrategy(BaseStrategy):
         self.take_profit_trigger = '+{}%'.format(target_profit)
         self.take_profit_limit = '+{}%'.format(target_profit - buffer_percent)
         self.stop_loss_trigger = '-{}%'.format(stop_loss)
-        self.stop_loss_limit = '-{}%'.format(stop_loss - buffer_percent)
+        self.stop_loss_limit = '-{}%'.format(stop_loss + buffer_percent)
 
         self.data = _Dataset(macd_values=macd)
 
@@ -41,20 +41,17 @@ class TakeProfitMomentumStrategy(BaseStrategy):
         self.data.add_all(new_data)
         print('Price: {}'.format(self.data.last_price()))
 
-    def open_condition(self):
+    def should_open(self):
         macd_history = self.data.macd()
         macd, signal = macd_history[-1]
         macd_difference = macd - signal
         print('MACD: {0:.2f}'.format(macd_difference))
-        if macd_difference > self.macd_threshold:
-            self.open_position()
+        return macd_difference > self.macd_threshold
 
-    def close_condition(self):
-        self.cancel_all_if_any_close()
+    def should_close(self):
+        return self.any_orders_closed()
 
     def open_position(self):
-        print('Placing market order for {} {} around {}'.format(self.base_currency, self.unit,
-                                                                self.data.last_price()))
         txids = self.exchange.market_order(self.base_currency, 'buy', self.unit)
 
         # Wait for market order to close
@@ -76,3 +73,6 @@ class TakeProfitMomentumStrategy(BaseStrategy):
         stop_loss_ids = self.exchange.stop_loss_limit_order(self.base_currency, 'sell', self.stop_loss_trigger,
                                                         self.stop_loss_limit, self.unit)
         self.positions.extend(stop_loss_ids)
+
+    def close_position(self):
+        self.cancel_all()

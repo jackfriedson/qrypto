@@ -67,6 +67,10 @@ class KrakenAPI(object):
         if data is None:
             data = {}
 
+        call_count_difference = self.call_count - max_call_count
+        if call_count_difference > 0:
+            time.sleep((call_count_difference + 1) * decrement_freq)
+
         resp = requests.request(method, url, headers=headers, params=params, data=data)
         resp.raise_for_status()
         resp_content = resp.json()

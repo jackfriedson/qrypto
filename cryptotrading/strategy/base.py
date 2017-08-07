@@ -15,45 +15,57 @@ class BaseStrategy(object):
         self.positions = []
 
         if isinstance(sleep_duration, int):
-            self.no_position_sleep_duration = self.active_position_sleep_duration = sleep_duration
+            self.passive_sleep_duration = self.active_sleep_duration = sleep_duration
         else:
-            self.no_position_sleep_duration, self.active_position_sleep_duration = sleep_duration
+            self.passive_sleep_duration, self.active_sleep_duration = sleep_duration
 
     def run(self):
         while True:
             self.update()
 
-            # Ensure we only ever have one open position at a time
-            # Note: a position may contain multiple orders
             if not self.positions:
-                self.open_condition()
-                time.sleep(self.no_position_sleep_duration)
+                if self.should_open():
+                    self.open_position()
+                else:
+                    time.sleep(self.passive_sleep_duration)
             else:
-                self.close_condition()
-                time.sleep(self.active_position_sleep_duration)
+                if self.should_close():
+                    self.close_position()
+                else:
+                    time.sleep(self.active_sleep_duration)
 
     def update(self):
         raise NotImplementedError
 
-    def open_condition(self):
+    def should_open(self):
         raise NotImplementedError
 
-    def close_condition(self):
+    def should_close(self):
         raise NotImplementedError
 
     def open_position(self):
         raise NotImplementedError
 
-    def cancel_positions(self):
-        if self.positions:
-            for txid in self.positions:
-                self.exchange.cancel_order(txid)
+    def close_position(self):
+        raise NotImplementedError
 
-    def cancel_all_if_any_close(self):
+    def cancel_all(self):
+        for txid in self.positions:
+            self.exchange.cancel_order(txid)
+            self.positions.remove(txid)
+
+    def any_orders_closed(self):
+        """ Checks if any open positions have been closed.
+
+        Returns true if any open positions are closed, canceled, or expired, and removes
+        those positions from the list.
+        """
         orders = self.exchange.get_orders_info(self.positions)
         for txid, order_info in orders.items():
             status = order_info['status']
             print('Order {} is {}'.format(txid, status))
             if status in ['closed', 'canceled', 'expired']:
+                print('Order {} closed at {}'.format(txid, order_info['cost']))
                 self.positions.remove(txid)
-                self.cancel_positions()
+                return True
+        return False
