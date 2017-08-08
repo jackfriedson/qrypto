@@ -10,5 +10,9 @@ setup(
     name='cryptotrading',
     version='0.1',
     packages=find_packages(),
-    install_requires=get_requirements_from_file('requirements.txt')
+    install_requires=get_requirements_from_file('requirements.txt'),
+    entry_points='''
+        [console_scripts]
+        runstrategy=cryptotrading.app:cli
+    '''
 )
