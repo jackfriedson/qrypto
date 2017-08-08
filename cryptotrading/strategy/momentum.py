@@ -1,8 +1,13 @@
+import logging
 import time
 
 from cryptotrading.data.datasets import OHLCDataset
 from cryptotrading.data.mixins import MACDMixin
 from cryptotrading.strategy.base import BaseStrategy
+
+
+# TODO: Create custom logging adapter
+log = logging.getLogger(__name__)
 
 
 class _Dataset(MACDMixin, OHLCDataset):
@@ -35,18 +40,23 @@ class TakeProfitMomentumStrategy(BaseStrategy):
         self.stop_loss_limit = '-{}%'.format(stop_loss + buffer_percent)
 
         self.data = _Dataset(macd_values=macd)
+        self.indicators = {}
 
     def update(self):
+        # Get data from exchange
         new_data = self.exchange.recent_ohlc(self.base_currency, self.quote_currency)
         self.data.add_all(new_data)
-        print('Price: {}'.format(self.data.last_price()))
+
+        # Calculate MACD
+        macd_history = self.data.macd()
+        last_macd, signal = macd_history[-1]
+        self.indicators['macd'] = last_macd - signal
+        last_price = self.data.last_price()
+        log.info('Updated market data -- Price: {}; MACD: {:.2f}'.format(last_price, self.indicators['macd']),
+                 extra={'price': last_price, 'macd': self.indicators['macd']})
 
     def should_open(self):
-        macd_history = self.data.macd()
-        macd, signal = macd_history[-1]
-        macd_difference = macd - signal
-        print('MACD: {0:.2f}'.format(macd_difference))
-        return macd_difference > self.macd_threshold
+        return self.indicators['macd'] > self.macd_threshold
 
     def should_close(self):
         return self.any_orders_closed()
@@ -61,15 +71,18 @@ class TakeProfitMomentumStrategy(BaseStrategy):
             order_info = self.exchange.get_orders_info(txids).get(txids[0])
             order_open = order_info['status'] not in ['closed', 'canceled', 'expired']
             if order_open:
-                print('Market order still open')
-            else:
-                print('Market order closed')
+                log.info('Market order still open')
 
-        print('Placing take-profit order at {} with limit {}'.format(self.take_profit_trigger, self.take_profit_limit))
+        order_price = order_info['cost']
+        log.info('Market order closed @ %f', order_price,
+            extra={
+                'event_name': 'order_close',
+                'event_info': order_info
+            })
+
         take_profit_ids = self.exchange.take_profit_limit_order(self.base_currency, 'sell', self.take_profit_trigger,
                                                             self.take_profit_limit, self.unit)
         self.positions.extend(take_profit_ids)
-        print('Placing stop-loss order at {} with limit {}'.format(self.stop_loss_trigger, self.stop_loss_limit))
         stop_loss_ids = self.exchange.stop_loss_limit_order(self.base_currency, 'sell', self.stop_loss_trigger,
                                                         self.stop_loss_limit, self.unit)
         self.positions.extend(stop_loss_ids)

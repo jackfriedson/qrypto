@@ -1,10 +1,14 @@
-import logging
 import os
+from logging.config import fileConfig
 
 import click
 
 from cryptotrading.exchanges import Kraken
 from cryptotrading.strategy.momentum import TakeProfitMomentumStrategy
+
+
+API_KEY = os.path.expanduser('~/.kraken_api_key')
+LOG_CONFIG = 'cryptotrading/log_config.ini'
 
 
 config = {
@@ -18,7 +22,7 @@ config = {
 
 @click.command()
 def cli():
-    keypath = os.path.expanduser('~/.kraken_api_key')
-    kraken = Kraken(key_path=keypath)
+    fileConfig(LOG_CONFIG, disable_existing_loggers=False)
+    kraken = Kraken(key_path=API_KEY)
     strategy = TakeProfitMomentumStrategy('ETH', kraken, **config)
     strategy.run()

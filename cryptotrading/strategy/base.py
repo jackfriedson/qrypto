@@ -1,6 +1,11 @@
 """
 """
+import logging
 import time
+
+
+log = logging.getLogger(__name__)
+
 
 class BaseStrategy(object):
 
@@ -63,9 +68,14 @@ class BaseStrategy(object):
         orders = self.exchange.get_orders_info(self.positions)
         for txid, order_info in orders.items():
             status = order_info['status']
-            print('Order {} is {}'.format(txid, status))
+            log.info('Order %s is %s', txid, status)
+
             if status in ['closed', 'canceled', 'expired']:
-                print('Order {} closed at {}'.format(txid, order_info['cost']))
+                log.info('Order %s closed at %f',txid, order_info['cost'],
+                         extra={
+                            'event_name': 'order_' + status,
+                            'event_data': order_info
+                         })
                 self.positions.remove(txid)
                 return True
         return False
