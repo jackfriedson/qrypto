@@ -73,14 +73,14 @@ class KrakenAPI(object):
         if call_count_difference > 0:
             time.sleep((call_count_difference + 1) * decrement_freq)
 
+        # TODO: consider moving retry logic to adapter class
         session = kwargs.pop('session', requests.Session())
         retries = Retry(total=5,
-                        backoff_factor=0.1,
+                        backoff_factor=0.5,
                         status_forcelist=[500, 502, 503, 504])
         session.mount('https://', HTTPAdapter(max_retries=retries))
 
         resp = session.request(method, url, headers=headers, params=params, data=data)
-        resp.raise_for_status()
         resp_content = resp.json()
 
         errors = resp_content.get('error')

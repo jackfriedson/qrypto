@@ -16,7 +16,7 @@ class _Dataset(MACDMixin, OHLCDataset):
 class TakeProfitMomentumStrategy(BaseStrategy):
 
     def __init__(self, base_currency, exchange, unit, macd_threshold, target_profit,
-                 stop_loss, buffer_percent=0.25, quote_currency='USD', sleep_duration=(15, 30),
+                 stop_loss, buffer_percent=0.0025, quote_currency='USD', sleep_duration=(15, 30),
                  macd=(10, 26, 9)):
         """
         :param base_currency:
@@ -33,10 +33,10 @@ class TakeProfitMomentumStrategy(BaseStrategy):
                                                          sleep_duration)
 
         self.macd_threshold = macd_threshold
-        self.take_profit_trigger = '+{}%'.format(target_profit)
-        self.take_profit_limit = '+{}%'.format(target_profit - buffer_percent)
-        self.stop_loss_trigger = '-{}%'.format(stop_loss)
-        self.stop_loss_limit = '-{}%'.format(stop_loss + buffer_percent)
+        self.take_profit_trigger = lambda p: p * (1. + target_profit)
+        self.take_profit_limit = lambda p: p * (1. + (target_profit - buffer_percent))
+        self.stop_loss_trigger = lambda p: p * (1. - stop_loss)
+        self.stop_loss_limit = lambda p: p * (1. - (stop_loss + buffer_percent))
 
         self.data = _Dataset(macd_values=macd)
         self.indicators = {}
@@ -63,12 +63,16 @@ class TakeProfitMomentumStrategy(BaseStrategy):
 
     def open_position(self):
         txids = self.exchange.market_order(self.base_currency, 'buy', self.unit)
-        self.wait_for_order_close(txids[0])
+        order_info = self.wait_for_order_close(txids[0])
+        close_price = float(order_info['price'])
 
-        take_profit_ids = self.exchange.take_profit_limit_order(self.base_currency, 'sell', self.take_profit_trigger,
-                                                            self.take_profit_limit, self.unit)
-        stop_loss_ids = self.exchange.stop_loss_limit_order(self.base_currency, 'sell', self.stop_loss_trigger,
-                                                        self.stop_loss_limit, self.unit)
+        take_profit_ids = self.exchange.take_profit_limit_order(self.base_currency, 'sell',
+                                                                self.take_profit_trigger(close_price),
+                                                                self.take_profit_limit(close_price),
+                                                                self.unit)
+        stop_loss_ids = self.exchange.stop_loss_limit_order(self.base_currency, 'sell',
+                                                            self.stop_loss_trigger(close_price),
+                                                            self.stop_loss_limit(close_price), self.unit)
         self.positions.extend(take_profit_ids + stop_loss_ids)
 
     def close_position(self):

@@ -71,10 +71,10 @@ class BaseStrategy(object):
             log.info('Order %s is %s', txid, status)
 
             if status in ['closed', 'canceled', 'expired']:
-                log.info('Order %s closed at %s',txid, order_info['cost'],
+                log.info('Order %s closed at %s', txid, order_info['cost'],
                          extra={
-                            'event_name': 'order_' + status,
-                            'event_data': order_info
+                             'event_name': 'order_' + status,
+                             'event_data': order_info
                          })
                 self.positions.remove(txid)
                 return True
@@ -90,8 +90,8 @@ class BaseStrategy(object):
                 log.info('Order %s still open', txid)
 
         log.info('Order %s closed @ %s', txid, order_info['cost'],
-            extra={
-                'event_name': 'order_closed',
-                'event_data': order_info
-            })
+                 extra={
+                     'event_name': 'order_closed',
+                     'event_data': order_info
+                 })
         return order_info
