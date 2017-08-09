@@ -6,7 +6,6 @@ from cryptotrading.data.mixins import MACDMixin
 from cryptotrading.strategy.base import BaseStrategy
 
 
-# TODO: Create custom logging adapter
 log = logging.getLogger(__name__)
 
 
@@ -56,6 +55,7 @@ class TakeProfitMomentumStrategy(BaseStrategy):
                  extra={'price': last_price, 'macd': self.indicators['macd']})
 
     def should_open(self):
+        # TODO: Account for slope of increasing MACD
         return self.indicators['macd'] > self.macd_threshold
 
     def should_close(self):
@@ -63,29 +63,13 @@ class TakeProfitMomentumStrategy(BaseStrategy):
 
     def open_position(self):
         txids = self.exchange.market_order(self.base_currency, 'buy', self.unit)
-
-        # Wait for market order to close
-        order_open = True
-        while order_open:
-            time.sleep(2)
-            order_info = self.exchange.get_orders_info(txids).get(txids[0])
-            order_open = order_info['status'] not in ['closed', 'canceled', 'expired']
-            if order_open:
-                log.info('Market order still open')
-
-        order_price = order_info['cost']
-        log.info('Market order closed @ %f', order_price,
-            extra={
-                'event_name': 'order_close',
-                'event_info': order_info
-            })
+        self.wait_for_order_close(txids[0])
 
         take_profit_ids = self.exchange.take_profit_limit_order(self.base_currency, 'sell', self.take_profit_trigger,
                                                             self.take_profit_limit, self.unit)
-        self.positions.extend(take_profit_ids)
         stop_loss_ids = self.exchange.stop_loss_limit_order(self.base_currency, 'sell', self.stop_loss_trigger,
                                                         self.stop_loss_limit, self.unit)
-        self.positions.extend(stop_loss_ids)
+        self.positions.extend(take_profit_ids + stop_loss_ids)
 
     def close_position(self):
         self.cancel_all()

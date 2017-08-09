@@ -2,7 +2,7 @@ import logging
 from contextlib import contextmanager
 from functools import partial
 
-from cryptotrading.exchanges.exceptions import APIException
+from cryptotrading.exchanges.errors import APIException, ServiceUnavailableException
 from cryptotrading.exchanges.kraken.api import KrakenAPI
 
 log = logging.getLogger(__name__)
@@ -18,6 +18,9 @@ currency_map = {
 def handle_api_exception():
     try:
         yield
+    except ServiceUnavailableException as e:
+        # TODO: retry
+        pass
     except APIException as e:
         log.exception('Kraken returned an error -- %s', str(e))
         raise
@@ -26,7 +29,6 @@ class KrakenAPIAdapter(object):
     """ Adapter from the core Kraken API to the exchange API interface.
     """
 
-    # TODO: Add logging/error handling
     # TODO: Add session functionality (reuse existing HTTP connection)
 
     def __init__(self, api=None, key=None, secret=None, key_path=None):
@@ -54,7 +56,7 @@ class KrakenAPIAdapter(object):
             'event_name': 'order_open',
             'event_data': order_data
         })
-        self.api.add_standard_order(**kwargs)
+        return self.api.add_standard_order(pair, buy_sell, order_type, volume, **kwargs)
 
     @classmethod
     def _generate_currency_pair(cls, base, quote):
@@ -154,14 +156,12 @@ class KrakenAPIAdapter(object):
         :returns: txid of the placed order
         """
         order_fn = self._partial_order(base_currency, quote_currency, buy_sell)
-        log.info('Placing market order: %s %f %s', buy_sell, volume, base_currency)
         resp = order_fn('market', volume)
         return resp['txid']
 
     @handle_api_exception()
     def limit_order(self, base_currency, buy_sell, price, volume, quote_currency='USD'):
         order_fn = self._partial_order(base_currency, quote_currency, buy_sell)
-        log.info('Placing limit order: %s %f %s @ %f %s', buy_sell, volume, base_currency, price, quote_currency)
         resp = order_fn('limit', volume, price=price)
         return resp['txid']
 
@@ -205,4 +205,9 @@ class KrakenAPIAdapter(object):
         return resp['txid']
 
     def cancel_order(self, order_id):
+        log.info('Cancelling order %s', order_id,
+                 extra={
+                     'event_name': 'cancel_order',
+                     'event_data': {'order_id': order_id}
+                 })
         self.api.cancel_open_order(txid=order_id)
