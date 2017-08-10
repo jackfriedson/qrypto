@@ -15,8 +15,16 @@ class _Dataset(MACDMixin, OHLCDataset):
 
 class TakeProfitMomentumStrategy(BaseStrategy):
 
-    def __init__(self, base_currency, exchange, unit, macd_threshold, target_profit,
-                 stop_loss, buffer_percent=0.0025, quote_currency='USD', sleep_duration=(15, 30),
+    def __init__(self,
+                 base_currency,
+                 exchange,
+                 unit,
+                 macd_threshold,
+                 target_profit,
+                 stop_loss,
+                 buffer_percent=0.0025,
+                 quote_currency='USD',
+                 sleep_duration=(15, 30),
                  macd=(10, 26, 9)):
         """
         :param base_currency:
@@ -39,7 +47,6 @@ class TakeProfitMomentumStrategy(BaseStrategy):
         self.stop_loss_limit = lambda p: p * (1. - (stop_loss + buffer_percent))
 
         self.data = _Dataset(macd_values=macd)
-        self.indicators = {}
 
     def update(self):
         # Get data from exchange

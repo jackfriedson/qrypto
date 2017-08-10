@@ -12,10 +12,10 @@ LOG_CONFIG = 'cryptotrading/log_config.ini'
 
 
 config = {
-    'unit': 0.05,
+    'unit': 0.02,
     'macd_threshold': 0.3,
-    'target_profit': .025,
-    'stop_loss': 0.005,
+    'target_profit': .0225,
+    'stop_loss': 0.0075,
     'buffer_percent': 0.0025,
     'sleep_duration': (15, 30)
 }

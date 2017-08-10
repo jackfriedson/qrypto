@@ -19,7 +19,7 @@ class MACDMixin(object):
         # TODO: Limit amount of history data in MACD calculation
 
         # Default to close value if no trades for that period
-        avg_price_data = [d['vwap'] if float(d['volume']) > 0 else d['close'] for _, d in self.items()]
+        avg_price_data = [d['avg'] if float(d['volume']) > 0 else d['close'] for _, d in self.items()]
         fast = ema(avg_price_data, self.n_short_ema)
         slow = ema(avg_price_data, self.n_long_ema)
         macd = fast - slow

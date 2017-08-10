@@ -2,6 +2,10 @@ import logging
 from contextlib import contextmanager
 from functools import partial
 
+import requests
+from requests.packages.urllib3.util.retry import Retry
+from requests.adapters import HTTPAdapter
+
 from cryptotrading.exchanges.errors import APIException, ServiceUnavailableException
 from cryptotrading.exchanges.kraken.api import KrakenAPI
 
@@ -18,12 +22,10 @@ currency_map = {
 def handle_api_exception():
     try:
         yield
-    except ServiceUnavailableException as e:
-        # TODO: retry
-        pass
     except APIException as e:
         log.exception('Kraken returned an error -- %s', str(e))
         raise
+
 
 class KrakenAPIAdapter(object):
     """ Adapter from the core Kraken API to the exchange API interface.
@@ -40,25 +42,46 @@ class KrakenAPIAdapter(object):
         else:
             self.api = KrakenAPI(key=key, secret=secret)
 
-        self.order_method = self._place_order_with_logging
         self.last_txs = {}
+        self._init_session()
 
-    def _place_order_with_logging(self, pair, buy_sell, order_type, volume, **kwargs):
+    def _init_session(self, max_retries=5, backoff_factor=0.5):
+        session = requests.Session()
+        retries = Retry(total=max_retries,
+                        backoff_factor=backoff_factor,
+                        status_forcelist=[ 500, 502, 503, 504 ])
+        session.mount('https://', HTTPAdapter(max_retries=retries))
+        self.session = session
+
+    @handle_api_exception()
+    def _place_order(self,
+                     order_type,
+                     base_currency,
+                     buy_sell,
+                     volume,
+                     quote_currency='USD',
+                     **kwargs):
+        """
+        """
+        pair = self._generate_currency_pair(base_currency, quote_currency)
+
+        with self.session as sess:
+            resp = self.api.add_standard_order(pair, buy_sell, order_type, volume, session=sess, **kwargs)
+
+        txid = resp['txid']
         order_data = {
+            'txid': txid,
             'pair': pair,
             'buy_sell': buy_sell,
             'order_type': order_type,
             'volume': volume
         }
         order_data.update(kwargs)
-
-        resp = self.api.add_standard_order(pair, buy_sell, order_type, volume, **kwargs)
-        txid = resp['txid']
-
         log.info('%s order placed: %s', order_type, txid, extra={
             'event_name': 'order_open',
             'event_data': order_data
         })
+
         return txid
 
     @classmethod
@@ -73,10 +96,6 @@ class KrakenAPIAdapter(object):
         resp = data_method(pair, since=since, **kwargs)
         self.last_txs[name] = resp['last']
         return resp[pair]
-
-    def _partial_order(self, base_currency, quote_currency, buy_sell):
-        pair = self._generate_currency_pair(base_currency, quote_currency)
-        return partial(self.order_method, pair, buy_sell)
 
     # Market Info
     @handle_api_exception()
@@ -113,7 +132,7 @@ class KrakenAPIAdapter(object):
             'high': highest price for the time period,
             'low': lowest price for the time period,
             'close': closing price for the time period,
-            'vwap': volume weighted average price,
+            'avg': volume weighted average price,
             'volume': ,
             'count': ,
         }
@@ -126,7 +145,7 @@ class KrakenAPIAdapter(object):
             'high': d[2],
             'low': d[3],
             'close': d[4],
-            'vwap': d[5],
+            'avg': d[5],
             'volume': d[6],
             'count': d[7]
         } for d in data]
@@ -154,52 +173,41 @@ class KrakenAPIAdapter(object):
         # TODO: Format order info consistently across exchanges
         return resp
 
+    def get_order_info(self, txid):
+        return self.get_orders_info([txid]).get(txid)
+
     # Orders
-    @handle_api_exception()
-    def market_order(self, base_currency, buy_sell, volume, quote_currency='USD'):
+    def market_order(self, base_currency, buy_sell, volume, **kwargs):
         """
         :returns: txid of the placed order
         """
-        order_fn = self._partial_order(base_currency, quote_currency, buy_sell)
-        return order_fn('market', volume)
+        return self._place_order('market', base_currency, buy_sell, volume, **kwargs)
 
-    @handle_api_exception()
-    def limit_order(self, base_currency, buy_sell, price, volume, quote_currency='USD'):
-        order_fn = self._partial_order(base_currency, quote_currency, buy_sell)
-        return order_fn('limit', volume, price=price)
+    def limit_order(self, base_currency, buy_sell, price, volume, **kwargs):
+        return self._place_order('limit', base_currency, buy_sell, volume, price=price, **kwargs)
 
-    @handle_api_exception()
-    def stop_loss_order(self, base_currency, buy_sell, price, volume, quote_currency='USD'):
-        order_fn = self._partial_order(base_currency, quote_currency, buy_sell)
-        return order_fn('stop-loss', volume, price=price)
+    def stop_loss_order(self, base_currency, buy_sell, price, volume, **kwargs):
+        return self._place_order('stop-loss', base_currency, buy_sell, volume, price=price, **kwargs)
 
-    @handle_api_exception()
-    def stop_loss_limit_order(self, base_currency, buy_sell, stop_loss_price, limit_price, volume,
-                              quote_currency='USD'):
-        order_fn = self._partial_order(base_currency, quote_currency, buy_sell)
-        return order_fn('stop-loss-limit', volume, price=stop_loss_price, price2=limit_price)
+    def stop_loss_limit_order(self, base_currency, buy_sell, stop_loss_price, limit_price, volume, **kwargs):
+        return self._place_order('stop-loss-limit', base_currency, buy_sell, volume, price=stop_loss_price,
+                                 price2=limit_price, **kwargs)
 
-    @handle_api_exception()
-    def take_profit_order(self, base_currency, buy_sell, price, volume, quote_currency='USD'):
-        order_fn = self._partial_order(base_currency, quote_currency, buy_sell)
-        return order_fn('take-profit', volume, price=price)
+    def take_profit_order(self, base_currency, buy_sell, price, volume, **kwargs):
+        return self._place_order('take-profit', base_currency, buy_sell, volume, price=price, **kwargs)
 
-    @handle_api_exception()
-    def take_profit_limit_order(self, base_currency, buy_sell, take_profit_price, limit_price, volume,
-                                quote_currency='USD'):
-        order_fn = self._partial_order(base_currency, quote_currency, buy_sell)
-        return order_fn('take-profit-limit', volume, price=take_profit_price, price2=limit_price)
+    def take_profit_limit_order(self, base_currency, buy_sell, take_profit_price, limit_price, volume, **kwargs):
+        return self._place_order('take-profit-limit', base_currency, buy_sell, volume,
+                                 price=take_profit_price, price2=limit_price, **kwargs)
 
-    @handle_api_exception()
-    def trailing_stop_order(self, base_currency, buy_sell, trailing_stop_offset, volume, quote_currency='USD'):
-        order_fn = self._partial_order(base_currency, quote_currency, buy_sell)
-        return order_fn('trailing-stop', volume, price=trailing_stop_offset)
+    def trailing_stop_order(self, base_currency, buy_sell, trailing_stop_offset, volume, **kwargs):
+        return self._place_order('trailing-stop', base_currency, buy_sell, volume,
+                                 price=trailing_stop_offset, **kwargs)
 
-    @handle_api_exception()
     def trailing_stop_limit_order(self, base_currency, buy_sell, trailing_stop_offset, limit_offset,
-                                  volume, quote_currency='USD'):
-        order_fn = self._partial_order(base_currency, quote_currency, buy_sell)
-        return order_fn('trailing-stop-limit', volume, price=trailing_stop_offset, price2=limit_offset)
+                                  volume, **kwargs):
+        return self._place_order('trailing-stop-limit', base_currency, buy_sell, volume,
+                                 price=trailing_stop_offset, price2=limit_offset, **kwargs)
 
     def cancel_order(self, order_id):
         log.info('Cancelling order %s', order_id,

@@ -11,13 +11,13 @@ class BaseStrategy(object):
 
     def __init__(self, base_currency, exchange, unit, quote_currency='USD', sleep_duration=(60, 120)):
         """
-
         """
         self.base_currency = base_currency
         self.quote_currency = quote_currency
         self.exchange = exchange
         self.unit = unit
         self.positions = []
+        self.indicators = {}
 
         if isinstance(sleep_duration, int):
             self.passive_sleep_duration = self.active_sleep_duration = sleep_duration
@@ -84,7 +84,7 @@ class BaseStrategy(object):
         order_open = True
         while order_open:
             time.sleep(sleep_inverval)
-            order_info = self.exchange.get_orders_info([txid]).get(txid)
+            order_info = self.exchange.get_order_info(txid)
             order_open = order_info['status'] not in ['closed', 'canceled', 'expired']
             if order_open:
                 log.info('Order %s still open', txid)
