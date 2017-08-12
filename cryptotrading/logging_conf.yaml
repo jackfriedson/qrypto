@@ -1,0 +1,44 @@
+version: 1
+disable_existing_loggers: False
+
+root:
+  level: NOTSET
+  handlers: [file]
+
+loggers:
+  cryptotrading.strategy:
+    level: INFO
+    handlers: [console]
+  cryptotrading.exchanges:
+    level: DEBUG
+    handlers: [file, order]
+
+formatters:
+  simple:
+    format: '%(asctime)s %(levelname)-8s %(message)s'
+    datefmt: '%m/%d/%Y %H:%M:%S'
+  detail:
+    format: '%(asctime)s %(levelname)-8s %(name)s : %(message)s'
+  order:
+    format: '%(asctime)s %(event_name)-12s %(event_data)s'
+
+handlers:
+  console:
+    class: logging.StreamHandler
+    formatter: simple
+    level: INFO
+    stream: ext://sys.stdout
+  file:
+    class: logging.handlers.TimedRotatingFileHandler
+    formatter: detail
+    level: DEBUG
+    when: midnight
+    # TODO: configure filepath to work on any machine
+    filename: '/Users/jackfriedson/dev/cryptotrading/logs/all.log'
+  order:
+    class: logging.handlers.TimedRotatingFileHandler
+    formatter: order
+    level: INFO
+    when: midnight
+    # TODO: configure filepath to work on any machine
+    filename: '/Users/jackfriedson/dev/cryptotrading/logs/orders.log'

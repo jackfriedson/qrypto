@@ -55,43 +55,7 @@ class BaseStrategy(object):
         raise NotImplementedError
 
     def cancel_all(self):
+        log.info('Cancelling remaining orders...')
         for txid in self.positions:
             self.exchange.cancel_order(txid)
             self.positions.remove(txid)
-
-    def any_orders_closed(self):
-        """ Checks if any open positions have been closed.
-
-        Returns true if any open positions are closed, canceled, or expired, and removes
-        those positions from the list.
-        """
-        orders = self.exchange.get_orders_info(self.positions)
-        for txid, order_info in orders.items():
-            status = order_info['status']
-            log.info('Order %s is %s', txid, status)
-
-            if status in ['closed', 'canceled', 'expired']:
-                log.info('Order %s closed at %s', txid, order_info['cost'],
-                         extra={
-                             'event_name': 'order_' + status,
-                             'event_data': order_info
-                         })
-                self.positions.remove(txid)
-                return True
-        return False
-
-    def wait_for_order_close(self, txid, sleep_inverval=2):
-        order_open = True
-        while order_open:
-            time.sleep(sleep_inverval)
-            order_info = self.exchange.get_order_info(txid)
-            order_open = order_info['status'] not in ['closed', 'canceled', 'expired']
-            if order_open:
-                log.info('Order %s still open', txid)
-
-        log.info('Order %s closed @ %s', txid, order_info['cost'],
-                 extra={
-                     'event_name': 'order_closed',
-                     'event_data': order_info
-                 })
-        return order_info

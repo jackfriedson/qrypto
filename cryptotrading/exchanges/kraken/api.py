@@ -71,7 +71,7 @@ class KrakenAPI(object):
         if call_count_difference > 0:
             time.sleep((call_count_difference + 1) * decrement_freq)
 
-        session = kwargs.pop('session', requests.Session())
+        session = kwargs.get('session', requests.Session())
         resp = session.request(method, url, headers=headers, params=params, data=data)
         resp.raise_for_status()
         resp_content = resp.json()

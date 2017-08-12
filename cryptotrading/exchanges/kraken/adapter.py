@@ -45,12 +45,14 @@ class KrakenAPIAdapter(object):
         self.last_txs = {}
         self._init_session()
 
-    def _init_session(self, max_retries=5, backoff_factor=0.5):
+    def _init_session(self, max_retries=6, backoff_factor=0.5):
         session = requests.Session()
         retries = Retry(total=max_retries,
                         backoff_factor=backoff_factor,
-                        status_forcelist=[ 500, 502, 503, 504 ])
-        session.mount('https://', HTTPAdapter(max_retries=retries))
+                        status_forcelist=(500, 502, 503, 504))
+        adapter = HTTPAdapter(max_retries=retries)
+        session.mount('http://', adapter)
+        session.mount('https://', adapter)
         self.session = session
 
     @handle_api_exception()
@@ -72,7 +74,7 @@ class KrakenAPIAdapter(object):
         order_data = {
             'txid': txid,
             'pair': pair,
-            'buy_sell': buy_sell,
+            'type': buy_sell,
             'order_type': order_type,
             'volume': volume
         }
@@ -170,8 +172,27 @@ class KrakenAPIAdapter(object):
         txid_string = ','.join(txids)
         resp = self.api.query_orders_info(txid_string)
 
-        # TODO: Format order info consistently across exchanges
-        return resp
+        result = {}
+        for txid, info in resp.items():
+            order_info = {
+                'txid': txid,
+                'status': info['status'],
+                'cost': info['cost'],
+                'price': info['price'],
+                'volume': info['vol'],
+                'fee': info['fee']
+            }
+            result[txid] = order_info
+
+            # Log order close
+            status = info['status']
+            if status in ['closed', 'canceled', 'expired']:
+                log.info('Got info on order %s', txid, extra={
+                    'event_name': 'order_' + status,
+                    'event_data': order_info
+                })
+
+        return result
 
     def get_order_info(self, txid):
         return self.get_orders_info([txid]).get(txid)
@@ -210,9 +231,4 @@ class KrakenAPIAdapter(object):
                                  price=trailing_stop_offset, price2=limit_offset, **kwargs)
 
     def cancel_order(self, order_id):
-        log.info('Cancelling order %s', order_id,
-                 extra={
-                     'event_name': 'cancel_order',
-                     'event_data': {'order_id': order_id}
-                 })
         self.api.cancel_open_order(txid=order_id)
