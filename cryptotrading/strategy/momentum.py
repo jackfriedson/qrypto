@@ -63,52 +63,31 @@ class TakeProfitMomentumStrategy(BaseStrategy):
                  extra={'price': last, 'macd': self.indicators['macd']})
 
     def should_open(self):
-        result = self.indicators['macd'] >= self.macd_threshold
-        if result:
-            log.info('Opening position...')
-        return result
+        return self.indicators['macd'] >= self.macd_threshold
 
     def should_close(self):
         return self.any_orders_closed()
 
     def open_position(self):
+        log.info('Opening position...')
         txids = self.exchange.market_order(self.base_currency, 'buy', self.unit)
         market_order_info = self.wait_for_order_close(txids[0])
-        market_price = float(market_order_info['price'])
-
+        open_price = float(market_order_info['price'])
         take_profit_ids = self.exchange.take_profit_limit_order(self.base_currency, 'sell',
-                                                                self.take_profit_trigger(market_price),
-                                                                self.take_profit_limit(market_price),
+                                                                self.take_profit_trigger(open_price),
+                                                                self.take_profit_limit(open_price),
                                                                 self.unit)
         stop_loss_ids = self.exchange.stop_loss_limit_order(self.base_currency, 'sell',
-                                                            self.stop_loss_trigger(market_price),
-                                                            self.stop_loss_limit(market_price), self.unit)
-        self.positions.extend(take_profit_ids + stop_loss_ids)
-
+                                                            self.stop_loss_trigger(open_price),
+                                                            self.stop_loss_limit(open_price), self.unit)
+        self.position = {
+            'open': open_price,
+            'orders': take_profit_ids + stop_loss_ids
+        }
         log.info('Position opened: Bought @ {:.2f}; Selling @ {:.2f} or {:.2f}'.format(
-            market_price, self.take_profit_trigger(market_price), self.stop_loss_trigger(market_price)))
+            open_price, self.take_profit_trigger(open_price), self.stop_loss_trigger(open_price)))
 
     def close_position(self):
+        log.info('Closing position...')
         self.cancel_all()
-
-    def any_orders_closed(self):
-        """ Checks if any open positions have been closed.
-
-        Returns true if any open positions are closed, canceled, or expired, and removes
-        those positions from the list.
-        """
-        orders = self.exchange.get_orders_info(self.positions)
-        for txid, order_info in orders.items():
-            if order_info['status'] == 'closed':
-                log.info('Position closed at %s', order_info['cost'])
-                self.positions.remove(txid)
-                return True
-        return False
-
-    def wait_for_order_close(self, txid, sleep_inverval=2):
-        order_open = True
-        while order_open:
-            time.sleep(sleep_inverval)
-            order_info = self.exchange.get_order_info(txid)
-            order_open = order_info['status'] not in ['closed', 'canceled', 'expired']
-        return order_info
+        self.position = None

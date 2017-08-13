@@ -16,7 +16,7 @@ class BaseStrategy(object):
         self.quote_currency = quote_currency
         self.exchange = exchange
         self.unit = unit
-        self.positions = []
+        self.position = None
         self.indicators = {}
 
         if isinstance(sleep_duration, int):
@@ -28,7 +28,7 @@ class BaseStrategy(object):
         while True:
             self.update()
 
-            if not self.positions:
+            if not self.position:
                 if self.should_open():
                     self.open_position()
                 else:
@@ -55,7 +55,28 @@ class BaseStrategy(object):
         raise NotImplementedError
 
     def cancel_all(self):
-        log.info('Cancelling remaining orders...')
-        for txid in self.positions:
+        for txid in self.position['orders']:
             self.exchange.cancel_order(txid)
-            self.positions.remove(txid)
+            self.position['orders'].remove(txid)
+
+    def any_orders_closed(self):
+        """ Checks if any open positions have been closed.
+
+        Returns true if any open positions are closed, canceled, or expired, and removes
+        those positions from the list.
+        """
+        orders = self.exchange.get_orders_info(self.position['orders'])
+        for txid, order_info in orders.items():
+            if order_info['status'] == 'closed':
+                log.info('Order %s closed at %s', txid, order_info['cost'])
+                self.position['orders'].remove(txid)
+                return True
+        return False
+
+    def wait_for_order_close(self, txid, sleep_inverval=2):
+        order_open = True
+        while order_open:
+            time.sleep(sleep_inverval)
+            order_info = self.exchange.get_order_info(txid)
+            order_open = order_info['status'] not in ['closed', 'canceled', 'expired']
+        return order_info

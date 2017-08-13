@@ -58,7 +58,7 @@ class KrakenAPI(object):
 
         return self._call_counter
 
-    @retry_on_exception([ServiceUnavailableException])
+    @retry_on_exception(ServiceUnavailableException)
     @retry_on_status_code([500, 502, 503, 504])
     def _call(self, method, url, headers=None, params=None, data=None):
         headers = headers or {}
