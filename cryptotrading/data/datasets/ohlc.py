@@ -1,5 +1,8 @@
 from collections import OrderedDict
 
+import numpy as np
+
+
 class OHLCDataset(OrderedDict):
 
     def __init__(self, *args, **kwargs):
@@ -19,5 +22,22 @@ class OHLCDataset(OrderedDict):
             self[entry.get('time')] = entry
         self.last_timestamp = list(self.keys())[-1]
 
-    def last_price(self):
+    @property
+    def last(self):
         return self[self.last_timestamp].get('close')
+
+    @property
+    def open(self):
+        return np.asarray([d['open'] for d in self.values()], dtype=float)
+
+    @property
+    def close(self):
+        return np.asarray([d['close'] for d in self.values()], dtype=float)
+
+    @property
+    def high(self):
+        return np.asarray([d['high'] for d in self.values()], dtype=float)
+
+    @property
+    def low(self):
+        return np.asarray([d['low'] for d in self.values()], dtype=float)

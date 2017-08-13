@@ -18,7 +18,10 @@ def handle_api_exception():
     try:
         yield
     except APIException as e:
-        log.exception('Kraken returned an error -- %s', str(e))
+        log.exception('Kraken returned an error -- %s', str(e), extra={
+            'event_name': 'kraken_error',
+            'event_data': {}
+        })
         raise
 
 
@@ -47,8 +50,9 @@ class KrakenAPIAdapter(object):
                      **kwargs):
         """
         """
+
         pair = self._generate_currency_pair(base_currency, quote_currency)
-        resp = self.api.add_standard_order(pair, buy_sell, order_type, volume)
+        resp = self.api.add_standard_order(pair, buy_sell, order_type, volume, **kwargs)
 
         txid = resp['txid']
         order_data = {

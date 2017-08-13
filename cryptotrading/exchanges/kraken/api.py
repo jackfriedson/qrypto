@@ -9,10 +9,9 @@ import time
 import urllib.parse
 
 import requests
-from requests.packages.urllib3.util.retry import Retry
-from requests.adapters import HTTPAdapter
 
 from cryptotrading.exchanges.errors import APIException, AuthorizationException, ServiceUnavailableException
+from cryptotrading.exchanges.utils import retry_on_exception, retry_on_status_code
 
 
 base_url = 'https://api.kraken.com'
@@ -59,6 +58,8 @@ class KrakenAPI(object):
 
         return self._call_counter
 
+    @retry_on_exception([ServiceUnavailableException])
+    @retry_on_status_code([500, 502, 503, 504])
     def _call(self, method, url, headers=None, params=None, data=None):
         headers = headers or {}
         params = params or {}
@@ -68,31 +69,22 @@ class KrakenAPI(object):
         if call_count_difference > 0:
             time.sleep((call_count_difference + 1) * decrement_freq)
 
-        session = requests.Session()
-        retries = Retry(total=5,
-                        backoff_factor=0.5,
-                        status_forcelist=(500, 502, 503, 504))
-        adapter = HTTPAdapter(max_retries=retries)
-        session.mount('http://', adapter)
-        session.mount('https://', adapter)
+        resp = requests.request(method, url, headers=headers, params=params, data=data)
 
-        with session as sess:
-            resp = sess.request(method, url, headers=headers, params=params, data=data)
-        resp.raise_for_status()
-        resp_content = resp.json()
-
-        errors = resp_content.get('error')
+        errors = resp.json().get('error')
         if errors:
             for error in errors:
                 if error == 'EService:Unavailable':
                     raise ServiceUnavailableException()
             raise APIException(str(errors))
 
-        return resp_content.get('result')
+        return resp
 
     def _call_public(self, endpoint, params=None):
         url = base_url + '/' + api_version + '/public/' + endpoint
-        return self._call('GET', url, params=params)
+        resp = self._call('GET', url, params=params)
+        resp.raise_for_status()
+        return resp.json().get('result')
 
     def _call_private(self, endpoint, data=None, inc_call_count=1):
         """ Send a POST request to one of Kraken's private endpoints.
@@ -127,12 +119,13 @@ class KrakenAPI(object):
             'API-Sign': sigdigest.decode()
         }
 
-        result = self._call('POST', url, data=data, headers=headers)
+        resp = self._call('POST', url, data=data, headers=headers)
+        resp.raise_for_status()
 
         if inc_call_count:
             self._increment_call_count(value=inc_call_count)
 
-        return result
+        return resp.json().get('result')
 
     @classmethod
     def _create_dict_from_args(cls, **kwargs):

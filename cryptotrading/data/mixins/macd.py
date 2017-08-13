@@ -1,27 +1,19 @@
-from cryptotrading.data.utils import ema
+import numpy as np
+import talib
 
 class MACDMixin(object):
 
-    # TODO: Cache MACD data instead of recomputing every time
-
     def __init__(self, *args, **kwargs):
-        """
-        :param macd_values:
-        :type macd_values: tuple
-        """
-        self.n_short_ema, self.n_long_ema, self.n_signal_ema = kwargs.pop('macd_values')
+        self.fast, self.slow, self.signal = kwargs.pop('macd')
         super(MACDMixin, self).__init__(*args, **kwargs)
 
     def macd(self):
-        """
-        :returns: [(macd, signal), ...]
-        """
-        # TODO: Limit amount of history data in MACD calculation
+        return talib.MACD(self.close, fastperiod=self.fast, slowperiod=self.slow,
+                          signalperiod=self.signal)
 
-        # Default to close value if no trades for that period
-        avg_price_data = [d['avg'] if float(d['volume']) > 0 else d['close'] for _, d in self.items()]
-        fast = ema(avg_price_data, self.n_short_ema)
-        slow = ema(avg_price_data, self.n_long_ema)
-        macd = fast - slow
-        signal = ema(macd, self.n_signal_ema)
-        return list(zip(macd, signal))
+    def macd_slope(self, n=3):
+        _, _, macdhist = self.macd()
+        x = np.arange(float(n))
+        y = macdhist[:-n]
+        line = np.polyfit(x, y, 1, full=True)
+        return line[0][0]

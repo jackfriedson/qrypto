@@ -24,7 +24,8 @@ class TakeProfitMomentumStrategy(BaseStrategy):
                  stop_loss,
                  buffer_percent=0.0025,
                  quote_currency='USD',
-                 sleep_duration=(15, 30),
+                 ohlc_interval=1,
+                 sleep_duration=(30, 60),
                  macd=(10, 26, 9)):
         """
         :param base_currency:
@@ -39,6 +40,7 @@ class TakeProfitMomentumStrategy(BaseStrategy):
         """
         super(TakeProfitMomentumStrategy, self).__init__(base_currency, exchange, unit, quote_currency,
                                                          sleep_duration)
+        self.ohlc_interval = ohlc_interval
 
         self.macd_threshold = macd_threshold
         self.take_profit_trigger = lambda p: p * (1. + target_profit)
@@ -46,24 +48,21 @@ class TakeProfitMomentumStrategy(BaseStrategy):
         self.stop_loss_trigger = lambda p: p * (1. - stop_loss)
         self.stop_loss_limit = lambda p: p * (1. - (stop_loss + buffer_percent))
 
-        self.data = _Dataset(macd_values=macd)
+        self.data = _Dataset(macd=macd)
 
     def update(self):
         # Get data from exchange
-        new_data = self.exchange.recent_ohlc(self.base_currency, self.quote_currency)
+        new_data = self.exchange.recent_ohlc(self.base_currency, self.quote_currency,
+                                             interval=self.ohlc_interval)
         self.data.add_all(new_data)
+        _, _, macdhist = self.data.macd()
+        self.indicators['macd'] = macdhist[-1]
+        last = self.data.last
 
-        # Calculate MACD
-        macd_history = self.data.macd()
-        last_macd, signal = macd_history[-1]
-        self.indicators['macd'] = last_macd - signal
-        last_price = self.data.last_price()
-
-        log.info('{}; {:.2f}'.format(last_price, self.indicators['macd']),
-                 extra={'price': last_price, 'macd': self.indicators['macd']})
+        log.info('{}; {:.2f}'.format(last, self.indicators['macd']),
+                 extra={'price': last, 'macd': self.indicators['macd']})
 
     def should_open(self):
-        # TODO: Account for slope of increasing MACD
         result = self.indicators['macd'] >= self.macd_threshold
         if result:
             log.info('Opening position...')
