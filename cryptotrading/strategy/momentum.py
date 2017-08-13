@@ -86,8 +86,8 @@ class TakeProfitMomentumStrategy(BaseStrategy):
                                                             self.stop_loss_limit(market_price), self.unit)
         self.positions.extend(take_profit_ids + stop_loss_ids)
 
-        log.info('Position opened: Bought @ %f; Selling @ %f or %f',
-                 market_price, self.take_profit_trigger(market_price), self.stop_loss_trigger(market_price))
+        log.info('Position opened: Bought @ {:.2f}; Selling @ {:.2f} or {:.2f}'.format(
+            market_price, self.take_profit_trigger(market_price), self.stop_loss_trigger(market_price)))
 
     def close_position(self):
         self.cancel_all()

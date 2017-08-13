@@ -24,10 +24,12 @@ config = {
 
 @click.command()
 def cli():
-    with open(LOG_CONFIG, 'rt') as f:
-        log_config = yaml.safe_load(f.read())
-        dictConfig(log_config)
-
+    configure_logging()
     kraken = Kraken(key_path=API_KEY)
     strategy = TakeProfitMomentumStrategy('ETH', kraken, **config)
     strategy.run()
+
+def configure_logging():
+    with open(LOG_CONFIG, 'rt') as f:
+        log_config = yaml.safe_load(f.read())
+        dictConfig(log_config)

@@ -9,6 +9,8 @@ import time
 import urllib.parse
 
 import requests
+from requests.packages.urllib3.util.retry import Retry
+from requests.adapters import HTTPAdapter
 
 from cryptotrading.exchanges.errors import APIException, AuthorizationException, ServiceUnavailableException
 
@@ -57,22 +59,25 @@ class KrakenAPI(object):
 
         return self._call_counter
 
-    def _call(self, method, url, headers=None, params=None, data=None, *args, **kwargs):
-        if headers is None:
-            headers = {}
-
-        if params is None:
-            params = {}
-
-        if data is None:
-            data = {}
+    def _call(self, method, url, headers=None, params=None, data=None):
+        headers = headers or {}
+        params = params or {}
+        data = data or {}
 
         call_count_difference = self.call_count - max_call_count
         if call_count_difference > 0:
             time.sleep((call_count_difference + 1) * decrement_freq)
 
-        session = kwargs.get('session', requests.Session())
-        resp = session.request(method, url, headers=headers, params=params, data=data)
+        session = requests.Session()
+        retries = Retry(total=5,
+                        backoff_factor=0.5,
+                        status_forcelist=(500, 502, 503, 504))
+        adapter = HTTPAdapter(max_retries=retries)
+        session.mount('http://', adapter)
+        session.mount('https://', adapter)
+
+        with session as sess:
+            resp = sess.request(method, url, headers=headers, params=params, data=data)
         resp.raise_for_status()
         resp_content = resp.json()
 
@@ -85,11 +90,11 @@ class KrakenAPI(object):
 
         return resp_content.get('result')
 
-    def _call_public(self, endpoint, params=None, *args, **kwargs):
+    def _call_public(self, endpoint, params=None):
         url = base_url + '/' + api_version + '/public/' + endpoint
-        return self._call('GET', url, params=params, *args, **kwargs)
+        return self._call('GET', url, params=params)
 
-    def _call_private(self, endpoint, data=None, inc_call_count=1, *args, **kwargs):
+    def _call_private(self, endpoint, data=None, inc_call_count=1):
         """ Send a POST request to one of Kraken's private endpoints.
 
         Requires a valid API Key and API secret to be set.
@@ -122,14 +127,15 @@ class KrakenAPI(object):
             'API-Sign': sigdigest.decode()
         }
 
-        result = self._call('POST', url, data=data, headers=headers, *args, **kwargs)
+        result = self._call('POST', url, data=data, headers=headers)
 
         if inc_call_count:
             self._increment_call_count(value=inc_call_count)
 
         return result
 
-    def _create_dict_from_args(self, **kwargs):
+    @classmethod
+    def _create_dict_from_args(cls, **kwargs):
         return {k: v for k, v in kwargs.items() if v is not None}
 
     #####################################################
@@ -138,16 +144,16 @@ class KrakenAPI(object):
     def get_server_time(self):
         return self._call_public('Time')
 
-    def get_asset_info(self, info=None, aclass=None, asset=None, *args, **kwargs):
+    def get_asset_info(self, info=None, aclass=None, asset=None):
         """
         :param info: info to retrieve
         :param aclass: asset class
         :param asset: comma delimited list of assets to get info on
         """
         params = self._create_dict_from_args(info=info, aclass=aclass, asset=asset)
-        return self._call_public('Assets', params=params, *args, **kwargs)
+        return self._call_public('Assets', params=params)
 
-    def get_tradable_asset_pairs(self, info=None, pair=None, *args, **kwargs):
+    def get_tradable_asset_pairs(self, info=None, pair=None):
         """
         :param info: info to retrieve:
                      'info' = all info (default)
@@ -157,16 +163,16 @@ class KrakenAPI(object):
         :param pair: comma delimited list of asset pairs to get info on
         """
         params = self._create_dict_from_args(info=info, pair=pair)
-        return self._call_public('AssetPairs', params=params, *args, **kwargs)
+        return self._call_public('AssetPairs', params=params)
 
-    def get_ticker_info(self, pair, *args, **kwargs):
+    def get_ticker_info(self, pair):
         """
         :param pair: comma delimited list of asset pairs to get info on
         """
         params = self._create_dict_from_args(pair=pair)
-        return self._call_public('Ticker', params=params, *args, **kwargs)
+        return self._call_public('Ticker', params=params)
 
-    def get_OHLC_data(self, pair, interval=None, since=None, *args, **kwargs):
+    def get_OHLC_data(self, pair, interval=None, since=None):
         """
         :param pair: asset pair to get OHLC data for
         :param interval: time frame interval in minutes:
@@ -174,55 +180,55 @@ class KrakenAPI(object):
         :param since: return committed OHLC data since given id (exclusive)
         """
         params = self._create_dict_from_args(pair=pair, interval=interval, since=since)
-        return self._call_public('OHLC', params=params, *args, **kwargs)
+        return self._call_public('OHLC', params=params)
 
-    def get_order_book(self, pair, count=None, *args, **kwargs):
+    def get_order_book(self, pair, count=None):
         """
         :param pair: asset pair to get market depth for
         :param count: maximum number of asks/bids
         """
         params = self._create_dict_from_args(pair=pair, count=count)
-        return self._call_public('Depth', params=params, *args, **kwargs)
+        return self._call_public('Depth', params=params)
 
-    def get_recent_trades(self, pair, since=None, *args, **kwargs):
+    def get_recent_trades(self, pair, since=None):
         """
         :param pair: asset pair to get trade data for
         :param since: return trade data since given id (exclusive)
         """
         params = self._create_dict_from_args(pair=pair, since=since)
-        return self._call_public('Trades', params=params, *args, **kwargs)
+        return self._call_public('Trades', params=params)
 
-    def get_recent_spread_data(self, pair, since=None, *args, **kwargs):
+    def get_recent_spread_data(self, pair, since=None):
         """
         :param pair: aasset pair to get spread data for
         :param since: return spread data since given id (inclusive)
         """
         params = self._create_dict_from_args(pair=pair, since=since)
-        return self._call_public('Spread', params=params, *args, **kwargs)
+        return self._call_public('Spread', params=params)
 
     #####################################################
     #                  Private Methods                  #
     #####################################################
-    def get_account_balance(self, *args, **kwargs):
-        return self._call_private('Balance', *args, **kwargs)
+    def get_account_balance(self):
+        return self._call_private('Balance')
 
-    def get_trade_balance(self, aclass=None, asset=None, *args, **kwargs):
+    def get_trade_balance(self, aclass=None, asset=None):
         """
         :param aclass: asset class (default = currency)
         :param asset: base asset used to determine balance (default = ZUSD)
         """
         data = self._create_dict_from_args(aclass=aclass, asset=asset)
-        return self._call_private('TradeBalance', data=data, *args, **kwargs)
+        return self._call_private('TradeBalance', data=data)
 
-    def get_open_orders(self, trades=False, userref=None, *args, **kwargs):
+    def get_open_orders(self, trades=False, userref=None):
         """
         :param trades: whether or not to include trades in output (default = false)
         :param userref: restrict results to given user reference id
         """
         data = self._create_dict_from_args(trades=str(trades).lower(), userref=userref)
-        return self._call_private('OpenOrders', data=data, *args, **kwargs)
+        return self._call_private('OpenOrders', data=data)
 
-    def get_closed_orders(self, trades=False, userref=None, start=None, end=None, closetime=None, ofs=None, *args, **kwargs):
+    def get_closed_orders(self, trades=False, userref=None, start=None, end=None, closetime=None, ofs=None):
         """
         :param trades: whether or not to include trades in output
         :param userref: restrict results to given user reference id
@@ -236,18 +242,18 @@ class KrakenAPI(object):
         """
         data = self._create_dict_from_args(trades=str(trades).lower(), userref=userref,
                                            start=start, end=end, closetime=closetime, ofs=ofs)
-        return self._call_private('ClosedOrders', data=data, *args, **kwargs)
+        return self._call_private('ClosedOrders', data=data)
 
-    def query_orders_info(self, txid, trades=False, userref=None, *args, **kwargs):
+    def query_orders_info(self, txid, trades=False, userref=None):
         """
         :param txid: comma delimited list of transaction ids to query info about (20 maximum)
         :param trades: whether or not to include trades in output (default = false)
         :param userref: restrict results to given user reference id
         """
         data = self._create_dict_from_args(txid=txid, trades=str(trades).lower(), userref=userref)
-        return self._call_private('QueryOrders', data=data, *args, **kwargs)
+        return self._call_private('QueryOrders', data=data)
 
-    def get_trades_history(self, type=None, trades=False, start=None, end=None, ofs=None, *args, **kwargs):
+    def get_trades_history(self, type=None, trades=False, start=None, end=None, ofs=None):
         """
         :param type: type of trade:
                      all = all types (default)
@@ -261,25 +267,25 @@ class KrakenAPI(object):
         """
         data = self._create_dict_from_args(type=type, trades=str(trades).lower(), start=start, end=end,
                                            ofs=ofs)
-        return self._call_private('TradesHistory', data=data, inc_call_count=2, *args, **kwargs)
+        return self._call_private('TradesHistory', data=data, inc_call_count=2)
 
-    def query_trades_info(self, txid, trades=False, *args, **kwargs):
+    def query_trades_info(self, txid, trades=False):
         """
         :param txid: comma delimited list of transaction ids to query info about (20 maximum)
         :param trades: whether or not to include trades related to position in output
         """
         data = self._create_dict_from_args(txid=txid, trades=str(trades).lower())
-        return self._call_private('QueryTrades', data=data, inc_call_count=2, *args, **kwargs)
+        return self._call_private('QueryTrades', data=data, inc_call_count=2)
 
-    def get_open_positions(self, txid, docalcs=False, *args, **kwargs):
+    def get_open_positions(self, txid, docalcs=False):
         """
         :param txid: comma delimited list of transaction ids to restrict output to
         :param docalcs: whether or not to include profit/loss calculations (default = false)
         """
         data = self._create_dict_from_args(txid=txid, docalcs=docalcs)
-        return self._call_private('OpenPositions', data=data, *args, **kwargs)
+        return self._call_private('OpenPositions', data=data)
 
-    def get_ledgers_info(self, aclass=None, asset=None, type=None, start=None, end=None, ofs=None, *args, **kwargs):
+    def get_ledgers_info(self, aclass=None, asset=None, type=None, start=None, end=None, ofs=None):
         """
         :param aclass: asset class (default = currency)
         :param asset: comma delimited list of assets to restrict output to (default = all)
@@ -295,27 +301,27 @@ class KrakenAPI(object):
         """
         data = self._create_dict_from_args(aclass=aclass, asset=asset, type=type, start=start,
                                            end=end, ofs=ofs)
-        return self._call_private('Ledgers', data=data, inc_call_count=2, *args, **kwargs)
+        return self._call_private('Ledgers', data=data, inc_call_count=2)
 
-    def query_ledgers(self, id, *args, **kwargs):
+    def query_ledgers(self, id):
         """
         :param id: comma delimited list of ledger ids to query info about (20 maximum)
         """
         data = self._create_dict_from_args(id=id)
-        return self._call_private('QueryLedgers', data=data, inc_call_count=2, *args, **kwargs)
+        return self._call_private('QueryLedgers', data=data, inc_call_count=2)
 
-    def get_trade_volume(self, pair=None, fee_info=False, *args, **kwargs):
+    def get_trade_volume(self, pair=None, fee_info=False):
         """
         :param pair: comma delimited list of asset pairs to get fee info on
         :param fee_info: whether or not to include fee info in results
         """
         data = self._create_dict_from_args(pair=pair)
         data['fee-info'] = str(fee_info).lower()
-        return self._call_private('TradeVolume', data=data, *args, **kwargs)
+        return self._call_private('TradeVolume', data=data)
 
     def add_standard_order(self, pair, type, ordertype, volume, price=None, price2=None,
                            leverage=None, oflags=None, starttm=None, expiretm=None, userref=None,
-                           validate=None, close=None, *args, **kwargs):
+                           validate=None, close=None):
         """
         :param pair: asset pair
         :param type: type of order (buy/sell)
@@ -362,11 +368,11 @@ class KrakenAPI(object):
                                            price=price, price2=price2, leverage=leverage, oflags=oflags,
                                            starttm=starttm, expiretm=expiretm, userref=userref,
                                            validate=validate, close=close)
-        return self._call_private('AddOrder', data=data, inc_call_count=0, *args, **kwargs)
+        return self._call_private('AddOrder', data=data, inc_call_count=0)
 
-    def cancel_open_order(self, txid, *args, **kwargs):
+    def cancel_open_order(self, txid):
         """
         :param txid: transaction id
         """
         data = self._create_dict_from_args(txid=txid)
-        return self._call_private('CancelOrder', data=data, inc_call_count=0, *args, **kwargs)
+        return self._call_private('CancelOrder', data=data, inc_call_count=0)

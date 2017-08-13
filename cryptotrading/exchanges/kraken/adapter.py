@@ -1,12 +1,7 @@
 import logging
 from contextlib import contextmanager
-from functools import partial
 
-import requests
-from requests.packages.urllib3.util.retry import Retry
-from requests.adapters import HTTPAdapter
-
-from cryptotrading.exchanges.errors import APIException, ServiceUnavailableException
+from cryptotrading.exchanges.errors import APIException
 from cryptotrading.exchanges.kraken.api import KrakenAPI
 
 log = logging.getLogger(__name__)
@@ -31,8 +26,6 @@ class KrakenAPIAdapter(object):
     """ Adapter from the core Kraken API to the exchange API interface.
     """
 
-    # TODO: Add session functionality (reuse existing HTTP connection)
-
     def __init__(self, api=None, key=None, secret=None, key_path=None):
         if api and issubclass(api, KrakenAPI):
             self.api = api
@@ -43,17 +36,6 @@ class KrakenAPIAdapter(object):
             self.api = KrakenAPI(key=key, secret=secret)
 
         self.last_txs = {}
-        self._init_session()
-
-    def _init_session(self, max_retries=6, backoff_factor=0.5):
-        session = requests.Session()
-        retries = Retry(total=max_retries,
-                        backoff_factor=backoff_factor,
-                        status_forcelist=(500, 502, 503, 504))
-        adapter = HTTPAdapter(max_retries=retries)
-        session.mount('http://', adapter)
-        session.mount('https://', adapter)
-        self.session = session
 
     @handle_api_exception()
     def _place_order(self,
@@ -66,9 +48,7 @@ class KrakenAPIAdapter(object):
         """
         """
         pair = self._generate_currency_pair(base_currency, quote_currency)
-
-        with self.session as sess:
-            resp = self.api.add_standard_order(pair, buy_sell, order_type, volume, session=sess, **kwargs)
+        resp = self.api.add_standard_order(pair, buy_sell, order_type, volume)
 
         txid = resp['txid']
         order_data = {
@@ -231,4 +211,8 @@ class KrakenAPIAdapter(object):
                                  price=trailing_stop_offset, price2=limit_offset, **kwargs)
 
     def cancel_order(self, order_id):
-        self.api.cancel_open_order(txid=order_id)
+        resp = self.api.cancel_open_order(txid=order_id)
+        log.info('Canceled order %s', order_id, extra={
+            'event_name': 'cancel_order',
+            'event_data': resp
+        })

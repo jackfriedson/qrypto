@@ -1,5 +1,10 @@
+from cryptotrading.data.datasets import OHLCDataset
+from cryptotrading.strategy import BaseStrategy
 
-from cryptotrading.strategy.base import BaseStrategy
+
+class _Dataset(OHLCDataset):
+    pass
+
 
 class FollowStrategy(BaseStrategy):
 
@@ -9,8 +14,11 @@ class FollowStrategy(BaseStrategy):
                                              sleep_duration=sleep_duration)
         self.follow_currency = follow_currency
 
+        self.data = _Dataset()
+
     def update(self):
-        pass
+        new_data = self.exchange.recent_ohlc(self.base_currency, self.quote_currency)
+        self.data.add_all(new_data)
 
     def check_condition(self):
         pass

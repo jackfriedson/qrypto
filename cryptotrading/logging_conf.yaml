@@ -20,7 +20,7 @@ formatters:
   detail:
     format: '%(asctime)s %(levelname)-8s %(name)s : %(message)s'
   order:
-    format: '%(asctime)s %(event_name)-12s %(event_data)s'
+    format: '%(asctime)s | %(event_name)-15s | %(event_data)s'
 
 handlers:
   console:
