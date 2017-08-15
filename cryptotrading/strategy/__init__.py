@@ -1,3 +1,4 @@
 from cryptotrading.strategy.base import BaseStrategy
 from cryptotrading.strategy.follow import FollowStrategy
 from cryptotrading.strategy.momentum import TakeProfitMomentumStrategy
+from cryptotrading.strategy.mfi_momentum import MFIMomentumStrategy

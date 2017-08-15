@@ -72,7 +72,7 @@ class TakeProfitMomentumStrategy(BaseStrategy):
         log.info('Opening position...')
         txids = self.exchange.market_order(self.base_currency, 'buy', self.unit)
         market_order_info = self.wait_for_order_close(txids[0])
-        open_price = float(market_order_info['price'])
+        open_price = market_order_info['price']
         take_profit_ids = self.exchange.take_profit_limit_order(self.base_currency, 'sell',
                                                                 self.take_profit_trigger(open_price),
                                                                 self.take_profit_limit(open_price),

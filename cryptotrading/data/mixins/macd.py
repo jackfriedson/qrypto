@@ -14,6 +14,6 @@ class MACDMixin(object):
     def macd_slope(self, n=3):
         _, _, macdhist = self.macd()
         x = np.arange(float(n))
-        y = macdhist[:-n]
+        y = macdhist[-n:]
         line = np.polyfit(x, y, 1, full=True)
         return line[0][0]

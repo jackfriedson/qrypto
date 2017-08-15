@@ -5,7 +5,7 @@ import click
 import yaml
 
 from cryptotrading.exchanges import Kraken
-from cryptotrading.strategy.momentum import TakeProfitMomentumStrategy
+from cryptotrading.strategy import TakeProfitMomentumStrategy, MFIMomentumStrategy
 
 
 API_KEY = os.path.expanduser('~/.kraken_api_key')
@@ -26,18 +26,35 @@ tpm_config = {
 mfi_config = {
     'unit': 0.02,
     'ohlc_interval': 60,
-    'sleep_duration': 30*60
+    'mfi': (14, 70, 30),
+    'sleep_duration': 15*60
 }
 
-
-@click.command()
-def cli():
-    configure_logging()
-    kraken = Kraken(key_path=API_KEY)
-    strategy = TakeProfitMomentumStrategy('ETH', kraken, **tpm_config)
-    strategy.run()
 
 def configure_logging():
     with open(LOG_CONFIG, 'rt') as f:
         log_config = yaml.safe_load(f.read())
         dictConfig(log_config)
+
+
+@click.group()
+@click.pass_context
+def cli(ctx):
+    configure_logging()
+    ctx.obj = {'exchange': Kraken(key_path=API_KEY)}
+
+
+@cli.command()
+@click.pass_context
+def mfimomentum(ctx):
+    exchange = ctx.obj.get('exchange')
+    strategy = MFIMomentumStrategy('ETH', exchange, **mfi_config)
+    strategy.run()
+
+
+@cli.command()
+@click.pass_context
+def simplemomentum(ctx):
+    exchange = ctx.obj.get('exchange')
+    strategy = TakeProfitMomentumStrategy('ETH', exchange, **tpm_config)
+    strategy.run()

@@ -47,7 +47,7 @@ class MFIMomentumStrategy(BaseStrategy):
         self.data.add_all(new_data)
         self.indicators['macd_slope'] = self.data.macd_slope()
 
-        mfi = self.data.mfi()
+        mfi = self.data.mfi()[-1]
         if not self.last_timestamp or self.data.last_timestamp > self.last_timestamp:
             # Only add data if this is a new OHLC interval
             self.indicators['mfi'].append(mfi)
@@ -55,6 +55,8 @@ class MFIMomentumStrategy(BaseStrategy):
         else:
             # If same interval, just update existing data
             self.indicators['mfi'][-1] = mfi
+
+        log.info('%.2f; %.2f; %.2f', self.data.last, mfi, self.indicators['macd_slope'])
 
     def should_open(self):
         return len(self.indicators['mfi']) >= 2 \
@@ -71,7 +73,7 @@ class MFIMomentumStrategy(BaseStrategy):
         log.info('Opening position...')
         txids = self.exchange.market_order(self.base_currency, 'buy', self.unit)
         market_order_info = self.wait_for_order_close(txids[0])
-        open_price = float(market_order_info['price'])
+        open_price = market_order_info['price']
         self.position = {
             'open': open_price,
             'stop_limit': open_price * (1. - self.stop_loss)

@@ -100,8 +100,8 @@ class KrakenAPIAdapter(object):
     def recent_trades(self, base_currency, quote_currency='USD'):
         data = self._get_data_since_last(self.api.get_recent_trades, 'trades', base_currency, quote_currency)
         return [{
-            'price': t[0],
-            'volume': t[1],
+            'price': float(t[0]),
+            'volume': float(t[1]),
             'time': t[2],
             'buy_sell': t[3],
             'type': t[4],
@@ -127,13 +127,13 @@ class KrakenAPIAdapter(object):
                                          interval=interval)
         return [{
             'time': d[0],
-            'open': d[1],
-            'high': d[2],
-            'low': d[3],
-            'close': d[4],
-            'avg': d[5],
-            'volume': d[6],
-            'count': d[7]
+            'open': float(d[1]),
+            'high': float(d[2]),
+            'low': float(d[3]),
+            'close': float(d[4]),
+            'avg': float(d[5]),
+            'volume': float(d[6]),
+            'count': float(d[7])
         } for d in data]
 
     @handle_api_exception()
@@ -141,8 +141,8 @@ class KrakenAPIAdapter(object):
         data = self._get_data_since_last(self.api.get_recent_spread_data, 'spread', base_currency, quote_currency)
         return [{
             'time': s[0],
-            'bid': s[1],
-            'ask': s[2]
+            'bid': float(s[1]),
+            'ask': float(s[2])
         } for s in data]
 
     # User Info
@@ -161,10 +161,10 @@ class KrakenAPIAdapter(object):
             order_info = {
                 'txid': txid,
                 'status': info['status'],
-                'cost': info['cost'],
-                'price': info['price'],
-                'volume': info['vol'],
-                'fee': info['fee']
+                'cost': float(info['cost']),
+                'price': float(info['price']),
+                'volume': float(info['vol']),
+                'fee': float(info['fee'])
             }
             result[txid] = order_info
 

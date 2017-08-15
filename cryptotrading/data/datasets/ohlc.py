@@ -41,3 +41,7 @@ class OHLCDataset(OrderedDict):
     @property
     def low(self):
         return np.asarray([d['low'] for d in self.values()], dtype=float)
+
+    @property
+    def volume(self):
+        return np.asarray([d['volume'] for d in self.values()], dtype=float)
