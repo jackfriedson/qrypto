@@ -49,7 +49,8 @@ def cli(ctx):
 @click.pass_context
 def testpoloniex(ctx):
     exchange = ctx.obj.get('exchange')
-    print(exchange.get_ohlc('BTC'))
+    print(exchange.get_balance())
+    # print(exchange.get_ohlc('BTC', since=1503100000))
 
 
 @cli.command()
