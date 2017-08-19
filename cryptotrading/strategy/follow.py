@@ -17,7 +17,7 @@ class FollowStrategy(BaseStrategy):
         self.data = _Dataset()
 
     def update(self):
-        new_data = self.exchange.recent_ohlc(self.base_currency, self.quote_currency)
+        new_data = self.exchange.get_ohlc(self.base_currency, self.quote_currency)
         self.data.add_all(new_data)
 
     def check_condition(self):

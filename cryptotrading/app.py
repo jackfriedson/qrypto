@@ -4,11 +4,12 @@ from logging.config import dictConfig
 import click
 import yaml
 
-from cryptotrading.exchanges import Kraken
+from cryptotrading.exchanges import Kraken, Poloniex
 from cryptotrading.strategy import TakeProfitMomentumStrategy, MFIMomentumStrategy
 
 
-API_KEY = os.path.expanduser('~/.kraken_api_key')
+KRAKEN_API_KEY = os.path.expanduser('~/.kraken_api_key')
+POLONIEX_API_KEY = os.path.expanduser('~/.poloniex_api_key')
 LOG_CONFIG = 'cryptotrading/logging_conf.yaml'
 
 
@@ -24,10 +25,10 @@ tpm_config = {
 
 
 mfi_config = {
-    'unit': 0.02,
+    'unit': 0.05,
     'ohlc_interval': 60,
-    'mfi': (14, 70, 30),
-    'sleep_duration': 15*60
+    'mfi': (14, 80, 20),
+    'sleep_duration': 30
 }
 
 
@@ -41,7 +42,14 @@ def configure_logging():
 @click.pass_context
 def cli(ctx):
     configure_logging()
-    ctx.obj = {'exchange': Kraken(key_path=API_KEY)}
+    ctx.obj = {'exchange': Poloniex(key_path=POLONIEX_API_KEY)}
+
+
+@cli.command()
+@click.pass_context
+def testpoloniex(ctx):
+    exchange = ctx.obj.get('exchange')
+    print(exchange.get_ohlc('BTC'))
 
 
 @cli.command()
@@ -58,3 +66,4 @@ def simplemomentum(ctx):
     exchange = ctx.obj.get('exchange')
     strategy = TakeProfitMomentumStrategy('ETH', exchange, **tpm_config)
     strategy.run()
+

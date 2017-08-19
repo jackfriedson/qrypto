@@ -42,7 +42,7 @@ class MFIMomentumStrategy(BaseStrategy):
         self.last_timestamp = None
 
     def update(self):
-        new_data = self.exchange.recent_ohlc(self.base_currency, self.quote_currency,
+        new_data = self.exchange.get_ohlc(self.base_currency, self.quote_currency,
                                              interval=self.ohlc_interval)
         self.data.add_all(new_data)
         self.indicators['macd_slope'] = self.data.macd_slope()
@@ -85,6 +85,6 @@ class MFIMomentumStrategy(BaseStrategy):
         txids = self.exchange.market_order(self.base_currency, 'sell', self.unit)
         market_order_info = self.wait_for_order_close(txids[0])
         close_price = market_order_info['price']
-        profit_loss = 100 * (1 - close_price / self.position['open'])
+        profit_loss = 100. * ((close_price / self.position['open']) - 1.)
         log.info('Position closed @ %.2f; Profit/loss: %.2f%%', close_price, profit_loss)
         self.position = None

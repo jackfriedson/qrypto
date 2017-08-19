@@ -1,6 +1,7 @@
 from collections import OrderedDict
 
 import numpy as np
+import pandas as pd
 
 
 class OHLCDataset(OrderedDict):
@@ -19,6 +20,7 @@ class OHLCDataset(OrderedDict):
 
     def add_all(self, incoming_data):
         for entry in incoming_data:
+            print(str(entry))
             self[entry.get('time')] = entry
         self.last_timestamp = list(self.keys())[-1]
 

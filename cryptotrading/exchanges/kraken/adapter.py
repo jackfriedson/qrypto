@@ -80,12 +80,12 @@ class KrakenAPIAdapter(object):
         since = self.last_txs.get(name)
         pair = self._generate_currency_pair(base_currency, quote_currency)
         resp = data_method(pair, since=since, **kwargs)
-        self.last_txs[name] = resp['last']
+        # self.last_txs[name] = resp['last']
         return resp[pair]
 
     # Market Info
     @handle_api_exception()
-    def order_book(self, base_currency, quote_currency='USD'):
+    def get_order_book(self, base_currency, quote_currency='USD'):
         """
         :returns: {
             'asks': list of asks,
@@ -97,7 +97,7 @@ class KrakenAPIAdapter(object):
         return resp[pair]
 
     @handle_api_exception()
-    def recent_trades(self, base_currency, quote_currency='USD'):
+    def get_trades(self, base_currency, quote_currency='USD'):
         data = self._get_data_since_last(self.api.get_recent_trades, 'trades', base_currency, quote_currency)
         return [{
             'price': float(t[0]),
@@ -109,7 +109,7 @@ class KrakenAPIAdapter(object):
         } for t in data]
 
     @handle_api_exception()
-    def recent_ohlc(self, base_currency, quote_currency='USD', interval=1):
+    def get_ohlc(self, base_currency, quote_currency='USD', interval=1):
         """
         :param interval: time period duration in minutes (see KrakenAPI for valid intervals)
         :returns: {
@@ -137,7 +137,7 @@ class KrakenAPIAdapter(object):
         } for d in data]
 
     @handle_api_exception()
-    def recent_spread(self, base_currency, quote_currency='USD'):
+    def get_spread(self, base_currency, quote_currency='USD'):
         data = self._get_data_since_last(self.api.get_recent_spread_data, 'spread', base_currency, quote_currency)
         return [{
             'time': s[0],

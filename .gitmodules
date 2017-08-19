@@ -1,0 +1,3 @@
+[submodule "lib/poloniex-python3"]
+	path = lib/poloniex-python3
+	url = https://github.com/a904guy/poloniex-python3.git
