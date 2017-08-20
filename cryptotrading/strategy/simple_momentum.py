@@ -10,11 +10,10 @@ from cryptotrading.strategy.base import BaseStrategy
 log = logging.getLogger(__name__)
 
 
-class _Dataset(MACDMixin, OHLCDataset):
-    pass
-
-
 class TakeProfitMomentumStrategy(BaseStrategy):
+
+    class _Dataset(OHLCDataset, MACDMixin):
+        pass
 
     def __init__(self,
                  base_currency: str,
@@ -49,22 +48,18 @@ class TakeProfitMomentumStrategy(BaseStrategy):
         self.stop_loss_trigger = lambda p: p * (1. - stop_loss)
         self.stop_loss_limit = lambda p: p * (1. - (stop_loss + buffer_percent))
 
-        self.data = _Dataset(macd=macd)
+        self.data = self._Dataset(macd=macd)
 
     def update(self):
         # Get data from exchange
         new_data = self.exchange.get_ohlc(self.base_currency, self.quote_currency,
                                              interval=self.ohlc_interval)
-        self.data.add_all(new_data)
-        _, _, macdhist = self.data.macd()
-        self.indicators['macd'] = macdhist[-1]
-        last = self.data.last
-
-        log.info('{}; {:.2f}'.format(last, self.indicators['macd']),
-                 extra={'price': last, 'macd': self.indicators['macd']})
+        self.data.update(new_data)
+        log.info('{}; {:.2f}'.format(self.data.last, self.data.macd[-1]),
+                 extra={'price': self.data.last, 'macd': self.data.macd[-1]})
 
     def should_open(self):
-        return self.indicators['macd'] >= self.macd_threshold
+        return self.data.macd[-1] >= self.macd_threshold
 
     def should_close(self):
         return self.any_orders_closed()

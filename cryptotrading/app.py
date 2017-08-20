@@ -28,7 +28,7 @@ mfi_config = {
     'unit': 0.05,
     'ohlc_interval': 30,
     'mfi': (14, 80, 20),
-    'sleep_duration': 30
+    'sleep_duration': 15
 }
 
 

@@ -10,11 +10,10 @@ from cryptotrading.strategy.base import BaseStrategy
 log = logging.getLogger(__name__)
 
 
-class _Dataset(MACDMixin, MFIMixin, OHLCDataset):
-    pass
-
-
 class MFIMomentumStrategy(BaseStrategy):
+
+    class _Dataset(OHLCDataset, MACDMixin, MFIMixin):
+        pass
 
     def __init__(self,
                  base_currency: str,
@@ -35,28 +34,25 @@ class MFIMomentumStrategy(BaseStrategy):
         self.macd_slope_min = macd_slope_min
         mfi_period, self.mfi_top, self.mfi_bottom = mfi
 
-        self.data = _Dataset(macd=macd, mfi=mfi_period)
-        self.indicators['mfi'] = []
+        self.data = self._Dataset(macd=macd, mfi=mfi_period)
 
     def update(self):
         new_data = self.exchange.get_ohlc(self.base_currency, self.quote_currency,
                                           interval=self.ohlc_interval)
-        self.data.add_all(new_data)
-        self.indicators['macd_slope'] = self.data.macd_slope()
-        self.indicators['mfi'] = self.data.mfi()
+        self.data.update(new_data)
 
-        print(self.data._data.ix[-5:, ['close', 'volume']])
-        log.info('%.2f; %.2f; %.2f', self.data.last, self.indicators['mfi'][-1], self.indicators['macd_slope'])
+        print(self.data._data.tail(5)[['close', 'volume', 'mfi']])
+        log.info('%.2f; %.2f; %.2f', self.data.last, self.data.mfi[-1], self.data.macd_slope())
 
     def should_open(self):
-        return len(self.indicators['mfi']) >= 2 \
-               and self.indicators['mfi'][-2] < self.mfi_bottom \
-               and self.indicators['mfi'][-1] >= self.mfi_bottom \
-               and self.indicators['macd_slope'] > self.macd_slope_min
+        return len(self.data.mfi) >= 2 \
+               and self.data.mfi[-2] < self.mfi_bottom \
+               and self.data.mfi[-1] >= self.mfi_bottom \
+               and self.data.macd_slope() > self.macd_slope_min
 
     def should_close(self):
-        return (self.indicators['mfi'][-2] > self.mfi_top \
-               and self.indicators['mfi'][-1] <= self.mfi_top) \
+        return (self.data.mfi[-2] > self.mfi_top \
+               and self.data.mfi[-1] <= self.mfi_top) \
                or self.data.last < self.position['stop_limit']
 
     def open_position(self):

@@ -4,11 +4,16 @@ import logging
 import time
 from typing import Tuple
 
+from cryptotrading.data.datasets import OHLCDataset
+
 
 log = logging.getLogger(__name__)
 
 
 class BaseStrategy(object):
+
+    class _Dataset(OHLCDataset):
+        pass
 
     def __init__(self, base_currency: str, exchange, unit: float, quote_currency: str = 'USD',
                  sleep_duration: Tuple[int, int] = (60, 120)):
@@ -19,7 +24,6 @@ class BaseStrategy(object):
         self.exchange = exchange
         self.unit = unit
         self.position = None
-        self.indicators = {}
 
         if isinstance(sleep_duration, int):
             self.passive_sleep_duration = self.active_sleep_duration = sleep_duration
