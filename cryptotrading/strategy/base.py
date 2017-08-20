@@ -2,6 +2,7 @@
 """
 import logging
 import time
+from typing import Tuple
 
 
 log = logging.getLogger(__name__)
@@ -9,7 +10,8 @@ log = logging.getLogger(__name__)
 
 class BaseStrategy(object):
 
-    def __init__(self, base_currency, exchange, unit, quote_currency='USD', sleep_duration=(60, 120)):
+    def __init__(self, base_currency: str, exchange, unit: float, quote_currency: str = 'USD',
+                 sleep_duration: Tuple[int, int] = (60, 120)):
         """
         """
         self.base_currency = base_currency
@@ -24,7 +26,7 @@ class BaseStrategy(object):
         else:
             self.passive_sleep_duration, self.active_sleep_duration = sleep_duration
 
-    def run(self):
+    def run(self) -> None:
         while True:
             self.update()
 
@@ -39,27 +41,27 @@ class BaseStrategy(object):
                 else:
                     time.sleep(self.active_sleep_duration)
 
-    def update(self):
+    def update(self) -> None:
         raise NotImplementedError
 
-    def should_open(self):
+    def should_open(self) -> bool:
         raise NotImplementedError
 
-    def should_close(self):
+    def should_close(self) -> bool:
         raise NotImplementedError
 
-    def open_position(self):
+    def open_position(self) -> None:
         raise NotImplementedError
 
-    def close_position(self):
+    def close_position(self) -> None:
         raise NotImplementedError
 
-    def cancel_all(self):
+    def cancel_all(self) -> None:
         for txid in self.position['orders']:
             self.exchange.cancel_order(txid)
             self.position['orders'].remove(txid)
 
-    def any_orders_closed(self):
+    def any_orders_closed(self) -> bool:
         """ Checks if any open positions have been closed.
 
         Returns true if any open positions are closed, canceled, or expired, and removes
@@ -73,7 +75,7 @@ class BaseStrategy(object):
                 return True
         return False
 
-    def wait_for_order_close(self, txid, sleep_inverval=2):
+    def wait_for_order_close(self, txid: str, sleep_inverval: int = 2) -> dict:
         order_open = True
         while order_open:
             time.sleep(sleep_inverval)

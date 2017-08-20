@@ -1,5 +1,6 @@
 import logging
 import time
+from typing import Tuple
 
 from cryptotrading.data.datasets import OHLCDataset
 from cryptotrading.data.mixins import MACDMixin
@@ -16,17 +17,17 @@ class _Dataset(MACDMixin, OHLCDataset):
 class TakeProfitMomentumStrategy(BaseStrategy):
 
     def __init__(self,
-                 base_currency,
+                 base_currency: str,
                  exchange,
-                 unit,
-                 macd_threshold,
-                 target_profit,
-                 stop_loss,
-                 buffer_percent=0.0025,
-                 quote_currency='USD',
-                 ohlc_interval=1,
-                 sleep_duration=(30, 60),
-                 macd=(10, 26, 9)):
+                 unit: float,
+                 macd_threshold: float,
+                 target_profit: float,
+                 stop_loss: float,
+                 buffer_percent: float = 0.0025,
+                 quote_currency:str = 'USD',
+                 ohlc_interval: int = 1,
+                 sleep_duration: Tuple[int, int] = (30, 60),
+                 macd: Tuple[int, int, int] = (10, 26, 9)):
         """
         :param base_currency:
         :param exchange:

@@ -1,5 +1,6 @@
 import logging
 import time
+from typing import Tuple
 
 from cryptotrading.data.datasets import OHLCDataset
 from cryptotrading.data.mixins import MACDMixin, MFIMixin
@@ -16,18 +17,16 @@ class _Dataset(MACDMixin, MFIMixin, OHLCDataset):
 class MFIMomentumStrategy(BaseStrategy):
 
     def __init__(self,
-                 base_currency,
+                 base_currency: str,
                  exchange,
-                 unit,
-                 quote_currency='USD',
-                 ohlc_interval=60,
-                 stop_loss=0.05,
-                 sleep_duration=30*60,
-                 macd=(10, 26, 9),
-                 macd_slope_min=0.0,
-                 mfi=(14, 80, 20)):
-        """
-        """
+                 unit: float,
+                 quote_currency: str = 'USD',
+                 ohlc_interval: int = 60,
+                 stop_loss: float = 0.05,
+                 sleep_duration: int = 30*60,
+                 macd: Tuple[int, int, int] = (10, 26, 9),
+                 macd_slope_min: float = 0.0,
+                 mfi: Tuple[int, int, int] = (14, 80, 20)):
         super(MFIMomentumStrategy, self).__init__(base_currency, exchange, unit, quote_currency,
                                                   sleep_duration)
 
