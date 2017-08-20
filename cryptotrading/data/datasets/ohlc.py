@@ -1,49 +1,47 @@
-from collections import OrderedDict
+from typing import List
 
 import numpy as np
 import pandas as pd
 
 
-class OHLCDataset(OrderedDict):
+class OHLCDataset(object):
 
     def __init__(self, *args, **kwargs):
-        """
-        """
-        self.max_size = kwargs.pop('max_size', 10000)
-        self.last_timestamp = None
-        super(OHLCDataset, self).__init__()
+        # self.max_size = kwargs.pop('max_size', 10000)
+        self._data = None
 
-    def __setitem__(self, key, value):
-        OrderedDict.__setitem__(self, key, value)
-        if len(self) >= self.max_size:
-            self.popitem(last=False)
+    def add(self, entry: dict):
+        datetime = entry.pop('datetime')
+        self._data.loc[datetime] = entry
 
-    def add_all(self, incoming_data):
-        for entry in incoming_data:
-            print(str(entry))
-            self[entry.get('time')] = entry
-        self.last_timestamp = list(self.keys())[-1]
+    def add_all(self, incoming_data: List[dict]):
+        if self._data is None:
+            self._data = pd.DataFrame(incoming_data)
+            self._data.set_index('datetime', inplace=True)
+        else:
+            for entry in incoming_data:
+                self.add(entry)
 
     @property
     def last(self):
-        return self[self.last_timestamp].get('close')
+        return self._data.iloc[-1]['close']
 
     @property
     def open(self):
-        return np.asarray([d['open'] for d in self.values()], dtype=float)
+        return self._data['open'].values
 
     @property
     def close(self):
-        return np.asarray([d['close'] for d in self.values()], dtype=float)
+        return self._data['close'].values
 
     @property
     def high(self):
-        return np.asarray([d['high'] for d in self.values()], dtype=float)
+        return self._data['high'].values
 
     @property
     def low(self):
-        return np.asarray([d['low'] for d in self.values()], dtype=float)
+        return self._data['low'].values
 
     @property
     def volume(self):
-        return np.asarray([d['volume'] for d in self.values()], dtype=float)
+        return self._data['volume'].values

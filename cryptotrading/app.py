@@ -26,7 +26,7 @@ tpm_config = {
 
 mfi_config = {
     'unit': 0.05,
-    'ohlc_interval': 60,
+    'ohlc_interval': 30,
     'mfi': (14, 80, 20),
     'sleep_duration': 30
 }
@@ -49,15 +49,17 @@ def cli(ctx):
 @click.pass_context
 def testpoloniex(ctx):
     exchange = ctx.obj.get('exchange')
-    print(exchange.get_balance())
-    # print(exchange.get_ohlc('BTC', since=1503100000))
+
+    import pprint as pp
+    printer = pp.PrettyPrinter(indent=4)
+    printer.pprint(exchange.get_ohlc('BTC', interval=30, since=1503100000))
 
 
 @cli.command()
 @click.pass_context
 def mfimomentum(ctx):
     exchange = ctx.obj.get('exchange')
-    strategy = MFIMomentumStrategy('ETH', exchange, **mfi_config)
+    strategy = MFIMomentumStrategy('BTC', exchange, quote_currency='USDT', **mfi_config)
     strategy.run()
 
 
@@ -65,6 +67,6 @@ def mfimomentum(ctx):
 @click.pass_context
 def simplemomentum(ctx):
     exchange = ctx.obj.get('exchange')
-    strategy = TakeProfitMomentumStrategy('ETH', exchange, **tpm_config)
+    strategy = TakeProfitMomentumStrategy('BTC', exchange, **tpm_config)
     strategy.run()
 

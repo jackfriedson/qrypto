@@ -1,6 +1,5 @@
 import logging
 import time
-from collections import OrderedDict
 
 from cryptotrading.data.datasets import OHLCDataset
 from cryptotrading.data.mixins import MACDMixin, MFIMixin
@@ -39,24 +38,16 @@ class MFIMomentumStrategy(BaseStrategy):
 
         self.data = _Dataset(macd=macd, mfi=mfi_period)
         self.indicators['mfi'] = []
-        self.last_timestamp = None
 
     def update(self):
         new_data = self.exchange.get_ohlc(self.base_currency, self.quote_currency,
-                                             interval=self.ohlc_interval)
+                                          interval=self.ohlc_interval)
         self.data.add_all(new_data)
         self.indicators['macd_slope'] = self.data.macd_slope()
+        self.indicators['mfi'] = self.data.mfi()
 
-        mfi = self.data.mfi()[-1]
-        if not self.last_timestamp or self.data.last_timestamp > self.last_timestamp:
-            # Only add data if this is a new OHLC interval
-            self.indicators['mfi'].append(mfi)
-            self.last_timestamp = self.data.last_timestamp
-        else:
-            # If same interval, just update existing data
-            self.indicators['mfi'][-1] = mfi
-
-        log.info('%.2f; %.2f; %.2f', self.data.last, mfi, self.indicators['macd_slope'])
+        print(self.data._data.ix[-5:, ['close', 'volume']])
+        log.info('%.2f; %.2f; %.2f', self.data.last, self.indicators['mfi'][-1], self.indicators['macd_slope'])
 
     def should_open(self):
         return len(self.indicators['mfi']) >= 2 \

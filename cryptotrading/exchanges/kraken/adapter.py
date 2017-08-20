@@ -102,7 +102,7 @@ class KrakenAPIAdapter(object):
         return [{
             'price': float(t[0]),
             'volume': float(t[1]),
-            'time': t[2],
+            'datetime': t[2],
             'buy_sell': t[3],
             'type': t[4],
             'misc': t[5]
@@ -126,21 +126,21 @@ class KrakenAPIAdapter(object):
         data = self._get_data_since_last(self.api.get_OHLC_data, 'ohlc', base_currency, quote_currency,
                                          interval=interval)
         return [{
-            'time': d[0],
+            'datetime': d[0],
             'open': float(d[1]),
             'high': float(d[2]),
             'low': float(d[3]),
             'close': float(d[4]),
             'avg': float(d[5]),
             'volume': float(d[6]),
-            'count': float(d[7])
+            'quoteVolume': float(d[7])
         } for d in data]
 
     @handle_api_exception()
     def get_spread(self, base_currency, quote_currency='USD'):
         data = self._get_data_since_last(self.api.get_recent_spread_data, 'spread', base_currency, quote_currency)
         return [{
-            'time': s[0],
+            'datetime': s[0],
             'bid': float(s[1]),
             'ask': float(s[2])
         } for s in data]
