@@ -25,10 +25,10 @@ tpm_config = {
 
 
 mfi_config = {
-    'unit': 0.05,
-    'ohlc_interval': 30,
-    'mfi': (14, 80, 20),
-    'sleep_duration': 15
+    'unit': 0.001,
+    'ohlc_interval': 120,
+    'mfi': (14, 70, 30),
+    'sleep_duration': 5*60
 }
 
 

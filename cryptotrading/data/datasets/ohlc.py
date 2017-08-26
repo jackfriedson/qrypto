@@ -10,17 +10,18 @@ class OHLCDataset(object):
         self._data = None
         super(OHLCDataset, self).__init__(*args, **kwargs)
 
-    def add(self, entry: dict) -> None:
-        datetime = entry.pop('datetime')
-        self._data.loc[datetime] = entry
-
     def update(self, incoming_data: List[dict]) -> None:
         if self._data is None:
             self._data = pd.DataFrame(incoming_data)
             self._data.set_index('datetime', inplace=True)
         else:
             for entry in incoming_data:
-                self.add(entry)
+                datetime = entry.pop('datetime')
+                if datetime not in self._data.index:
+                    # Initialize all columns in new row as NaN to avoid mismatch
+                    nans = np.full(self._data.shape[1], np.nan)
+                    self._data.loc[datetime] = nans
+                self._data.loc[datetime] = entry
 
         try:
             super(OHLCDataset, self).update(incoming_data)

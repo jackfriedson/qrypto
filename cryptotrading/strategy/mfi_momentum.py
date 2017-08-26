@@ -28,17 +28,15 @@ class MFIMomentumStrategy(BaseStrategy):
                  mfi: Tuple[int, int, int] = (14, 80, 20)):
         super(MFIMomentumStrategy, self).__init__(base_currency, exchange, unit, quote_currency,
                                                   sleep_duration)
-
         self.ohlc_interval = ohlc_interval
         self.stop_loss = stop_loss
         self.macd_slope_min = macd_slope_min
         mfi_period, self.mfi_top, self.mfi_bottom = mfi
-
         self.data = self._Dataset(macd=macd, mfi=mfi_period)
 
     def update(self):
         new_data = self.exchange.get_ohlc(self.base_currency, self.quote_currency,
-                                          interval=self.ohlc_interval)
+                                          interval=self.ohlc_interval, since_last=True)
         self.data.update(new_data)
 
         print(self.data._data.tail(5)[['close', 'volume', 'mfi']])
@@ -57,20 +55,23 @@ class MFIMomentumStrategy(BaseStrategy):
 
     def open_position(self):
         log.info('Opening position...')
-        txids = self.exchange.market_order(self.base_currency, 'buy', self.unit)
-        market_order_info = self.wait_for_order_close(txids[0])
-        open_price = market_order_info['price']
+        limit_price = self.data.last * 1.001
+        order_info = self.exchange.limit_order(self.base_currency, 'buy', limit_price, self.unit,
+                                               quote_currency=self.quote_currency)
+        open_price = order_info['price']
         self.position = {
             'open': open_price,
             'stop_limit': open_price * (1. - self.stop_loss)
         }
-        log.info('Position opened @ %.2f', open_price)
+        log.info('Position opened @ %.2f; Fee: %.2f', open_price, order_info['fee'])
 
     def close_position(self):
         log.info('Closing position...')
-        txids = self.exchange.market_order(self.base_currency, 'sell', self.unit)
-        market_order_info = self.wait_for_order_close(txids[0])
-        close_price = market_order_info['price']
+        limit_price = self.data.last * 0.999
+        order_info = self.exchange.limit_order(self.base_currency, 'sell', limit_price, self.unit,
+                                               quote_currency=self.quote_currency)
+        close_price = order_info['price']
         profit_loss = 100. * ((close_price / self.position['open']) - 1.)
-        log.info('Position closed @ %.2f; Profit/loss: %.2f%%', close_price, profit_loss)
         self.position = None
+        log.info('Position closed @ %.2f; Profit/loss: %.2f%%; Fee: %.2f', close_price, profit_loss,
+                 order_info['fee'])
