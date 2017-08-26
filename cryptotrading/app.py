@@ -39,20 +39,17 @@ def configure_logging():
 
 
 @click.group()
+@click.option('--exchange', type=click.Choice(['kraken, poloniex']), default='poloniex')
 @click.pass_context
-def cli(ctx):
+def cli(ctx, exchange):
     configure_logging()
-    ctx.obj = {'exchange': Poloniex(key_path=POLONIEX_API_KEY)}
 
+    if exchange == 'kraken':
+        exchange_adapter = Kraken(key_path=KRAKEN_API_KEY)
+    else:
+        exchange_adapter = Poloniex(key_path=POLONIEX_API_KEY)
 
-@cli.command()
-@click.pass_context
-def testpoloniex(ctx):
-    exchange = ctx.obj.get('exchange')
-
-    import pprint as pp
-    printer = pp.PrettyPrinter(indent=4)
-    printer.pprint(exchange.get_ohlc('BTC', interval=30, since=1503100000))
+    ctx.obj = {'exchange': exchange_adapter}
 
 
 @cli.command()
@@ -69,4 +66,3 @@ def simplemomentum(ctx):
     exchange = ctx.obj.get('exchange')
     strategy = TakeProfitMomentumStrategy('BTC', exchange, **tpm_config)
     strategy.run()
-
