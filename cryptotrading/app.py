@@ -43,20 +43,30 @@ def configure_logging():
         dictConfig(log_config)
 
 
-@click.group()
-@click.option('--exchange', type=click.Choice(['backtest', 'kraken', 'poloniex']), default='poloniex')
+@click.group(chain=True)
+@click.option('--exchange', type=click.Choice(['kraken', 'poloniex']), default='poloniex')
 @click.pass_context
 def cli(ctx, exchange):
     configure_logging()
 
-    if exchange =='backtest':
-        exchange_adapter = Backtest(POLONIEX_API_KEY, 'ETH', 'USDT', start='6/20/2017', end='8/20/2017', interval=30)
-    elif exchange == 'kraken':
+    if exchange == 'kraken':
         exchange_adapter = Kraken(key_path=KRAKEN_API_KEY)
     else:
         exchange_adapter = Poloniex(key_path=POLONIEX_API_KEY)
 
     ctx.obj = {'exchange': exchange_adapter}
+
+
+@cli.command()
+@click.option('--base', type=str, default='BTC')
+@click.option('--quote', type=str, default='USDT')
+@click.option('--start', type=str, default='6/1/2017')
+@click.option('--end', type=str, default='7/1/2017')
+@click.option('--interval', type=int, default=30)
+@click.pass_context
+def backtest(ctx, base, quote, start, end, interval):
+    exchange = ctx.obj.pop('exchange')
+    ctx.obj['exchange'] = Backtest(exchange, base, quote, start, end, interval)
 
 
 @cli.command()

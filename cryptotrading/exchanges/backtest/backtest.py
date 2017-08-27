@@ -2,16 +2,14 @@ import sys
 
 import pandas as pd
 
-from cryptotrading.exchanges.poloniex.adapter import PoloniexAdapter as Poloniex
 
-
-POLONIEX_START = 1405699200
-POLONIEX_END = 9999999999
+GLOBAL_START = 1405699200
+GLOBAL_END = 9999999999
 
 
 class Backtest(object):
 
-    def __init__(self, key_path: str, base_currency: str, quote_currency: str,
+    def __init__(self, exchange, base_currency: str, quote_currency: str,
                  start: str = '1/1/2016', end: str = '1/1/2017', interval: int = 5):
         self.base_currency = base_currency
         self.quote_currency = quote_currency
@@ -20,9 +18,9 @@ class Backtest(object):
         self.date_range = pd.date_range(self.start, self.end, freq='%dMin' % interval)
         self.interval = interval
 
-        poloniex = Poloniex(key_path)
-        all_data = poloniex.get_ohlc(self.base_currency, self.quote_currency, self.interval,
-                                     start=POLONIEX_START, end=POLONIEX_END)
+        # TODO: Verify this works with Kraken API as well
+        all_data = exchange.get_ohlc(self.base_currency, self.quote_currency, self.interval,
+                                     start=GLOBAL_START, end=GLOBAL_END)
         self._test_data = pd.DataFrame(all_data)
         self._test_data.set_index('datetime', inplace=True)
 
