@@ -16,8 +16,8 @@ class TakeProfitMomentumStrategy(BaseStrategy):
         pass
 
     def __init__(self,
-                 base_currency: str,
                  exchange,
+                 base_currency: str,
                  unit: float,
                  macd_threshold: float,
                  target_profit: float,

@@ -16,12 +16,12 @@ class MFIMomentumStrategy(BaseStrategy):
         pass
 
     def __init__(self,
-                 base_currency: str,
                  exchange,
+                 base_currency: str,
                  unit: float,
                  quote_currency: str = 'USD',
                  ohlc_interval: int = 60,
-                 stop_loss: float = 0.05,
+                 stop_loss: float = 0.01,
                  sleep_duration: int = 30*60,
                  macd: Tuple[int, int, int] = (10, 26, 9),
                  macd_slope_min: float = 0.0,
@@ -38,8 +38,6 @@ class MFIMomentumStrategy(BaseStrategy):
         new_data = self.exchange.get_ohlc(self.base_currency, self.quote_currency,
                                           interval=self.ohlc_interval, since_last=True)
         self.data.update(new_data)
-
-        print(self.data._data.tail(5)[['close', 'volume', 'mfi']])
         log.info('%.2f; %.2f; %.2f', self.data.last, self.data.mfi[-1], self.data.macd_slope())
 
     def should_open(self):

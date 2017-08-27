@@ -27,16 +27,16 @@ class PoloniexAdapter(object):
         self.api.subscribe('ticker', callback)
 
     def get_ohlc(self, base_currency: str, quote_currency: str = 'USDT', interval: int = 5,
-                 since_last: bool = False) -> dict:
-        args = {
+                 since_last: bool = False, **kwargs) -> list:
+        kwargs.update({
             'currencyPair': self.pair(base_currency, quote_currency),
             'period': interval * 60
-        }
+        })
 
         if since_last and 'ohlc' in self.last:
-            args.update({'start': self.last['ohlc']})
+            kwargs.update({'start': self.last['ohlc']})
 
-        result = self.api.returnChartData(**args)
+        result = self.api.returnChartData(**kwargs)
 
         if since_last:
             self.last['ohlc'] = result[-1]['date']
