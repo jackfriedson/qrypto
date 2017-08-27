@@ -6,7 +6,7 @@ import yaml
 
 from cryptotrading.backtest import Backtest
 from cryptotrading.exchanges import Kraken, Poloniex
-from cryptotrading.strategy import TakeProfitMomentumStrategy, MFIMomentumStrategy
+from cryptotrading.strategy import TakeProfitMomentumStrategy, MFIMomentumStrategy, QLearnStrategy
 
 
 KRAKEN_API_KEY = os.path.expanduser('~/.kraken_api_key')
@@ -34,6 +34,17 @@ mfi_config = {
     'ohlc_interval': 30,
     'mfi': (14, 80, 20),
     'macd_slope_min': .1,
+    'sleep_duration': 0
+}
+
+
+qlearn_config = {
+    'base_currency': 'ETH',
+    'quote_currency': 'USDT',
+    'unit': 1,
+    'ohlc_interval': 5,
+    'rsi': 14,
+    'mfi': 14,
     'sleep_duration': 0
 }
 
@@ -69,6 +80,12 @@ def backtest(ctx, base, quote, start, end, interval):
     exchange = ctx.obj.pop('exchange')
     ctx.obj['exchange'] = Backtest(exchange, base, quote, start, end, interval)
 
+@cli.command()
+@click.pass_context
+def qlearn(ctx):
+    exchange = ctx.obj.get('exchange')
+    strategy = QLearnStrategy(exchange, **qlearn_config)
+    strategy.train()
 
 @cli.command()
 @click.pass_context

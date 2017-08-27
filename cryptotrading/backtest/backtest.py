@@ -33,9 +33,6 @@ class Backtest(object):
             print(order)
         print('Placed {} orders. Total profit/loss: {:.2f}%'.format(n_orders, total_pl))
 
-    def get_all(self):
-        return self._test_data
-
     def get_ohlc(self, *args, **kwargs) -> list:
         if self.call_count >= len(self.date_range):
             self.print_results()
