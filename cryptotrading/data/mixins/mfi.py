@@ -10,7 +10,7 @@ class MFIMixin(object):
         super(MFIMixin, self).__init__(*args, **kwargs)
 
     def update(self, incoming_data: List[dict]) -> None:
-        self._indicators['mfi'] = MFI(self._data, timeperiod=self.mfi_periods)
+        self._indicators['mfi'] = MFI(self._data, timeperiod=self.mfi_periods).to_frame('mfi')
 
         try:
             super(MFIMixin, self).update(incoming_data)

@@ -10,7 +10,7 @@ class RSIMixin(object):
         super(RSIMixin, self).__init__(*args, **kwargs)
 
     def update(self, incoming_data: List[dict]) -> None:
-        self._indicators['rsi'] = RSI(self._data, timeperiod=self.rsi_periods)
+        self._indicators['rsi'] = RSI(self._data, timeperiod=self.rsi_periods).to_frame('rsi')
 
         try:
             super(RSIMixin, self).update(incoming_data)

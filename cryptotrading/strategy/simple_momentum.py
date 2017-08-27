@@ -45,7 +45,6 @@ class TakeProfitMomentumStrategy(BaseStrategy):
         self.stop_loss = lambda p: p * (1. - stop_loss)
 
     def update(self) -> None:
-        # Get data from exchange
         new_data = self.exchange.get_ohlc(self.base_currency, self.quote_currency,
                                           interval=self.ohlc_interval)
         self.data.update(new_data)

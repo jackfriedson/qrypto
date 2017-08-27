@@ -1,6 +1,5 @@
 from typing import List
 
-import numpy as np
 import pandas as pd
 
 
@@ -18,16 +17,19 @@ class OHLCDataset(object):
         else:
             for entry in incoming_data:
                 datetime = entry.pop('datetime')
-                # if datetime not in self._data.index:
-                #     # Initialize all columns in new row as NaN to avoid mismatch
-                #     nans = np.full(self._data.shape[1], np.nan)
-                #     self._data.loc[datetime] = nans
                 self._data.loc[datetime] = entry
 
         try:
             super(OHLCDataset, self).update(incoming_data)
         except AttributeError:
             pass
+
+    @property
+    def all(self):
+        result = self._data
+        for indicator_data in self._indicators.values():
+            result = result.join(indicator_data)
+        return result
 
     @property
     def last(self):

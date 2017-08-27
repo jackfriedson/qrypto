@@ -1,5 +1,4 @@
 import logging
-import time
 from typing import Tuple
 
 from cryptotrading.data.datasets import OHLCDataset
