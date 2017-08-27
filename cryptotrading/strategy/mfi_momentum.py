@@ -27,49 +27,25 @@ class MFIMomentumStrategy(BaseStrategy):
                  macd_slope_min: float = 0.0,
                  mfi: Tuple[int, int, int] = (14, 80, 20)):
         super(MFIMomentumStrategy, self).__init__(base_currency, exchange, unit, quote_currency,
-                                                  sleep_duration)
+                                                  sleep_duration, macd=macd, mfi=mfi[0])
         self.ohlc_interval = ohlc_interval
-        self.stop_loss = stop_loss
+        self.stop_loss = lambda p: p * (1. - stop_loss)
         self.macd_slope_min = macd_slope_min
-        mfi_period, self.mfi_top, self.mfi_bottom = mfi
-        self.data = self._Dataset(macd=macd, mfi=mfi_period)
+        _, self.mfi_top, self.mfi_bottom = mfi
 
-    def update(self):
+    def update(self) -> None:
         new_data = self.exchange.get_ohlc(self.base_currency, self.quote_currency,
                                           interval=self.ohlc_interval, since_last=True)
         self.data.update(new_data)
         log.info('%.2f; %.2f; %.2f', self.data.last, self.data.mfi[-1], self.data.macd_slope())
 
-    def should_open(self):
+    def should_open(self) -> bool:
         return len(self.data.mfi) >= 2 \
                and self.data.mfi[-2] < self.mfi_bottom \
                and self.data.mfi[-1] >= self.mfi_bottom \
                and self.data.macd_slope() > self.macd_slope_min
 
-    def should_close(self):
+    def should_close(self) -> bool:
         return (self.data.mfi[-2] > self.mfi_top \
                and self.data.mfi[-1] <= self.mfi_top) \
-               or self.data.last < self.position['stop_limit']
-
-    def open_position(self):
-        log.info('Opening position...')
-        limit_price = self.data.last * 1.001
-        order_info = self.exchange.limit_order(self.base_currency, 'buy', limit_price, self.unit,
-                                               quote_currency=self.quote_currency)
-        open_price = order_info['price']
-        self.position = {
-            'open': open_price,
-            'stop_limit': open_price * (1. - self.stop_loss)
-        }
-        log.info('Position opened @ %.2f; Fee: %.2f', open_price, order_info['fee'])
-
-    def close_position(self):
-        log.info('Closing position...')
-        limit_price = self.data.last * 0.999
-        order_info = self.exchange.limit_order(self.base_currency, 'sell', limit_price, self.unit,
-                                               quote_currency=self.quote_currency)
-        close_price = order_info['price']
-        profit_loss = 100. * ((close_price / self.position['open']) - 1.)
-        self.position = None
-        log.info('Position closed @ %.2f; Profit/loss: %.2f%%; Fee: %.2f', close_price, profit_loss,
-                 order_info['fee'])
+               or self.data.last < self.stop_loss(self.position['open'])

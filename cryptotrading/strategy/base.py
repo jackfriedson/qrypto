@@ -16,7 +16,7 @@ class BaseStrategy(object):
         pass
 
     def __init__(self, base_currency: str, exchange, unit: float, quote_currency: str = 'USD',
-                 sleep_duration: Tuple[int, int] = (60, 120)):
+                 sleep_duration: Tuple[int, int] = (60, 120), **kwargs):
         """
         """
         self.base_currency = base_currency
@@ -24,6 +24,7 @@ class BaseStrategy(object):
         self.exchange = exchange
         self.unit = unit
         self.position = None
+        self.data = self._Dataset(**kwargs)
 
         if isinstance(sleep_duration, int):
             self.passive_sleep_duration = self.active_sleep_duration = sleep_duration
@@ -55,34 +56,28 @@ class BaseStrategy(object):
         raise NotImplementedError
 
     def open_position(self) -> None:
-        raise NotImplementedError
+        log.info('Opening position...')
+        # TODO: use last ask instead of 0.1%
+        limit_price = self.data.last * 1.001
+        order_info = self.exchange.limit_order(self.base_currency, 'buy', limit_price, self.unit,
+                                               quote_currency=self.quote_currency)
+        open_price = order_info['price']
+        self.position = {'open': open_price}
+        log.info('Position opened @ %.2f; Fee: %.2f', open_price, order_info['fee'])
 
     def close_position(self) -> None:
-        raise NotImplementedError
+        log.info('Closing position...')
+        # TODO: use last bid instead of 0.1%
+        limit_price = self.data.last * 0.999
+        order_info = self.exchange.limit_order(self.base_currency, 'sell', limit_price, self.unit,
+                                               quote_currency=self.quote_currency)
+        close_price = order_info['price']
+        profit_loss = 100. * ((close_price / self.position['open']) - 1.)
+        self.position = None
+        log.info('Position closed @ %.2f; Profit/loss: %.2f%%; Fee: %.2f', close_price, profit_loss,
+                 order_info['fee'])
 
     def cancel_all(self) -> None:
         for txid in self.position['orders']:
             self.exchange.cancel_order(txid)
             self.position['orders'].remove(txid)
-
-    def any_orders_closed(self) -> bool:
-        """ Checks if any open positions have been closed.
-
-        Returns true if any open positions are closed, canceled, or expired, and removes
-        those positions from the list.
-        """
-        orders = self.exchange.get_orders_info(self.position['orders'])
-        for txid, order_info in orders.items():
-            if order_info['status'] == 'closed':
-                log.info('Order %s closed at %s', txid, order_info['cost'])
-                self.position['orders'].remove(txid)
-                return True
-        return False
-
-    def wait_for_order_close(self, txid: str, sleep_inverval: int = 2) -> dict:
-        order_open = True
-        while order_open:
-            time.sleep(sleep_inverval)
-            order_info = self.exchange.get_order_info(txid)
-            order_open = order_info['status'] not in ['closed', 'canceled', 'expired']
-        return order_info
