@@ -17,12 +17,12 @@ tpm_config = {
     'base_currency': 'ETH',
     'quote_currency': 'USDT',
     'unit': 0.02,
-    'macd_threshold': 0.5,
-    'ohlc_interval': 60,  # in minutes
+    'macd_threshold': 0.3,
+    'ohlc_interval': 30,  # in minutes
     'target_profit': .0225,
     'stop_loss': 0.0075,
-    'buffer_percent': 0.0025,
-    'sleep_duration': 15*60  # in seconds
+    'sleep_duration': 0
+    # 'sleep_duration': 15*60  # in seconds
 }
 
 
