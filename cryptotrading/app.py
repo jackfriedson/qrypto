@@ -4,7 +4,8 @@ from logging.config import dictConfig
 import click
 import yaml
 
-from cryptotrading.exchanges import Backtest, Kraken, Poloniex
+from cryptotrading.backtest import Backtest
+from cryptotrading.exchanges import Kraken, Poloniex
 from cryptotrading.strategy import TakeProfitMomentumStrategy, MFIMomentumStrategy
 
 
@@ -62,7 +63,7 @@ def cli(ctx, exchange):
 @click.option('--quote', type=str, default='USDT')
 @click.option('--start', type=str, default='6/1/2017')
 @click.option('--end', type=str, default='7/1/2017')
-@click.option('--interval', type=int, default=30)
+@click.option('--interval', type=int, default=5)
 @click.pass_context
 def backtest(ctx, base, quote, start, end, interval):
     exchange = ctx.obj.pop('exchange')

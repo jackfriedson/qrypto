@@ -19,8 +19,10 @@ class Backtest(object):
         self.interval = interval
 
         # TODO: Verify this works with Kraken API as well
+        unix_start = self.start.value // 10**9
+        unix_end = self.end.value // 10**9
         all_data = exchange.get_ohlc(self.base_currency, self.quote_currency, self.interval,
-                                     start=GLOBAL_START, end=GLOBAL_END)
+                                     start=unix_start, end=unix_end)
         self._test_data = pd.DataFrame(all_data)
         self._test_data.set_index('datetime', inplace=True)
 
