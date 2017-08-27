@@ -3,14 +3,10 @@ import sys
 import pandas as pd
 
 
-GLOBAL_START = 1405699200
-GLOBAL_END = 9999999999
-
-
 class Backtest(object):
 
     def __init__(self, exchange, base_currency: str, quote_currency: str,
-                 start: str = '1/1/2016', end: str = '1/1/2017', interval: int = 5):
+                 start: str = '1/1/2016', end: str = '1/1/2017', interval: int = 5) -> None:
         self.base_currency = base_currency
         self.quote_currency = quote_currency
         self.start = pd.to_datetime(start)
@@ -30,12 +26,15 @@ class Backtest(object):
         self.open_price = None
         self.orders = []
 
-    def print_results(self):
+    def print_results(self) -> None:
         n_orders = len(self.orders)
         total_pl = sum(map(lambda o: o['profit_loss'] * (1. / n_orders), self.orders))
         for order in self.orders:
             print(order)
         print('Placed {} orders. Total profit/loss: {:.2f}%'.format(n_orders, total_pl))
+
+    def get_all(self):
+        return self._test_data
 
     def get_ohlc(self, *args, **kwargs) -> list:
         if self.call_count >= len(self.date_range):

@@ -1,8 +1,7 @@
 from typing import List
 
 import numpy as np
-import talib
-from pandas import Series
+from talib.abstract import MACD
 
 
 class MACDMixin(object):
@@ -12,9 +11,9 @@ class MACDMixin(object):
         super(MACDMixin, self).__init__(*args, **kwargs)
 
     def update(self, incoming_data: List[dict]) -> None:
-        _, _, macd_values = talib.MACD(self.close, fastperiod=self.fast, slowperiod=self.slow,
-                                       signalperiod=self.signal)
-        self._data['macd'] = Series(macd_values, index=self._data.index)
+        self._indicators['macd'] = MACD(self._data, fastperiod=self.fast, slowperiod=self.slow,
+                                        signalperiod=self.signal)
+
         try:
             super(MACDMixin, self).update(incoming_data)
         except AttributeError:
@@ -22,7 +21,7 @@ class MACDMixin(object):
 
     @property
     def macd(self):
-        return self._data['macd'].values
+        return self._indicators['macd']['macdhist'].values
 
     def macd_slope(self, n: int = 3) -> float:
         if len(self.macd) < n:

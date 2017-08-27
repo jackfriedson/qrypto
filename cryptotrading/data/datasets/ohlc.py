@@ -8,6 +8,7 @@ class OHLCDataset(object):
 
     def __init__(self, *args, **kwargs):
         self._data = None
+        self._indicators = {}
         super(OHLCDataset, self).__init__(*args, **kwargs)
 
     def update(self, incoming_data: List[dict]) -> None:
@@ -17,10 +18,10 @@ class OHLCDataset(object):
         else:
             for entry in incoming_data:
                 datetime = entry.pop('datetime')
-                if datetime not in self._data.index:
-                    # Initialize all columns in new row as NaN to avoid mismatch
-                    nans = np.full(self._data.shape[1], np.nan)
-                    self._data.loc[datetime] = nans
+                # if datetime not in self._data.index:
+                #     # Initialize all columns in new row as NaN to avoid mismatch
+                #     nans = np.full(self._data.shape[1], np.nan)
+                #     self._data.loc[datetime] = nans
                 self._data.loc[datetime] = entry
 
         try:
