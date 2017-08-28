@@ -1,4 +1,4 @@
 from cryptotrading.strategy.base import BaseStrategy
 from cryptotrading.strategy.simple_momentum import TakeProfitMomentumStrategy
 from cryptotrading.strategy.mfi_momentum import MFIMomentumStrategy
-from cryptotrading.strategy.qlearn.qlearning import QLearnStrategy
+from cryptotrading.strategy.qlearn.qtable import QTableStrategy

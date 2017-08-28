@@ -12,7 +12,10 @@ from cryptotrading.data.mixins import MACDMixin, MFIMixin, RSIMixin
 log = logging.getLogger(__name__)
 
 
-class QLearnStrategy(object):
+ACTIONS = ['buy', 'sell', 'do_nothing']
+
+
+class QTableStrategy(object):
 
     class _Dataset(QLearnDataset, MFIMixin, RSIMixin):
         pass
@@ -36,11 +39,32 @@ class QLearnStrategy(object):
 
     def train(self):
         self.exchange = self.exchange_train
+
+        all_rewards = []
+        learn_rate = 0.8
+        gamma = 0.95
+        # TODO: determine dynamically
+        Q = np.zeros([200, len(ACTIONS)])
         n_iters = len(self.exchange_train.date_range)
 
-        for _ in range(n_iters):
+        for i in range(n_iters):
             self.update()
-            print(self.data.state)
+            state = self.data.state
+
+            if np.isnan(state):
+                continue
+            else:
+                state = int(state)
+
+            action_idx = np.argmax(Q[state,:] + np.random.randn(1, len(ACTIONS)) * (1. / (i + 1)))
+            action = ACTIONS[action_idx]
+            new_state, reward = self.data.take_action(action)
+            Q[state,action_idx] = Q[state,action_idx] + learn_rate * (reward + gamma * np.max(Q[new_state,:]) - Q[state,action_idx])
+            all_rewards.append(reward)
+
+        #TODO: figure out this math
+        nonzero_rewards = [r for r in all_rewards if r != 0.]
+        print(sum(nonzero_rewards) / len(nonzero_rewards))
 
     def run(self):
         self.exchange = self.exchange_run

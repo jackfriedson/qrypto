@@ -6,7 +6,7 @@ import yaml
 
 from cryptotrading.backtest import Backtest
 from cryptotrading.exchanges import Kraken, Poloniex
-from cryptotrading.strategy import TakeProfitMomentumStrategy, MFIMomentumStrategy, QLearnStrategy
+from cryptotrading.strategy import TakeProfitMomentumStrategy, MFIMomentumStrategy, QTableStrategy
 
 
 KRAKEN_API_KEY = os.path.expanduser('~/.kraken_api_key')
@@ -84,7 +84,7 @@ def backtest(ctx, base, quote, start, end, interval):
 @click.pass_context
 def qlearn(ctx):
     exchange = ctx.obj.get('exchange')
-    strategy = QLearnStrategy(exchange, **qlearn_config)
+    strategy = QTableStrategy(exchange, **qlearn_config)
     strategy.train()
 
 @cli.command()
