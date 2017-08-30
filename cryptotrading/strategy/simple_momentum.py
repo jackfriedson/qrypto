@@ -3,7 +3,7 @@ import time
 from typing import Tuple
 
 from cryptotrading.data.datasets import OHLCDataset
-from cryptotrading.data.mixins import MACDMixin
+from cryptotrading.data.indicators import MACD
 from cryptotrading.strategy.base import BaseStrategy
 
 
@@ -11,9 +11,6 @@ log = logging.getLogger(__name__)
 
 
 class TakeProfitMomentumStrategy(BaseStrategy):
-
-    class _Dataset(OHLCDataset, MACDMixin):
-        pass
 
     def __init__(self,
                  exchange,
@@ -38,7 +35,9 @@ class TakeProfitMomentumStrategy(BaseStrategy):
         :param quote_currency:
         """
         super(TakeProfitMomentumStrategy, self).__init__(base_currency, exchange, unit, quote_currency,
-                                                         sleep_duration, macd=macd)
+                                                         sleep_duration)
+        indicators = [MACD(*macd)]
+        self.data = OHLCDataset(indicators)
         self.ohlc_interval = ohlc_interval
         self.macd_threshold = macd_threshold
         self.take_profit = lambda p: p * (1. + target_profit)

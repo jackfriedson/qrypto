@@ -1,14 +1,24 @@
 from typing import List
 
+import matplotlib.pyplot as plt
 import pandas as pd
+
+from cryptotrading.data.indicators import BaseIndicator, BasicIndicator
 
 
 class OHLCDataset(object):
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, indicators: List = None):
         self._data = None
-        self._indicators = {}
-        super(OHLCDataset, self).__init__(*args, **kwargs)
+        self._indicators = indicators or []
+
+    def __getattr__(self, name):
+        for indicator in self._indicators:
+            try:
+                return getattr(indicator, name)
+            except AttributeError:
+                continue
+        raise AttributeError
 
     def update(self, incoming_data: List[dict]) -> None:
         if self._data is None:
@@ -19,16 +29,14 @@ class OHLCDataset(object):
                 datetime = entry.pop('datetime')
                 self._data.loc[datetime] = entry
 
-        try:
-            super(OHLCDataset, self).update(incoming_data)
-        except AttributeError:
-            pass
+        for indicator in self._indicators:
+            indicator.update(self._data)
 
     @property
     def all(self):
         result = self._data
-        for indicator_data in self._indicators.values():
-            result = result.join(indicator_data)
+        for indicator in self._indicators:
+            result = result.join(indicator.data)
         return result
 
     @property

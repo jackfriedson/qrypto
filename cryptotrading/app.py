@@ -8,7 +8,6 @@ from cryptotrading.backtest import Backtest
 from cryptotrading.exchanges import Kraken, Poloniex
 from cryptotrading.strategy import TakeProfitMomentumStrategy, MFIMomentumStrategy, QTableStrategy
 
-
 KRAKEN_API_KEY = os.path.expanduser('~/.kraken_api_key')
 POLONIEX_API_KEY = os.path.expanduser('~/.poloniex_api_key')
 LOG_CONFIG = 'cryptotrading/logging_conf.yaml'
@@ -43,8 +42,9 @@ qlearn_config = {
     'quote_currency': 'USDT',
     'unit': 1,
     'ohlc_interval': 5,
-    'rsi': 14,
-    'mfi': 14,
+    # 'rsi': 14,
+    # 'mfi': 14,
+    'momentum': 12,
     'sleep_duration': 0
 }
 
