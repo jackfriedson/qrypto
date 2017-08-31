@@ -26,6 +26,9 @@ class Backtest(object):
         self.open_price = None
         self.orders = []
 
+    def reset(self):
+        self.call_count = 0
+
     def print_results(self) -> None:
         n_orders = len(self.orders)
         total_pl = sum(map(lambda o: o['profit_loss'] * (1. / n_orders), self.orders))

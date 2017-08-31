@@ -42,10 +42,10 @@ qlearn_config = {
     'quote_currency': 'USDT',
     'unit': 1,
     'ohlc_interval': 5,
-    # 'rsi': 14,
-    # 'mfi': 14,
-    'momentum': 12,
-    'sleep_duration': 0
+    'momentum': 10,
+    'sleep_duration': 0,
+    'train_start': '7/26/2017',
+    'train_end': '8/13/2017'
 }
 
 

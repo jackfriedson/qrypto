@@ -1,5 +1,3 @@
-from typing import Union
-
 import numpy as np
 
 from cryptotrading.data.datasets import OHLCDataset
@@ -44,6 +42,9 @@ class QLearnDataset(OHLCDataset):
             state = int(state)
 
         return state
+
+    def reset(self):
+        self._data = None
 
     def take_action(self, action: str):
         if action == 'do_nothing':

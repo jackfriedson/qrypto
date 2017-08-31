@@ -42,7 +42,6 @@ class QTableStrategy(object):
 
         # Initial update step lets us call n_states
         self.update()
-
         Q = np.zeros([self.data.n_states, len(ACTIONS)])
         total_steps = len(self.exchange_train.date_range)
         train_steps = int((1. - crossval_pct) * total_steps)
@@ -50,9 +49,11 @@ class QTableStrategy(object):
 
         n_epochs = 10
 
+        self.reset_data()
+
         for epoch in range(n_epochs):
             # Train the model
-            for i in range(train_steps // n_epochs):
+            for i in range(train_steps):
                 self.update()
                 state = self.data.state
 
@@ -66,7 +67,7 @@ class QTableStrategy(object):
 
             rewards = []
             # Evaluate learning
-            for i in range(cv_steps // n_epochs):
+            for i in range(cv_steps):
                 self.update()
                 state = self.data.state
 
@@ -78,6 +79,11 @@ class QTableStrategy(object):
 
             avg_reward = sum(rewards) / (len(rewards) or 1.)
             print('Average reward: {:.2f}%'.format(100*avg_reward))
+            self.reset_data()
+
+    def reset_data(self):
+        self.exchange_train.reset()
+        self.data.reset()
 
     def run(self):
         self.exchange = self.exchange_run
