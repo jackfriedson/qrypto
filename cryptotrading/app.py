@@ -4,6 +4,7 @@ from logging.config import dictConfig
 import click
 import yaml
 
+from cryptotrading import settings
 from cryptotrading.backtest import Backtest
 from cryptotrading.exchanges import Kraken, Poloniex
 from cryptotrading.strategy import TakeProfitMomentumStrategy, MFIMomentumStrategy, QTableStrategy
@@ -11,42 +12,6 @@ from cryptotrading.strategy import TakeProfitMomentumStrategy, MFIMomentumStrate
 KRAKEN_API_KEY = os.path.expanduser('~/.kraken_api_key')
 POLONIEX_API_KEY = os.path.expanduser('~/.poloniex_api_key')
 LOG_CONFIG = 'cryptotrading/logging_conf.yaml'
-
-
-tpm_config = {
-    'base_currency': 'ETH',
-    'quote_currency': 'USDT',
-    'unit': 0.02,
-    'macd_threshold': 0.3,
-    'ohlc_interval': 30,  # in minutes
-    'target_profit': .0225,
-    'stop_loss': 0.0075,
-    'sleep_duration': 0
-    # 'sleep_duration': 15*60  # in seconds
-}
-
-
-mfi_config = {
-    'base_currency': 'ETH',
-    'quote_currency': 'USDT',
-    'unit': 0.02,
-    'ohlc_interval': 30,
-    'mfi': (14, 80, 20),
-    'macd_slope_min': .1,
-    'sleep_duration': 0
-}
-
-
-qlearn_config = {
-    'base_currency': 'ETH',
-    'quote_currency': 'USDT',
-    'unit': 1,
-    'ohlc_interval': 5,
-    'momentum': 10,
-    'sleep_duration': 0,
-    'train_start': '7/26/2017',
-    'train_end': '8/13/2017'
-}
 
 
 def configure_logging():
@@ -80,18 +45,22 @@ def backtest(ctx, base, quote, start, end, interval):
     exchange = ctx.obj.pop('exchange')
     ctx.obj['exchange'] = Backtest(exchange, base, quote, start, end, interval)
 
+
 @cli.command()
 @click.pass_context
 def qlearn(ctx):
     exchange = ctx.obj.get('exchange')
-    strategy = QTableStrategy(exchange, **qlearn_config)
+    config = settings.get_config('qlearn')
+    strategy = QTableStrategy(exchange, **config)
     strategy.train()
+
 
 @cli.command()
 @click.pass_context
 def mfimomentum(ctx):
     exchange = ctx.obj.get('exchange')
-    strategy = MFIMomentumStrategy(exchange, **mfi_config)
+    config = settings.get_config('mfi')
+    strategy = MFIMomentumStrategy(exchange, **config)
     strategy.run()
 
 
@@ -99,5 +68,6 @@ def mfimomentum(ctx):
 @click.pass_context
 def tpmomentum(ctx):
     exchange = ctx.obj.get('exchange')
-    strategy = TakeProfitMomentumStrategy(exchange, **tpm_config)
+    config = settings.get_config('tpm')
+    strategy = TakeProfitMomentumStrategy(exchange, **config)
     strategy.run()

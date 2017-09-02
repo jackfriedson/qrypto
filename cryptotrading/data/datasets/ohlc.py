@@ -32,6 +32,10 @@ class OHLCDataset(object):
         for indicator in self._indicators:
             indicator.update(self._data)
 
+    def plot(self, column='close'):
+        self._data[column].plot()
+        plt.show()
+
     @property
     def all(self):
         result = self._data

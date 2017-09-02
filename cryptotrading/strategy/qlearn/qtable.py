@@ -49,7 +49,7 @@ class QTableStrategy(object):
 
         n_epochs = 10
 
-        self.reset_data()
+        self.reset_train_data()
 
         for epoch in range(n_epochs):
             # Train the model
@@ -79,9 +79,10 @@ class QTableStrategy(object):
 
             avg_reward = sum(rewards) / (len(rewards) or 1.)
             print('Average reward: {:.2f}%'.format(100*avg_reward))
-            self.reset_data()
+            self.data.plot()
+            self.reset_train_data()
 
-    def reset_data(self):
+    def reset_train_data(self):
         self.exchange_train.reset()
         self.data.reset()
 
