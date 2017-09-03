@@ -38,8 +38,7 @@ class Backtest(object):
 
     def get_ohlc(self, *args, **kwargs) -> list:
         if self.call_count >= len(self.date_range):
-            self.print_results()
-            sys.exit()
+            raise StopIteration('No more test data')
 
         current_datetime = self.date_range[self.call_count]
         row = self._test_data.loc[current_datetime]

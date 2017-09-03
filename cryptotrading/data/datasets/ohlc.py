@@ -1,9 +1,9 @@
 from typing import List
 
+import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
-
-from cryptotrading.data.indicators import BaseIndicator, BasicIndicator
 
 
 class OHLCDataset(object):
@@ -11,6 +11,11 @@ class OHLCDataset(object):
     def __init__(self, indicators: List = None):
         self._data = None
         self._indicators = indicators or []
+        self._orders = {
+            'buy': [],
+            'sell': []
+        }
+        # TODO: Implement dynamic plotting of orders while running
 
     def __getattr__(self, name):
         for indicator in self._indicators:
@@ -32,8 +37,20 @@ class OHLCDataset(object):
         for indicator in self._indicators:
             indicator.update(self._data)
 
-    def plot(self, column='close'):
-        self._data[column].plot()
+    def add_order(self, buy_sell: str, order_info: dict):
+        self._orders[buy_sell].append((self.time, order_info['price']))
+
+    def plot(self, column: str = 'close'):
+        fig, ax = plt.subplots(1, 1)
+        ax.plot(self._data.index, self._data['close'])
+
+        buy_dates, buy_prices = zip(*self._orders['buy'])
+        sell_dates, sell_prices = zip(*self._orders['sell'])
+        ax.plot(buy_dates, buy_prices, 'go')
+        ax.plot(sell_dates, sell_prices, 'ro')
+
+        # TODO: Plot indicators as subplots
+        fig.autofmt_xdate()
         plt.show()
 
     @property
@@ -46,6 +63,10 @@ class OHLCDataset(object):
     @property
     def last(self):
         return self._data.iloc[-1]['close']
+
+    @property
+    def time(self):
+        return self._data.iloc[-1].name
 
     @property
     def open(self):

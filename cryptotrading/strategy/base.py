@@ -4,8 +4,6 @@ import logging
 import time
 from typing import Tuple
 
-from cryptotrading.data.datasets import OHLCDataset
-
 
 log = logging.getLogger(__name__)
 
@@ -13,34 +11,41 @@ log = logging.getLogger(__name__)
 class BaseStrategy(object):
 
     def __init__(self, base_currency: str, exchange, unit: float, quote_currency: str = 'USD',
-                 sleep_duration: Tuple[int, int] = (60, 120), **kwargs):
+                 sleep_duration: int = 60, **kwargs):
         """
         """
         self.base_currency = base_currency
         self.quote_currency = quote_currency
         self.exchange = exchange
         self.unit = unit
+        self.data = None
         self.position = None
+        self.sleep_duration = sleep_duration
 
-        if isinstance(sleep_duration, int):
-            self.passive_sleep_duration = self.active_sleep_duration = sleep_duration
-        else:
-            self.passive_sleep_duration, self.active_sleep_duration = sleep_duration
+    def strategy_iter(self):
+        self.update()
+        if not self.position and self.should_open():
+            self.open_position()
+        elif self.position and self.should_close():
+            self.close_position()
 
     def run(self) -> None:
         while True:
-            self.update()
+            self.strategy_iter()
+            time.sleep(self.sleep_duration)
 
-            if not self.position:
-                if self.should_open():
-                    self.open_position()
-                else:
-                    time.sleep(self.passive_sleep_duration)
-            else:
-                if self.should_close():
-                    self.close_position()
-                else:
-                    time.sleep(self.active_sleep_duration)
+    def test(self, test_exchange):
+        self.exchange = test_exchange
+
+        keep_running = True
+        while keep_running:
+            try:
+                self.strategy_iter()
+            except StopIteration:
+                keep_running = False
+
+        self.exchange.print_results()
+        self.data.plot()
 
     def update(self) -> None:
         raise NotImplementedError
@@ -57,6 +62,7 @@ class BaseStrategy(object):
         limit_price = self.data.last * 1.001
         order_info = self.exchange.limit_order(self.base_currency, 'buy', limit_price, self.unit,
                                                quote_currency=self.quote_currency)
+        self.data.add_order('buy', order_info)
         open_price = order_info['price']
         self.position = {'open': open_price}
         log.info('Position opened @ %.2f; Fee: %.2f', open_price, order_info['fee'])
@@ -67,6 +73,7 @@ class BaseStrategy(object):
         limit_price = self.data.last * 0.999
         order_info = self.exchange.limit_order(self.base_currency, 'sell', limit_price, self.unit,
                                                quote_currency=self.quote_currency)
+        self.data.add_order('sell', order_info)
         close_price = order_info['price']
         profit_loss = 100. * ((close_price / self.position['open']) - 1.)
         self.position = None

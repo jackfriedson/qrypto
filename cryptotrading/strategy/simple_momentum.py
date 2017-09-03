@@ -21,7 +21,7 @@ class TakeProfitMomentumStrategy(BaseStrategy):
                  stop_loss: float,
                  quote_currency: str = 'USD',
                  ohlc_interval: int = 5,
-                 sleep_duration: Tuple[int, int] = (30, 60),
+                 sleep_duration: int = 30,
                  macd: Tuple[int, int, int] = (10, 26, 9)) -> None:
         """
         :param base_currency:

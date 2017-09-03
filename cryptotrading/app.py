@@ -35,18 +35,6 @@ def cli(ctx, exchange):
 
 
 @cli.command()
-@click.option('--base', type=str, default='BTC')
-@click.option('--quote', type=str, default='USDT')
-@click.option('--start', type=str, default='6/1/2017')
-@click.option('--end', type=str, default='7/1/2017')
-@click.option('--interval', type=int, default=5)
-@click.pass_context
-def backtest(ctx, base, quote, start, end, interval):
-    exchange = ctx.obj.pop('exchange')
-    ctx.obj['exchange'] = Backtest(exchange, base, quote, start, end, interval)
-
-
-@cli.command()
 @click.pass_context
 def qlearn(ctx):
     exchange = ctx.obj.get('exchange')
@@ -60,8 +48,7 @@ def qlearn(ctx):
 def mfimomentum(ctx):
     exchange = ctx.obj.get('exchange')
     config = settings.get_config('mfi')
-    strategy = MFIMomentumStrategy(exchange, **config)
-    strategy.run()
+    ctx.obj['strategy'] = MFIMomentumStrategy(exchange, **config)
 
 
 @cli.command()
@@ -69,5 +56,24 @@ def mfimomentum(ctx):
 def tpmomentum(ctx):
     exchange = ctx.obj.get('exchange')
     config = settings.get_config('tpm')
-    strategy = TakeProfitMomentumStrategy(exchange, **config)
-    strategy.run()
+    ctx.obj['strategy'] = TakeProfitMomentumStrategy(exchange, **config)
+
+
+@cli.command()
+@click.pass_context
+def run(ctx):
+    ctx.obj['strategy'].run()
+
+
+@cli.command()
+@click.option('--base', type=str, default='BTC')
+@click.option('--quote', type=str, default='USDT')
+@click.option('--start', type=str, default='6/1/2017')
+@click.option('--end', type=str, default='7/1/2017')
+@click.option('--interval', type=int, default=5)
+@click.pass_context
+def test(ctx, base, quote, start, end, interval):
+    exchange = ctx.obj.pop('exchange')
+    test_exchange = Backtest(exchange, base, quote, start, end, interval)
+    strategy = ctx.obj.pop('strategy')
+    strategy.test(test_exchange)

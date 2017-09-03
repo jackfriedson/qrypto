@@ -16,9 +16,9 @@ class MFIMomentumStrategy(BaseStrategy):
                  base_currency: str,
                  unit: float,
                  quote_currency: str = 'USD',
-                 ohlc_interval: int = 60,
+                 ohlc_interval: int = 5,
                  stop_loss: float = 0.01,
-                 sleep_duration: int = 30*60,
+                 sleep_duration: int = 30,
                  macd: Tuple[int, int, int] = (10, 26, 9),
                  macd_slope_min: float = 0.0,
                  mfi: Tuple[int, int, int] = (14, 80, 20)):
