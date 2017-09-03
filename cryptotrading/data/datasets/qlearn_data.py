@@ -8,7 +8,7 @@ NON_NORMED_FIELDS = ['open', 'high', 'low', 'close', 'volume', 'quoteVolume', 'a
 
 class QLearnDataset(OHLCDataset):
 
-    def __init__(self, *args, precision: int = 10, fee: float = 0., **kwargs):
+    def __init__(self, *args, precision: int = 10, fee: float = 0.001, **kwargs):
         self.precision = precision
         self.fee = fee
         self.open_position = None
@@ -46,37 +46,51 @@ class QLearnDataset(OHLCDataset):
     def reset(self):
         self._data = None
 
+    @property
+    def period_return(self):
+        return (self.close[-1] / self.close[-2]) - 1.
+
+    @property
+    def cumulative_return(self):
+        return (self.last / self.open_position) - 1.
+
     def take_action(self, action: str):
         if action == 'do_nothing':
             if not self.open_position:
                 return self.state, 0.
             else:
-                period_return = (self.close[-1] / self.close[-2]) - 1.
-                return self.state, period_return
+                return self.state, self.period_return
 
-        if action == 'buy_sell':
+        if action == 'buy':
+            self.add_order('buy', {'price': self.last})
             if not self.open_position:
                 self.open_position = self.last
-                self.add_order('buy', {'price': self.last})
                 return self.state, -self.fee
             else:
+                return self.state, 0.
+
+        if action == 'sell':
+            self.add_order('sell', {'price': self.last})
+            if self.open_position:
                 # TODO: Discount unrealized gains/losses to incentivize selling at a high
-                profit_loss = (self.last / self.open_position) - 1.
                 self.open_position = None
-                self.add_order('sell', {'price': self.last})
                 return self.state, -self.fee
+            else:
+                return self.state, 0.
 
     def test_action(self, action: str):
-        if action == 'do_nothing':
-            return 0.
-
-        if not self.open_position:
-            self.open_position = self.last
+        if action == 'buy':
             self.add_order('buy', {'price': self.last})
+            if not self.open_position:
+                self.open_position = self.last
             return 0.
 
-        if self.open_position:
-            profit_loss = (self.last / self.open_position) - 1.
-            self.open_position = None
+        if action == 'sell':
             self.add_order('sell', {'price': self.last})
-            return profit_loss - (2 * self.fee)
+            if self.open_position:
+                result = self.cumulative_return - (2 * self.fee)
+                self.open_position = None
+                return result
+            return 0.
+
+        return 0.

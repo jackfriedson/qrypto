@@ -12,7 +12,7 @@ from cryptotrading.data.indicators import BasicIndicator, MACD
 log = logging.getLogger(__name__)
 
 
-ACTIONS = ['do_nothing', 'buy_sell']
+ACTIONS = ['do_nothing', 'buy', 'sell']
 
 
 class QTableStrategy(object):
@@ -29,29 +29,30 @@ class QTableStrategy(object):
                                        end=train_end, interval=ohlc_interval)
         self.exchange = None
 
-        indicators = [BasicIndicator('mom', {'timeperiod': 14})]
+        indicators = [BasicIndicator('mom', {'timeperiod': period}) for period in kwargs.pop('momentum')]
+        indicators.append(BasicIndicator('mfi', {'timeperiod': 14}))
         self.data = QLearnDataset(indicators)
 
     def update(self):
         new_data = self.exchange.get_ohlc(self.base_currency, self.quote_currency, interval=self.ohlc_interval)
         self.data.update(new_data)
 
-    def train(self, learn_rate: float = 0.3, gamma: float = 0.95, train_epochs: int = 10):
+    def train(self, learn_rate: float = 0.2, gamma: float = 0.95, train_epochs: int = 10):
         self.exchange = self.exchange_train
         crossval_pct = 0.2
 
         # Initial update step lets us call n_states
         self.update()
-        Q = np.zeros([self.data.n_states, len(ACTIONS)])
+        Q = np.random.randn(self.data.n_states, len(ACTIONS))
         total_steps = len(self.exchange_train.date_range)
         train_steps = int((1. - crossval_pct) * total_steps)
         cv_steps = int(crossval_pct * total_steps)
 
         n_epochs = 10
 
-        self.reset_train_data()
-
         for epoch in range(n_epochs):
+            self.reset_train_data()
+
             # Train the model
             for i in range(train_steps):
                 self.update()
@@ -60,10 +61,11 @@ class QTableStrategy(object):
                 if np.isnan(state):
                     continue
 
-                action_idx = np.argmax(Q[state,:] + np.random.randn(1, len(ACTIONS)) * (1. / (i + 1)))
+                action_idx = np.argmax(Q[state, :] + np.random.randn(1, len(ACTIONS)) * (1. / (i + 1)))
                 action = ACTIONS[action_idx]
                 new_state, reward = self.data.take_action(action)
-                Q[state,action_idx] = Q[state,action_idx] + learn_rate * (reward + gamma * np.max(Q[new_state,:]) - Q[state,action_idx])
+                Q[state, action_idx] = ((1. - learn_rate) * Q[state, action_idx]) \
+                                      + learn_rate * (reward + gamma * Q[new_state, np.argmax(Q[new_state, :])])
 
             rewards = []
             # Evaluate learning
@@ -78,9 +80,9 @@ class QTableStrategy(object):
                     rewards.append(reward)
 
             avg_reward = sum(rewards) / (len(rewards) or 1.)
-            print('Average reward: {:.2f}%'.format(100*avg_reward))
-            self.data.plot()
-            self.reset_train_data()
+            print('Epoch {} -- average reward: {:.2f}%'.format(epoch, 100*avg_reward))
+
+        self.data.plot()
 
     def reset_train_data(self):
         self.exchange_train.reset()

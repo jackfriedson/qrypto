@@ -43,3 +43,7 @@ class BasicIndicator(BaseIndicator):
     def __init__(self, name: str, config: dict) -> None:
         self.indicator_name = name
         super(BasicIndicator, self).__init__(config_dict=config)
+
+    @property
+    def suffix(self):
+        return '_' + ','.join([str(v) for k, v in self.config.items()])

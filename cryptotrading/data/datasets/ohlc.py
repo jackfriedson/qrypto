@@ -68,7 +68,7 @@ class OHLCDataset(object):
     def all(self):
         result = self._data
         for indicator in self._indicators:
-            result = result.join(indicator.data)
+            result = result.join(indicator.data, rsuffix=indicator.suffix)
         return result
 
     @property

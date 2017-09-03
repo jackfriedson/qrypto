@@ -20,9 +20,9 @@ _config_map = {
     },
     'qlearn': {
         'unit': 1,
-        'momentum': 10,
-        'train_start': '7/26/2017',
-        'train_end': '8/5/2017'
+        'momentum': (12, 36, 288),
+        'train_start': '7/20/2017',
+        'train_end': '7/27/2017'
     }
 }
 
