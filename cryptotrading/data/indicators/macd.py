@@ -17,7 +17,8 @@ class MACD(BaseIndicator):
 
     def plot(self, axis):
         axis.plot(self.data.index, self.data['macdhist'])
-        axis.set_title(self.indicator_name.upper())
+        config_vals = ', '.join([str(v) for k, v in self.config.items()])
+        axis.set_title(self.indicator_name.upper() + ' (' + config_vals + ')')
 
     @property
     def macd(self):

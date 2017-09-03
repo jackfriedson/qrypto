@@ -35,7 +35,8 @@ class BaseIndicator(object):
 
     def plot(self, axis):
         axis.plot(self.data.index, self.data)
-        axis.set_title(self.indicator_name.upper())
+        config_vals = ', '.join([str(v) for k, v in self.config.items()])
+        axis.set_title(self.indicator_name.upper() + ' (' + config_vals + ')')
 
 
 class BasicIndicator(BaseIndicator):

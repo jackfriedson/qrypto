@@ -44,10 +44,12 @@ class OHLCDataset(object):
         self._orders[buy_sell].append((self.time, order_info['price']))
 
     def plot(self, use_column: str = 'close'):
-        fig = plt.figure()
-        gs = gridspec.GridSpec(1 + len(self._indicators), 1, height_ratios=[3, 1])
+        fig = plt.figure(figsize=(12, 9))
+        ratios = [3] + ([1] * len(self._indicators))
+        gs = gridspec.GridSpec(1 + len(self._indicators), 1, height_ratios=ratios)
         ax0 = fig.add_subplot(gs[0])
         ax0.plot(self._data.index, self._data[use_column])
+        ax0.set_title('Price (' + use_column.title() + ')')
 
         buy_dates, buy_prices = zip(*self._orders['buy'])
         sell_dates, sell_prices = zip(*self._orders['sell'])
@@ -59,6 +61,7 @@ class OHLCDataset(object):
             indicator.plot(ax_ind)
 
         fig.autofmt_xdate()
+        plt.tight_layout()
         plt.show()
 
     @property
