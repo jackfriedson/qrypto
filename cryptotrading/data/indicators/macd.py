@@ -15,6 +15,10 @@ class MACD(BaseIndicator):
             'signalperiod': signal
         }
 
+    def plot(self, axis):
+        axis.plot(self.data.index, self.data['macdhist'])
+        axis.set_title(self.indicator_name.upper())
+
     @property
     def macd(self):
         return self.data['macdhist'].values

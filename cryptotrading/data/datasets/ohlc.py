@@ -1,9 +1,12 @@
 from typing import List
 
-import matplotlib.dates as mdates
+import matplotlib
+from matplotlib import gridspec
 import matplotlib.pyplot as plt
-import numpy as np
 import pandas as pd
+
+
+matplotlib.style.use('ggplot')
 
 
 class OHLCDataset(object):
@@ -40,16 +43,21 @@ class OHLCDataset(object):
     def add_order(self, buy_sell: str, order_info: dict):
         self._orders[buy_sell].append((self.time, order_info['price']))
 
-    def plot(self, column: str = 'close'):
-        fig, ax = plt.subplots(1, 1)
-        ax.plot(self._data.index, self._data['close'])
+    def plot(self, use_column: str = 'close'):
+        fig = plt.figure()
+        gs = gridspec.GridSpec(1 + len(self._indicators), 1, height_ratios=[3, 1])
+        ax0 = fig.add_subplot(gs[0])
+        ax0.plot(self._data.index, self._data[use_column])
 
         buy_dates, buy_prices = zip(*self._orders['buy'])
         sell_dates, sell_prices = zip(*self._orders['sell'])
-        ax.plot(buy_dates, buy_prices, 'go')
-        ax.plot(sell_dates, sell_prices, 'ro')
+        ax0.plot(buy_dates, buy_prices, 'g.')
+        ax0.plot(sell_dates, sell_prices, 'r.')
 
-        # TODO: Plot indicators as subplots
+        for i, indicator in enumerate(self._indicators, start=1):
+            ax_ind = fig.add_subplot(gs[i], sharex=ax0)
+            indicator.plot(ax_ind)
+
         fig.autofmt_xdate()
         plt.show()
 

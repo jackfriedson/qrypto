@@ -33,6 +33,10 @@ class BaseIndicator(object):
             data = data.to_frame(self.indicator_name)
         self.data = data
 
+    def plot(self, axis):
+        axis.plot(self.data.index, self.data)
+        axis.set_title(self.indicator_name.upper())
+
 
 class BasicIndicator(BaseIndicator):
     def __init__(self, name: str, config: dict) -> None:

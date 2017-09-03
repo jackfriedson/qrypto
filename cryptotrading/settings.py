@@ -22,7 +22,7 @@ _config_map = {
         'unit': 1,
         'momentum': 10,
         'train_start': '7/26/2017',
-        'train_end': '8/13/2017'
+        'train_end': '8/5/2017'
     }
 }
 

@@ -57,11 +57,13 @@ class QLearnDataset(OHLCDataset):
         if action == 'buy_sell':
             if not self.open_position:
                 self.open_position = self.last
+                self.add_order('buy', {'price': self.last})
                 return self.state, -self.fee
             else:
                 # TODO: Discount unrealized gains/losses to incentivize selling at a high
                 profit_loss = (self.last / self.open_position) - 1.
                 self.open_position = None
+                self.add_order('sell', {'price': self.last})
                 return self.state, -self.fee
 
     def test_action(self, action: str):
@@ -70,9 +72,11 @@ class QLearnDataset(OHLCDataset):
 
         if not self.open_position:
             self.open_position = self.last
+            self.add_order('buy', {'price': self.last})
             return 0.
 
         if self.open_position:
             profit_loss = (self.last / self.open_position) - 1.
             self.open_position = None
+            self.add_order('sell', {'price': self.last})
             return profit_loss - (2 * self.fee)
