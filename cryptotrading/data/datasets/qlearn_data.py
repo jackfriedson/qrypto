@@ -7,8 +7,9 @@ NON_NORMED_FIELDS = ['open', 'high', 'low', 'close', 'volume', 'quoteVolume', 'a
 
 
 class QLearnDataset(OHLCDataset):
+    actions = ['do_nothing', 'buy', 'sell']
 
-    def __init__(self, *args, precision: int = 10, fee: float = 0.001, **kwargs):
+    def __init__(self, *args, precision: int = 10, fee: float = 0.002, **kwargs):
         self.precision = precision
         self.fee = fee
         self.open_position = None
@@ -21,8 +22,29 @@ class QLearnDataset(OHLCDataset):
         return result
 
     @property
+    def n_state_factors(self) -> int:
+        return len(self.all.iloc[-1]) + 2
+
+    @property
     def n_states(self) -> int:
         return 2 * (self.precision ** len(self.all.iloc[-1]))
+
+    @property
+    def n_actions(self):
+        return len(self.actions)
+
+    def state_vector(self, normalize=True):
+        result = self.all.iloc[-1].values
+
+        # Normalize values using existing data
+        if normalize:
+            result = result - self.all.mean()
+            result = result / self.all.std()
+
+        result = np.append(result, self.cumulative_return)
+        result = np.append(result, 1. if self.open_position else -1.)
+        result = result.reshape(1, len(result))
+        return result
 
     @property
     def state(self):
@@ -52,40 +74,45 @@ class QLearnDataset(OHLCDataset):
 
     @property
     def cumulative_return(self):
-        return (self.last / self.open_position) - 1.
+        if self.open_position:
+            return (self.last / self.open_position) - 1.
+        else:
+            return 0.
 
-    def take_action(self, action: str):
-        if action == 'do_nothing':
+    def take_action(self, idx: int):
+        if self.actions[idx] == 'do_nothing':
             if not self.open_position:
-                return self.state, 0.
+                return 0.
             else:
-                return self.state, self.period_return
+                # return self.period_return
+                return self.period_return / 2
 
-        if action == 'buy':
+        if self.actions[idx] == 'buy':
             self.add_order('buy', {'price': self.last})
             if not self.open_position:
                 self.open_position = self.last
-                return self.state, -self.fee
+                return -self.fee
             else:
-                return self.state, 0.
+                return 0.
 
-        if action == 'sell':
+        if self.actions[idx] == 'sell':
             self.add_order('sell', {'price': self.last})
             if self.open_position:
                 # TODO: Discount unrealized gains/losses to incentivize selling at a high
                 self.open_position = None
-                return self.state, -self.fee
+                # return -self.fee
+                return (self.cumulative_return / 2.) - self.fee
             else:
-                return self.state, 0.
+                return 0.
 
-    def test_action(self, action: str):
-        if action == 'buy':
+    def test_action(self, idx: int):
+        if self.actions[idx] == 'buy':
             self.add_order('buy', {'price': self.last})
             if not self.open_position:
                 self.open_position = self.last
             return 0.
 
-        if action == 'sell':
+        if self.actions[idx] == 'sell':
             self.add_order('sell', {'price': self.last})
             if self.open_position:
                 result = self.cumulative_return - (2 * self.fee)

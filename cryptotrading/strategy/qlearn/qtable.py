@@ -61,10 +61,10 @@ class QTableStrategy(object):
                 if np.isnan(state):
                     continue
 
-                action_idx = np.argmax(Q[state, :] + np.random.randn(1, len(ACTIONS)) * (1. / (i + 1)))
-                action = ACTIONS[action_idx]
-                new_state, reward = self.data.take_action(action)
-                Q[state, action_idx] = ((1. - learn_rate) * Q[state, action_idx]) \
+                action = np.argmax(Q[state, :] + np.random.randn(1, len(ACTIONS)) * (1. / (i + 1)))
+                reward = self.data.take_action(action)
+                new_state = self.data.state
+                Q[state, action] = ((1. - learn_rate) * Q[state, action]) \
                                       + learn_rate * (reward + gamma * Q[new_state, np.argmax(Q[new_state, :])])
 
             rewards = []
@@ -73,8 +73,7 @@ class QTableStrategy(object):
                 self.update()
                 state = self.data.state
 
-                action_idx = np.argmax(Q[state,:])
-                action = ACTIONS[action_idx]
+                action = np.argmax(Q[state,:])
                 reward = self.data.test_action(action)
                 if reward != 0.:
                     rewards.append(reward)
