@@ -36,7 +36,7 @@ class QNetworkStrategy(object):
         new_data = self.exchange.get_ohlc(self.base_currency, self.quote_currency, interval=self.ohlc_interval)
         self.data.update(new_data)
 
-    def train(self, learn_rate: float = 0.2, gamma: float = 0.98, n_epochs: int = 10):
+    def train(self, learn_rate: float = 0.2, gamma: float = 0.98, n_epochs: int = 50):
         self.exchange = self.exchange_train
 
         crossval_pct = 0.2
