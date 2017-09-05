@@ -41,7 +41,10 @@ class OHLCDataset(object):
             indicator.update(self._data)
 
     def add_order(self, buy_sell: str, order_info: dict):
-        self._orders[buy_sell].append((self.time, order_info['price']))
+        if buy_sell in ['buy', 'long']:
+            self._orders['buy'].append((self.time, order_info['price']))
+        elif buy_sell in ['sell', 'short']:
+            self._orders['sell'].append((self.time, order_info['price']))
 
     def plot(self, use_column: str = 'close'):
         fig = plt.figure(figsize=(12, 9))

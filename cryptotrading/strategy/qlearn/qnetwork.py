@@ -5,7 +5,7 @@ import tensorflow as tf
 
 from cryptotrading.backtest import Backtest
 from cryptotrading.data.datasets import QLearnDataset
-from cryptotrading.data.indicators import BasicIndicator, MACD
+from cryptotrading.data.indicators import BasicIndicator
 
 
 log = logging.getLogger(__name__)
@@ -27,13 +27,16 @@ class QNetworkStrategy(object):
 
         indicators = [BasicIndicator('mom', {'timeperiod': period}) for period in kwargs.pop('momentum')]
         indicators.append(BasicIndicator('mfi', {'timeperiod': 14}))
-        self.data = QLearnDataset(indicators)
+        indicators.append(BasicIndicator('natr', {'timeperiod': 14}))
+        indicators.append(BasicIndicator('macd', {'fastperiod': 10, 'slowperiod': 26, 'signalperiod': 9}))
+        indicators.append(BasicIndicator('bbands', {'timeperiod': 5, 'nbdevup': 2, 'nbdevdn': 2, 'matype': 0}))
+        self.data = QLearnDataset(indicators, **kwargs)
 
     def update(self):
         new_data = self.exchange.get_ohlc(self.base_currency, self.quote_currency, interval=self.ohlc_interval)
         self.data.update(new_data)
 
-    def train(self, learn_rate: float = 0.2, gamma: float = 0.95, n_epochs: int = 15):
+    def train(self, learn_rate: float = 0.2, gamma: float = 0.98, n_epochs: int = 10):
         self.exchange = self.exchange_train
 
         crossval_pct = 0.2
@@ -43,60 +46,84 @@ class QNetworkStrategy(object):
 
         self.update()
         tf.reset_default_graph()
+        global_step = tf.Variable(0, trainable=False)
         inputs = tf.placeholder(shape=[1, self.data.n_state_factors], dtype=tf.float32)
         W = tf.Variable(tf.random_uniform([self.data.n_state_factors, self.data.n_actions], 0, 0.01))
-        Qout = tf.matmul(inputs, W)
-        predict = tf.argmax(Qout, 1)
+        outputs = tf.matmul(inputs, W)
+        predict = tf.argmax(outputs, 1)
 
-        nextQ = tf.placeholder(shape=[1, self.data.n_actions], dtype=tf.float32)
-        loss = tf.reduce_sum(tf.square(nextQ - Qout))
-        trainer = tf.train.GradientDescentOptimizer(learning_rate=learn_rate)
-        updateModel = trainer.minimize(loss)
-
+        targets = tf.placeholder(shape=[1, self.data.n_actions], dtype=tf.float32)
+        loss = tf.reduce_sum(tf.square(targets - outputs))
+        train_op = tf.train.AdamOptimizer(learn_rate).minimize(loss, global_step=global_step)
         init = tf.global_variables_initializer()
-        e = 0.3
+
+        epsilon_start = 0.5
+        epsilon_end = 0.
+        epsilon = tf.train.polynomial_decay(epsilon_start, global_step, train_steps * n_epochs,
+                                            end_learning_rate=epsilon_end)
 
         with tf.Session() as sess:
             sess.run(init)
 
             for epoch in range(n_epochs):
-                self.reset_train_data()
+                print('Epoch {}'.format(epoch))
+                print('  Global step: {}'.format(sess.run(global_step)))
+                print('  Randomness: {:.2f}'.format(sess.run(epsilon)))
 
-                # Train the model
-                for i in range(train_steps):
+                self.reset_train_data()
+                self.update()
+                state = self.data.state_vector()
+
+                while np.any(np.isnan(state)):
+                    # Fast-forward until all indicators have valid values
                     self.update()
                     state = self.data.state_vector()
 
-                    if np.any(np.isnan(state)):
-                        continue
+                # Train the model
+                # train_rewards = []
+                for i in range(train_steps):
+                    action, allQ = sess.run([predict, outputs], feed_dict={inputs: state})
 
-                    action, allQ = sess.run([predict, Qout], feed_dict={inputs: state})
-
-                    if np.random.rand(1) < e:
+                    if np.random.rand(1) < sess.run(epsilon):
+                        # Randomly try some other action with probability e
                         action[0] = np.random.randint(0, self.data.n_actions)
 
-                    reward = self.data.take_action(action[0])
-                    new_state = self.data.state_vector()
-                    Q1 = sess.run(Qout, feed_dict={inputs:new_state})
-                    maxQ1 = np.max(Q1)
-                    targetQ = allQ
-                    targetQ[0, action[0]] = reward + gamma * maxQ1
-                    _, W1 = sess.run([updateModel, W], feed_dict={inputs: new_state, nextQ: targetQ})
-                    # print(sess.run(loss, feed_dict={inputs: new_state, nextQ: targetQ}))
+                    reward = self.data.take_action_ls(action[0])
+                    # if reward != 0.:
+                    #     train_rewards.append(reward)
 
-                rewards = []
+                    # consider splitting here
+                    new_state = self.data.state_vector()
+                    Q_prime = sess.run(outputs, feed_dict={inputs: new_state})
+                    Q_update = allQ
+                    Q_update[0, action[0]] = reward + gamma * np.max(Q_prime)
+
+                    sess.run([train_op, W], feed_dict={inputs: new_state, targets: Q_update})
+
+                # avg_train_reward = sum(train_rewards) / (len(train_rewards) or 1.)
+                # print('  Average train reward: {:.2f}%'.format(100*avg_train_reward))
+                print('  Loss: {}'.format(sess.run(loss, feed_dict={inputs: new_state, targets: Q_update})))
+
                 # Evaluate learning
+                rewards = []
+                returns = []
+                confidences = []
                 for i in range(cv_steps):
                     self.update()
                     state = self.data.state_vector()
-                    action, _ = sess.run([predict, Qout], feed_dict={inputs: state})
-                    reward = self.data.test_action(action[0])
-                    if reward != 0.:
-                        rewards.append(reward)
+                    action, allQ = sess.run([predict, outputs], feed_dict={inputs: state})
+                    rewards.append(self.data.take_action_ls(action[0]))
+                    returns.append(self.data.test_action(action[0], add_order=False))
+                    confidences.append((np.abs(allQ[0][0] - allQ[0][1])) / (np.abs(allQ[0][0]) + np.abs(allQ[0][1])))
 
-                e /= 2.
+                rewards = list(filter(lambda x: x != 0, rewards))
+                returns = list(filter(lambda x: x != 0, returns))
                 avg_reward = sum(rewards) / (len(rewards) or 1.)
-                print('Epoch {} -- average reward: {:.2f}%'.format(epoch, 100*avg_reward))
+                avg_return = sum(returns) / (len(returns) or 1.)
+                avg_confidence = sum(confidences) / len(confidences)
+                print('  Average reward: {:.2f}%'.format(100*avg_reward))
+                print('  Average return: {:.2f}%'.format(100*avg_return))
+                print('  Average confidence: {:.2f}%'.format(100*avg_confidence))
 
         self.data.plot()
 
