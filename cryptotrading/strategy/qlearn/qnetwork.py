@@ -1,4 +1,5 @@
 import logging
+import time
 
 import numpy as np
 import tensorflow as tf
@@ -20,31 +21,29 @@ class QNetworkStrategy(object):
         self.quote_currency = quote_currency
         self.unit = unit
         self.ohlc_interval = ohlc_interval
-        self.exchange_run = exchange
+        self.exchange = exchange
         self.exchange_train = Backtest(exchange, base_currency, quote_currency, start=train_start,
                                        end=train_end, interval=ohlc_interval)
         self.exchange = None
 
-        indicators = [BasicIndicator('mom', {'timeperiod': period}) for period in kwargs.pop('momentum')]
-        indicators.append(BasicIndicator('mfi', {'timeperiod': 14}))
-        indicators.append(BasicIndicator('natr', {'timeperiod': 14}))
+        indicators = []
         indicators.append(BasicIndicator('macd', {'fastperiod': 10, 'slowperiod': 26, 'signalperiod': 9}))
-        indicators.append(BasicIndicator('bbands', {'timeperiod': 5, 'nbdevup': 2, 'nbdevdn': 2, 'matype': 0}))
         self.data = QLearnDataset(indicators, **kwargs)
+        self.data.update(self.exchange_train.all())
+        self.data.normalize()
 
     def update(self):
         new_data = self.exchange.get_ohlc(self.base_currency, self.quote_currency, interval=self.ohlc_interval)
         self.data.update(new_data)
 
-    def train(self, learn_rate: float = 0.2, gamma: float = 0.98, n_epochs: int = 50):
-        self.exchange = self.exchange_train
+    def train(self, learn_rate: float = 0.2, gamma: float = 0.98, n_epochs: int = 20):
+        # TODO: Group all parameters and meta-parameters in one place
 
-        crossval_pct = 0.2
+        val_percent = 0.2
         total_steps = len(self.exchange_train.date_range)
-        train_steps = int((1. - crossval_pct) * total_steps)
-        cv_steps = int(crossval_pct * total_steps)
+        train_steps = int((1. - val_percent) * total_steps)
+        val_steps = int(val_percent * total_steps)
 
-        self.update()
         tf.reset_default_graph()
         global_step = tf.Variable(0, trainable=False)
         inputs = tf.placeholder(shape=[1, self.data.n_state_factors], dtype=tf.float32)
@@ -59,8 +58,9 @@ class QNetworkStrategy(object):
 
         epsilon_start = 0.5
         epsilon_end = 0.
-        epsilon = tf.train.polynomial_decay(epsilon_start, global_step, train_steps * n_epochs,
-                                            end_learning_rate=epsilon_end)
+        decay_power = 1.5
+        epsilon = tf.train.polynomial_decay(epsilon_start, global_step, train_steps * (n_epochs - 1),
+                                            end_learning_rate=epsilon_end, power=decay_power)
 
         with tf.Session() as sess:
             sess.run(init)
@@ -70,18 +70,16 @@ class QNetworkStrategy(object):
                 print('  Global step: {}'.format(sess.run(global_step)))
                 print('  Randomness: {:.2f}'.format(sess.run(epsilon)))
 
-                self.reset_train_data()
-                self.update()
-                state = self.data.state_vector()
+                self.data.start_training()
+                state = self.data.state()
 
                 while np.any(np.isnan(state)):
                     # Fast-forward until all indicators have valid values
-                    self.update()
-                    state = self.data.state_vector()
+                    self.data.next()
+                    state = self.data.state()
 
                 # Train the model
-                # train_rewards = []
-                for i in range(train_steps):
+                for i in range(train_steps - self.data.train_counter):
                     action, allQ = sess.run([predict, outputs], feed_dict={inputs: state})
 
                     if np.random.rand(1) < sess.run(epsilon):
@@ -89,31 +87,26 @@ class QNetworkStrategy(object):
                         action[0] = np.random.randint(0, self.data.n_actions)
 
                     reward = self.data.take_action_ls(action[0])
-                    # if reward != 0.:
-                    #     train_rewards.append(reward)
+                    new_state = self.data.state()
 
-                    # consider splitting here
-                    new_state = self.data.state_vector()
                     Q_prime = sess.run(outputs, feed_dict={inputs: new_state})
                     Q_update = allQ
                     Q_update[0, action[0]] = reward + gamma * np.max(Q_prime)
 
                     sess.run([train_op, W], feed_dict={inputs: new_state, targets: Q_update})
 
-                # avg_train_reward = sum(train_rewards) / (len(train_rewards) or 1.)
-                # print('  Average train reward: {:.2f}%'.format(100*avg_train_reward))
                 print('  Loss: {}'.format(sess.run(loss, feed_dict={inputs: new_state, targets: Q_update})))
 
                 # Evaluate learning
                 rewards = []
                 returns = []
                 confidences = []
-                for i in range(cv_steps):
-                    self.update()
-                    state = self.data.state_vector()
+                for i in range(val_steps):
+                    state = self.data.state()
                     action, allQ = sess.run([predict, outputs], feed_dict={inputs: state})
-                    rewards.append(self.data.take_action_ls(action[0]))
-                    returns.append(self.data.test_action(action[0], add_order=False))
+                    reward, cum_return = self.data.test_action(action[0])
+                    rewards.append(reward)
+                    returns.append(cum_return)
                     confidences.append((np.abs(allQ[0][0] - allQ[0][1])) / (np.abs(allQ[0][0]) + np.abs(allQ[0][1])))
 
                 rewards = list(filter(lambda x: x != 0, rewards))
@@ -125,12 +118,8 @@ class QNetworkStrategy(object):
                 print('  Average return: {:.2f}%'.format(100*avg_return))
                 print('  Average confidence: {:.2f}%'.format(100*avg_confidence))
 
-        self.data.plot()
-
-    def reset_train_data(self):
-        self.exchange_train.reset()
-        self.data.reset()
+                if epoch in [0, n_epochs // 2, n_epochs - 1]:
+                    self.data.plot(show=False, save_file='{}__{}.png'.format(int(time.time()), epoch))
 
     def run(self):
-        self.exchange = self.exchange_run
         pass

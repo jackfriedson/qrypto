@@ -1,9 +1,10 @@
+import os
 from typing import List
 
 import matplotlib
-from matplotlib import gridspec
 import matplotlib.pyplot as plt
 import pandas as pd
+from matplotlib import gridspec
 
 
 matplotlib.style.use('ggplot')
@@ -46,7 +47,7 @@ class OHLCDataset(object):
         elif buy_sell in ['sell', 'short']:
             self._orders['sell'].append((self.time, order_info['price']))
 
-    def plot(self, use_column: str = 'close'):
+    def plot(self, use_column: str = 'close', show: bool = True, save_file: str = None):
         fig = plt.figure(figsize=(12, 9))
         ratios = [3] + ([1] * len(self._indicators))
         gs = gridspec.GridSpec(1 + len(self._indicators), 1, height_ratios=ratios)
@@ -65,7 +66,13 @@ class OHLCDataset(object):
 
         fig.autofmt_xdate()
         plt.tight_layout()
-        plt.show()
+
+        if save_file:
+            # TODO: use system agnosting path
+            fig.savefig(os.path.expanduser('~/Desktop/cryptofigs/') + save_file)
+
+        if show:
+            plt.show()
 
     @property
     def all(self):

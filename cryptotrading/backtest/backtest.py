@@ -47,6 +47,14 @@ class Backtest(object):
         self.call_count += 1
         return [result]
 
+    def all(self):
+        def _datetime_to_ohlc_dict(date):
+            row = self._test_data.loc[date]
+            row_dict = row.to_dict()
+            row_dict['datetime'] = date
+            return row_dict
+        return [_datetime_to_ohlc_dict(date) for date in self.date_range]
+
     def limit_order(self, base_currency: str, buy_sell: str, price: float, volume: float, **kwargs) -> dict:
         if buy_sell == 'buy':
             self.open_price = price

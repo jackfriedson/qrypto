@@ -3,7 +3,7 @@ _base_config = {
     'base_currency': 'ETH',
     'quote_currency': 'USDT',
     'unit': 0.02,
-    'ohlc_interval': 15,
+    'ohlc_interval': 5,
     'sleep_duration': 30
 }
 
@@ -20,9 +20,8 @@ _config_map = {
     },
     'qlearn': {
         'unit': 1,
-        'momentum': (12, 36, 72),
         'train_start': '7/1/2017',
-        'train_end': '8/28/2017',
+        'train_end': '8/1/2017',
         'fee': 0.
     }
 }
