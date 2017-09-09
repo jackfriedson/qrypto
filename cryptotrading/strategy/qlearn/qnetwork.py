@@ -39,11 +39,11 @@ class QNetworkStrategy(object):
 
     def train(self,
               learn_rate: float = 0.2,
-              gamma: float = 0.98,
+              gamma: float = 0.95,
               n_epochs: int = 10,
               n_hidden_units: int = 10,
               random_seed: int = None,
-              epsilon_start: float = 1,
+              epsilon_start: float = 0.5,
               epsilon_end: float = 0.,
               epsilon_decay: float = 1.,
               validation_percent: float = 0.2):
