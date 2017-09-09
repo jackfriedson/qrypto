@@ -5,7 +5,15 @@ import numpy as np
 from cryptotrading.data.datasets import OHLCDataset
 
 
-NON_NORMED_FIELDS = ['open', 'high', 'low', 'close', 'volume', 'quoteVolume', 'avg']
+EXCLUDE_FIELDS = [
+    'open',
+    'high',
+    'low',
+    'close',
+    'volume',
+    'quoteVolume',
+    'avg'
+]
 
 
 class QLearnDataset(OHLCDataset):
@@ -40,7 +48,7 @@ class QLearnDataset(OHLCDataset):
     @property
     def all(self):
         result = super(QLearnDataset, self).all
-        result.drop(NON_NORMED_FIELDS, axis=1, inplace=True)
+        result.drop(EXCLUDE_FIELDS, axis=1, inplace=True)
         return result
 
     @property

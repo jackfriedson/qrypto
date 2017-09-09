@@ -1,6 +1,7 @@
 import logging
 import time
 
+import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
 
@@ -36,39 +37,61 @@ class QNetworkStrategy(object):
         new_data = self.exchange.get_ohlc(self.base_currency, self.quote_currency, interval=self.ohlc_interval)
         self.data.update(new_data)
 
-    def train(self, learn_rate: float = 0.2, gamma: float = 0.98, n_epochs: int = 20):
-        # TODO: Group all parameters and meta-parameters in one place
+    def train(self,
+              learn_rate: float = 0.2,
+              gamma: float = 0.98,
+              n_epochs: int = 10,
+              n_hidden_units: int = 10,
+              random_seed: int = None,
+              epsilon_start: float = 1,
+              epsilon_end: float = 0.,
+              epsilon_decay: float = 1.,
+              validation_percent: float = 0.2):
 
-        val_percent = 0.2
         total_steps = len(self.exchange_train.date_range)
-        train_steps = int((1. - val_percent) * total_steps)
-        val_steps = int(val_percent * total_steps)
+        train_steps = int((1. - validation_percent) * total_steps)
+        validation_steps = int(validation_percent * total_steps) - 1
 
         tf.reset_default_graph()
+        if random_seed:
+            tf.set_random_seed(random_seed)
         global_step = tf.Variable(0, trainable=False)
-        inputs = tf.placeholder(shape=[1, self.data.n_state_factors], dtype=tf.float32)
-        W = tf.Variable(tf.random_uniform([self.data.n_state_factors, self.data.n_actions], 0, 0.01))
-        outputs = tf.matmul(inputs, W)
-        predict = tf.argmax(outputs, 1)
+        epsilon = tf.train.polynomial_decay(epsilon_start, global_step, train_steps * (n_epochs - 1),
+                                            end_learning_rate=epsilon_end, power=epsilon_decay)
 
-        targets = tf.placeholder(shape=[1, self.data.n_actions], dtype=tf.float32)
-        loss = tf.reduce_sum(tf.square(targets - outputs))
+        n_inputs = self.data.n_state_factors
+        n_hiddens = n_hidden_units
+        n_outputs = self.data.n_actions
+
+        input_layer = tf.placeholder(shape=[1, n_inputs], dtype=tf.float32)
+
+        weights = {
+            'hidden': tf.Variable(tf.random_normal([n_inputs, n_hiddens])),
+            'output': tf.Variable(tf.random_normal([n_hiddens, n_outputs]))
+        }
+
+        biases = {
+            'hidden': tf.Variable(tf.random_normal([n_hiddens])),
+            'output': tf.Variable(tf.random_normal([n_outputs]))
+        }
+
+        hidden_layer = tf.add(tf.matmul(input_layer, weights['hidden']), biases['hidden'])
+        hidden_layer = tf.nn.relu(hidden_layer)
+        output_layer = tf.matmul(hidden_layer, weights['output']) + biases['output']
+        predict = tf.argmax(output_layer, 1)
+
+        targets = tf.placeholder(shape=[1, n_outputs], dtype=tf.float32)
+        loss = tf.reduce_sum(tf.square(targets - output_layer))
         train_op = tf.train.AdamOptimizer(learn_rate).minimize(loss, global_step=global_step)
         init = tf.global_variables_initializer()
-
-        epsilon_start = 0.5
-        epsilon_end = 0.
-        decay_power = 1.5
-        epsilon = tf.train.polynomial_decay(epsilon_start, global_step, train_steps * (n_epochs - 1),
-                                            end_learning_rate=epsilon_end, power=decay_power)
 
         with tf.Session() as sess:
             sess.run(init)
 
             for epoch in range(n_epochs):
-                print('Epoch {}'.format(epoch))
+                print('\nEpoch {}'.format(epoch))
                 print('  Global step: {}'.format(sess.run(global_step)))
-                print('  Randomness: {:.2f}'.format(sess.run(epsilon)))
+                print('  Randomness: {}%'.format(int(100 * sess.run(epsilon))))
 
                 self.data.start_training()
                 state = self.data.state()
@@ -79,31 +102,36 @@ class QNetworkStrategy(object):
                     state = self.data.state()
 
                 # Train the model
+                losses = []
                 for i in range(train_steps - self.data.train_counter):
-                    action, allQ = sess.run([predict, outputs], feed_dict={inputs: state})
+                    action, allQ = sess.run([predict, output_layer], feed_dict={input_layer: state})
 
                     if np.random.rand(1) < sess.run(epsilon):
-                        # Randomly try some other action with probability e
-                        action[0] = np.random.randint(0, self.data.n_actions)
+                        # With probability epsilon, randomly try some other action
+                        action[0] = np.random.randint(0, n_outputs)
 
                     reward = self.data.take_action_ls(action[0])
                     new_state = self.data.state()
 
-                    Q_prime = sess.run(outputs, feed_dict={inputs: new_state})
+                    Q_prime = sess.run(output_layer, feed_dict={input_layer: new_state})
                     Q_update = allQ
                     Q_update[0, action[0]] = reward + gamma * np.max(Q_prime)
 
-                    sess.run([train_op, W], feed_dict={inputs: new_state, targets: Q_update})
+                    _, l = sess.run([train_op, loss], feed_dict={input_layer: new_state, targets: Q_update})
+                    losses.append(l)
 
-                print('  Loss: {}'.format(sess.run(loss, feed_dict={inputs: new_state, targets: Q_update})))
+                avg_loss = sum(losses) / len(losses)
+                print('  Average loss: {}'.format(avg_loss))
 
-                # Evaluate learning
+                # Evaluate the model
                 rewards = []
                 returns = []
                 confidences = []
-                for i in range(val_steps):
+                start_price = self.data.last
+
+                for i in range(validation_steps):
                     state = self.data.state()
-                    action, allQ = sess.run([predict, outputs], feed_dict={inputs: state})
+                    action, allQ = sess.run([predict, output_layer], feed_dict={input_layer: state})
                     reward, cum_return = self.data.test_action(action[0])
                     rewards.append(reward)
                     returns.append(cum_return)
@@ -112,11 +140,19 @@ class QNetworkStrategy(object):
                 rewards = list(filter(lambda x: x != 0, rewards))
                 returns = list(filter(lambda x: x != 0, returns))
                 avg_reward = sum(rewards) / (len(rewards) or 1.)
-                avg_return = sum(returns) / (len(returns) or 1.)
                 avg_confidence = sum(confidences) / len(confidences)
-                print('  Average reward: {:.2f}%'.format(100*avg_reward))
-                print('  Average return: {:.2f}%'.format(100*avg_return))
-                print('  Average confidence: {:.2f}%'.format(100*avg_confidence))
+
+                print('  Average reward: {:.4f}%'.format(100 * avg_reward))
+                print('  Average confidence: {:.2f}%'.format(100 * avg_confidence))
+
+                position_value = start_price
+                for return_val in returns:
+                    position_value *= 1 + return_val
+                market_return = (self.data.last / start_price) - 1.
+                algorithm_return = (position_value / start_price) - 1.
+
+                print('  Market return: {:.2f}%'.format(100 * market_return))
+                print('  Outperformance: {:+.2f}%'.format(100 * (algorithm_return - market_return)))
 
                 if epoch in [0, n_epochs // 2, n_epochs - 1]:
                     self.data.plot(show=False, save_file='{}__{}.png'.format(int(time.time()), epoch))

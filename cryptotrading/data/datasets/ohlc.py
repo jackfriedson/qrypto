@@ -55,10 +55,13 @@ class OHLCDataset(object):
         ax0.plot(self._data.index, self._data[use_column])
         ax0.set_title('Price (' + use_column.title() + ')')
 
-        buy_dates, buy_prices = zip(*self._orders['buy'])
-        sell_dates, sell_prices = zip(*self._orders['sell'])
-        ax0.plot(buy_dates, buy_prices, 'g.')
-        ax0.plot(sell_dates, sell_prices, 'r.')
+        if self._orders['buy']:
+            buy_dates, buy_prices = zip(*self._orders['buy'])
+            ax0.plot(buy_dates, buy_prices, 'g.')
+
+        if self._orders['sell']:
+            sell_dates, sell_prices = zip(*self._orders['sell'])
+            ax0.plot(sell_dates, sell_prices, 'r.')
 
         for i, indicator in enumerate(self._indicators, start=1):
             ax_ind = fig.add_subplot(gs[i], sharex=ax0)
