@@ -20,8 +20,8 @@ _config_map = {
     },
     'qlearn': {
         'unit': 1,
-        'train_start': '8/1/2017',
-        'train_end': '8/14/2017',
+        'train_start': '6/1/2017',
+        'train_end': '7/1/2017',
         'fee': 0.
     }
 }

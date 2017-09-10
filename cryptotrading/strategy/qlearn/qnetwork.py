@@ -39,13 +39,13 @@ class QNetworkStrategy(object):
 
     def train(self,
               learn_rate: float = 0.2,
-              gamma: float = 0.95,
-              n_epochs: int = 10,
-              n_hidden_units: int = 10,
-              random_seed: int = None,
-              epsilon_start: float = 0.5,
+              gamma: float = 0.25,
+              n_epochs: int = 20,
+              n_hidden_units: int = 3,
+              random_seed: int = 12345,
+              epsilon_start: float = 1.,
               epsilon_end: float = 0.,
-              epsilon_decay: float = 1.,
+              epsilon_decay: float = 2.,
               validation_percent: float = 0.2):
 
         total_steps = len(self.exchange_train.date_range)
@@ -70,18 +70,12 @@ class QNetworkStrategy(object):
             'output': tf.Variable(tf.random_normal([n_hiddens, n_outputs]))
         }
 
-        biases = {
-            'hidden': tf.Variable(tf.random_normal([n_hiddens])),
-            'output': tf.Variable(tf.random_normal([n_outputs]))
-        }
-
-        hidden_layer = tf.add(tf.matmul(input_layer, weights['hidden']), biases['hidden'])
-        hidden_layer = tf.nn.relu(hidden_layer)
-        output_layer = tf.matmul(hidden_layer, weights['output']) + biases['output']
+        hidden_layer = tf.matmul(input_layer, weights['hidden'])
+        output_layer = tf.matmul(hidden_layer, weights['output'])
         predict = tf.argmax(output_layer, 1)
 
         targets = tf.placeholder(shape=[1, n_outputs], dtype=tf.float32)
-        loss = tf.reduce_sum(tf.square(targets - output_layer))
+        loss = tf.reduce_mean(tf.squared_difference(targets, output_layer))
         train_op = tf.train.AdamOptimizer(learn_rate).minimize(loss, global_step=global_step)
         init = tf.global_variables_initializer()
 
@@ -154,7 +148,7 @@ class QNetworkStrategy(object):
                 print('  Market return: {:.2f}%'.format(100 * market_return))
                 print('  Outperformance: {:+.2f}%'.format(100 * (algorithm_return - market_return)))
 
-                if epoch in [0, n_epochs // 2, n_epochs - 1]:
+                if epoch % 2 == 0 or epoch == n_epochs - 1:
                     self.data.plot(show=False, save_file='{}__{}.png'.format(int(time.time()), epoch))
 
     def run(self):
