@@ -35,3 +35,19 @@ class QEstimator(object):
         feed_dict = {self.inputs: state, self.targets: target, self.actions: action}
         _, loss = sess.run([self.train_op, self.loss], feed_dict)
         return loss
+
+
+class ModelParametersCopier(object):
+    def __init__(self, estimator_from, estimator_to):
+        from_params = [t for t in tf.trainable_variables() if t.name.startswith(estimator_from.scope)]
+        from_params = sorted(from_params, key=lambda v: v.name)
+        to_params = [t for t in tf.trainable_variables() if t.name.startswith(estimator_to.scope)]
+        to_params = sorted(to_params, key=lambda v: v.name)
+
+        self.update_ops = []
+        for from_v, to_v in zip(from_params, to_params):
+            op = to_v.assign(from_v)
+            self.update_ops.append(op)
+
+    def make(self, sess):
+        sess.run(self.update_ops)

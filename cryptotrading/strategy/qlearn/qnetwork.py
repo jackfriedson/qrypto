@@ -9,7 +9,7 @@ import tensorflow as tf
 from cryptotrading.backtest import Backtest
 from cryptotrading.data.datasets import QLearnDataset
 from cryptotrading.data.indicators import BasicIndicator
-from cryptotrading.strategy.qlearn.qestimator import QEstimator
+from cryptotrading.strategy.qlearn.qestimator import QEstimator, ModelParametersCopier
 
 
 log = logging.getLogger(__name__)
@@ -28,11 +28,6 @@ def make_epsilon_greedy_policy(estimator, epsilon, n_actions):
         return A
     return policy_fn
 
-
-def make_greedy_policy(estimator, n_actions):
-    def policy_fn(sess, observation):
-        q_values = estimator.predict(sess, np.expand_dims(observation, 0))[0]
-        best_action = np.argmax(q_values)
 
 class QNetworkStrategy(object):
 
@@ -68,8 +63,10 @@ class QNetworkStrategy(object):
               epsilon_end: float = 0.,
               epsilon_decay: float = 2.,
               validation_percent: float = 0.2,
-              replay_memory_max_size: int = 500000,
-              replay_memory_start_size: int = 50000):
+              replay_memory_start_size: int = 5000,
+              replay_memory_max_size: int = 50000,
+              replay_memory_batch_size: int = 32,
+              update_target_every: int = 1000):
 
         total_steps = len(self.exchange_train.date_range)
         train_steps = int((1. - validation_percent) * total_steps)
@@ -85,6 +82,8 @@ class QNetworkStrategy(object):
 
         q_estimator = QEstimator('q_estimator', self.data.n_state_factors, n_hidden_units, self.data.n_actions)
         target_estimator = QEstimator('target_q', self.data.n_state_factors, n_hidden_units, self.data.n_actions)
+        estimator_copy = ModelParametersCopier(q_estimator, target_estimator)
+
 
         epsilon = tf.train.polynomial_decay(epsilon_start, tf.contrib.framework.get_global_step(),
                                             train_steps * (n_epochs - 1), end_learning_rate=epsilon_end,
@@ -108,6 +107,11 @@ class QNetworkStrategy(object):
 
                 # Train the model
                 for i in range(train_steps - self.data.train_counter):
+
+                    global_step = sess.run(tf.contrib.framework.get_global_step())
+                    if global_step % update_target_every == 0:
+                        estimator_copy.make(sess)
+
                     action_probs = policy(sess, state)
                     action = np.random.choice(np.arange(len(action_probs)), p=action_probs)
                     reward = self.data.step(action)
@@ -118,7 +122,7 @@ class QNetworkStrategy(object):
                     reward_batch = np.array([reward])
                     next_states_batch = np.array([next_state])
 
-                    q_values_next = q_estimator.predict(sess, next_states_batch)
+                    q_values_next = target_estimator.predict(sess, next_states_batch)
                     targets_batch = reward_batch + gamma * np.amax(q_values_next, axis=1)
 
                     loss = q_estimator.update(sess, states_batch, action_batch, targets_batch)
