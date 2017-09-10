@@ -33,9 +33,11 @@ class QLearnDataset(OHLCDataset):
         self.train_counter = 0
         self._orders['buy'] = []
         self._orders['sell'] = []
+        return self.state()
 
     def next(self):
         self.train_counter += 1
+        return self.state()
 
     def stop_training(self):
         self.train_counter = None
@@ -96,7 +98,7 @@ class QLearnDataset(OHLCDataset):
         else:
             return 0.
 
-    def take_action_ls(self, idx: int):
+    def step(self, idx: int):
         action = self.actions[idx]
         self.add_order(action, {'price': self.last})
 
@@ -112,7 +114,7 @@ class QLearnDataset(OHLCDataset):
         else:
             return -self.period_return
 
-    def test_action(self, idx: int):
+    def step_val(self, idx: int):
         action = self.actions[idx]
         if action == 'buy' and not self.open_price:
             self.open_price = self.last
@@ -123,6 +125,6 @@ class QLearnDataset(OHLCDataset):
         else:
             cum_return = 0.
 
-        reward = self.take_action_ls(idx)
+        reward = self.step(idx)
 
         return reward, cum_return
