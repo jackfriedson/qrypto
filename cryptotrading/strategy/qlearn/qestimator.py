@@ -12,8 +12,8 @@ class QEstimator(object):
         self.scope = scope
 
         with tf.variable_scope(scope):
-            self.inputs = tf.placeholder(shape=[None, 1, n_inputs], dtype=tf.float32, name='inputs')
-            self.targets = tf.placeholder(shape=[None, n_outputs], dtype=tf.float32, name='targets')
+            self.inputs = tf.placeholder(shape=[None, n_inputs], dtype=tf.float32, name='inputs')
+            self.targets = tf.placeholder(shape=[None], dtype=tf.float32, name='targets')
             self.actions = tf.placeholder(shape=[None], dtype=tf.int32, name='actions')
 
             batch_size = tf.shape(self.inputs)[0]
@@ -37,7 +37,7 @@ class QEstimator(object):
         return loss
 
 
-class ModelParametersCopier(object):
+class ModelParametersCopier():
     def __init__(self, estimator_from, estimator_to):
         from_params = [t for t in tf.trainable_variables() if t.name.startswith(estimator_from.scope)]
         from_params = sorted(from_params, key=lambda v: v.name)

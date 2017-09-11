@@ -33,7 +33,11 @@ class QLearnDataset(OHLCDataset):
         self.train_counter = 0
         self._orders['buy'] = []
         self._orders['sell'] = []
-        return self.state()
+
+        while np.any(np.isnan(self.state())):
+            self.next()
+
+        return self.train_counter
 
     def next(self):
         self.train_counter += 1
@@ -84,8 +88,7 @@ class QLearnDataset(OHLCDataset):
             result = result - self.mean
             result = result / self.std
 
-        result = result.values.reshape(1, len(result))
-        return result
+        return result.values
 
     @property
     def period_return(self):
