@@ -25,7 +25,7 @@ class QLearnDataset(OHLCDataset):
         self._normalized = False
         self.train_counter = None
         self.open_price = None
-        self.position = 'long'
+        self.position = 'buy'
 
         super(QLearnDataset, self).__init__(*args, **kwargs)
 
@@ -105,17 +105,20 @@ class QLearnDataset(OHLCDataset):
         action = self.actions[idx]
         self.add_order(action, {'price': self.last})
 
-        if action == 'buy':
-            self.position = 'long'
-        else:
-            self.position = 'short'
+        switch = self.position != action
+        self.position = action
 
         self.next()
 
-        if self.position == 'long':
-            return self.period_return
+        if self.position == 'buy':
+            reward = self.period_return
         else:
-            return -self.period_return
+            reward = self.period_return * -1.
+
+        if switch:
+            reward -= self.fee
+
+        return reward
 
     def step_val(self, idx: int):
         action = self.actions[idx]
