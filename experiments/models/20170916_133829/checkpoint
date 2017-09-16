@@ -1,0 +1,2 @@
+model_checkpoint_path: "/Users/jackfriedson/dev/cryptotrading/experiments/models/20170916_133829/model.ckpt"
+all_model_checkpoint_paths: "/Users/jackfriedson/dev/cryptotrading/experiments/models/20170916_133829/model.ckpt"

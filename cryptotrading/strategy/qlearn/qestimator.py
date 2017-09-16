@@ -9,12 +9,13 @@ class QEstimator(object):
     def __init__(self,
                  scope: str,
                  n_inputs: int,
-                 n_hiddens: int,
                  n_outputs: int,
+                 hidden_units: int = None,
                  learn_rate: float = 0.0005,
                  decay: float = 0.99,
                  summaries_dir: str = None):
         self.scope = scope
+        n_hiddens = hidden_units if hidden_units is not None else (n_inputs + n_outputs) // 2
 
         with tf.variable_scope(scope):
             self.inputs = tf.placeholder(shape=[None, n_inputs], dtype=tf.float32, name='inputs')
@@ -25,7 +26,7 @@ class QEstimator(object):
 
             hidden_layer = tf.contrib.layers.fully_connected(self.inputs, n_hiddens, activation_fn=tf.nn.crelu)
             self.output_layer = tf.contrib.layers.fully_connected(hidden_layer, n_outputs // 2, activation_fn=tf.nn.crelu)
-            # Run softmax on output layer to get confidences
+            self.softmax = tf.nn.softmax(self.output_layer)
 
             gather_indices = tf.range(batch_size) * tf.shape(self.output_layer)[1] + self.actions
             self.predictions = tf.gather(tf.reshape(self.output_layer, [-1]), gather_indices)
@@ -44,13 +45,13 @@ class QEstimator(object):
 
             self.summary_writer = None
             if summaries_dir:
-                summary_dir = os.path.join(summaries_dir, 'summaries_{}_{}'.format(scope, time.strftime('%Y%m%d_%H%M%S')))
+                summary_dir = os.path.join(summaries_dir, '{}_{}'.format(scope, time.strftime('%Y%m%d_%H%M%S')))
                 if not os.path.exists(summary_dir):
                     os.makedirs(summary_dir)
                 self.summary_writer = tf.summary.FileWriter(summary_dir)
 
     def predict(self, sess, state):
-        return sess.run(self.output_layer, {self.inputs: state})
+        return sess.run([self.output_layer, self.softmax], {self.inputs: state})
 
     def update(self, sess, state, action, target):
         feed_dict = {self.inputs: state, self.targets: target, self.actions: action}
@@ -60,6 +61,11 @@ class QEstimator(object):
         if self.summary_writer:
             self.summary_writer.add_summary(summaries, global_step)
 
+        return loss
+
+    def compute_loss(self, sess, state, action, target):
+        feed_dict = {self.inputs: state, self.targets: target, self.actions: action}
+        loss = sess.run(self.loss, feed_dict)
         return loss
 
 

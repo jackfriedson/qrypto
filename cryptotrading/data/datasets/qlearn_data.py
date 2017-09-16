@@ -1,6 +1,7 @@
 from typing import Tuple
 
 import numpy as np
+import pandas as pd
 
 from cryptotrading.data.datasets import OHLCDataset
 
@@ -31,8 +32,7 @@ class QLearnDataset(OHLCDataset):
 
     def start_training(self):
         self.train_counter = 0
-        self._orders['buy'] = []
-        self._orders['sell'] = []
+        self._init_orders()
 
         while np.any(np.isnan(self.state())):
             self.next()
@@ -120,13 +120,16 @@ class QLearnDataset(OHLCDataset):
 
         return reward
 
-    def step_val(self, idx: int):
+    def step_val(self, idx: int, confidence: float):
         action = self.actions[idx]
+
+        # One confidence val to open a position and another one to stay in
+
         if action == 'buy' and not self.open_price:
             self.open_price = self.last
-            cum_return = 0.
+            cum_return = -self.fee
         elif action == 'sell' and self.open_price:
-            cum_return = self.cumulative_return - (2 * self.fee)
+            cum_return = self.cumulative_return - self.fee
             self.open_price = None
         else:
             cum_return = 0.

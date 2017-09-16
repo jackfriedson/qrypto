@@ -49,7 +49,7 @@ def qlearnnet(ctx):
     exchange = ctx.obj.get('exchange')
     config = settings.get_config('qlearn')
     strategy = QNetworkStrategy(exchange, **config)
-    strategy.train()
+    strategy.train('6/1/2017', '7/1/2017', random_seed=12345)
 
 
 @cli.command()

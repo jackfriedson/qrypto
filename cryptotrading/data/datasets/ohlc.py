@@ -12,14 +12,26 @@ matplotlib.style.use('ggplot')
 
 class OHLCDataset(object):
 
-    def __init__(self, indicators: List = None):
+    def __init__(self, data: List[dict] = None, indicators: List = None, charts_dir: str = None):
         self._data = None
         self._indicators = indicators or []
-        self._orders = {
-            'buy': [],
-            'sell': []
-        }
+        self._init_orders()
+
+        if data is not None:
+            self.init_data(data)
+
+        self.charts_dir = charts_dir
+        if not os.path.exists(charts_dir):
+            os.makedirs(charts_dir)
         # TODO: Implement dynamic plotting of orders while running
+
+    def init_data(self, data):
+        self._data = None
+        self.update(data)
+
+    def _init_orders(self):
+        self._orders = pd.DataFrame(columns=['datetime', 'long', 'short'])
+        self._orders.set_index('datetime', inplace=True)
 
     def __getattr__(self, name):
         for indicator in self._indicators:
@@ -43,36 +55,30 @@ class OHLCDataset(object):
 
     def add_order(self, buy_sell: str, order_info: dict):
         if buy_sell in ['buy', 'long']:
-            self._orders['buy'].append((self.time, order_info['price']))
+            self._orders.loc[self.time, 'long'] = order_info['price']
         elif buy_sell in ['sell', 'short']:
-            self._orders['sell'].append((self.time, order_info['price']))
+            self._orders.loc[self.time, 'short'] = order_info['price']
 
-    def plot(self, use_column: str = 'close', show: bool = True, save_file: str = None):
-        fig = plt.figure(figsize=(12, 9))
+    def plot(self, use_column: str = 'close', show: bool = True, filename: str = 'chart'):
+        fig = plt.figure(figsize=(24, 18))
         ratios = [3] + ([1] * len(self._indicators))
         gs = gridspec.GridSpec(1 + len(self._indicators), 1, height_ratios=ratios)
+
+        # Plot long and short positions
         ax0 = fig.add_subplot(gs[0])
-        ax0.plot(self._data.index, self._data[use_column])
-        ax0.set_title('Price (' + use_column.title() + ')')
-
-        if self._orders['buy']:
-            buy_dates, buy_prices = zip(*self._orders['buy'])
-            ax0.plot(buy_dates, buy_prices, 'g.')
-
-        if self._orders['sell']:
-            sell_dates, sell_prices = zip(*self._orders['sell'])
-            ax0.plot(sell_dates, sell_prices, 'r.')
+        ax0.plot(self._data.index, self._data[use_column], 'black')
+        self._orders.plot(ax=ax0, style={'long': 'g', 'short': 'r'})
+        ax0.set_title('Price ({})'.format(use_column))
 
         for i, indicator in enumerate(self._indicators, start=1):
-            ax_ind = fig.add_subplot(gs[i], sharex=ax0)
+            ax_ind = fig.add_subplot(gs[i])
             indicator.plot(ax_ind)
 
         fig.autofmt_xdate()
         plt.tight_layout()
 
-        if save_file:
-            # TODO: use system agnosting path
-            fig.savefig(os.path.expanduser('~/Desktop/cryptofigs/') + save_file)
+        if self.charts_dir:
+            fig.savefig(self.charts_dir + filename)
 
         if show:
             plt.show()
