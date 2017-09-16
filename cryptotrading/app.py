@@ -44,12 +44,16 @@ def qlearn(ctx):
 
 
 @cli.command()
+@click.option('--train-start', type=str, default='6/1/2017')
+@click.option('--train-end', type=str, default='7/1/2017')
+@click.option('--n-epochs', type=int, default=10)
+@click.option('--save-model', type=str, default='model.ckpt')
 @click.pass_context
-def qlearnnet(ctx):
+def qlearnnet(ctx, train_start, train_end, **kwargs):
     exchange = ctx.obj.get('exchange')
     config = settings.get_config('qlearn')
     strategy = QNetworkStrategy(exchange, **config)
-    strategy.train('6/1/2017', '7/1/2017', random_seed=12345)
+    strategy.train(train_start, train_end, random_seed=12345, **kwargs)
 
 
 @cli.command()

@@ -20,7 +20,8 @@ _config_map = {
     },
     'qlearn': {
         'unit': 1,
-        'fee': 0.
+        'fee': 0.00,
+        # 'confidence_thresholds': (0.8, 0.6)
     }
 }
 

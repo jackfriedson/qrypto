@@ -18,7 +18,7 @@ EXCLUDE_FIELDS = [
 
 
 class QLearnDataset(OHLCDataset):
-    actions = ['buy', 'sell']
+    actions = ['long', 'short']
 
     def __init__(self, *args, fee: float = 0.002, **kwargs):
         self.fee = fee
@@ -26,12 +26,13 @@ class QLearnDataset(OHLCDataset):
         self._normalized = False
         self.train_counter = None
         self.open_price = None
-        self.position = 'buy'
+        self.position = 'long'
 
         super(QLearnDataset, self).__init__(*args, **kwargs)
 
     def start_training(self):
         self.train_counter = 0
+        self._init_positions()
         self._init_orders()
 
         while np.any(np.isnan(self.state())):
@@ -103,36 +104,36 @@ class QLearnDataset(OHLCDataset):
 
     def step(self, idx: int):
         action = self.actions[idx]
-        self.add_order(action, {'price': self.last})
-
-        switch = self.position != action
+        self.add_position(action, {'price': self.last})
         self.position = action
 
         self.next()
 
-        if self.position == 'buy':
+        if self.position == 'long':
             reward = self.period_return
         else:
             reward = self.period_return * -1.
 
-        if switch:
-            reward -= self.fee
-
         return reward
 
-    def step_val(self, idx: int, confidence: float):
+    def step_val(self, idx: int, confidence: float, threshold = (0.5, 0.5)):
+        open_thresh, hold_thresh = threshold
         action = self.actions[idx]
 
-        # One confidence val to open a position and another one to stay in
-
-        if action == 'buy' and not self.open_price:
-            self.open_price = self.last
-            cum_return = -self.fee
-        elif action == 'sell' and self.open_price:
-            cum_return = self.cumulative_return - self.fee
-            self.open_price = None
+        if self.open_price is None:
+            if action == 'long' and confidence > open_thresh:
+                self.open_price = self.last
+                self.add_order('buy', {'price': self.last})
+                cum_return = -self.fee
+            else:
+                cum_return = 0.
         else:
-            cum_return = 0.
+            if action == 'short' or confidence < hold_thresh:
+                cum_return = self.cumulative_return - self.fee
+                self.add_order('sell', {'price': self.last})
+                self.open_price = None
+            else:
+                cum_return = 0.
 
         reward = self.step(idx)
 

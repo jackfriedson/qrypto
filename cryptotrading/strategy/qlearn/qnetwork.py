@@ -3,6 +3,7 @@ import os
 import random
 import time
 from collections import deque, namedtuple
+from typing import Tuple
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -36,12 +37,21 @@ if not os.path.exists(models_dir):
 
 class QNetworkStrategy(object):
 
-    def __init__(self, exchange, base_currency: str, quote_currency: str,
-                 unit: float, ohlc_interval: int = 5, sleep_duration: int = 5, **kwargs) -> None:
+    def __init__(self,
+                 exchange,
+                 base_currency: str,
+                 quote_currency: str,
+                 unit: float,
+                 ohlc_interval: int = 5,
+                 sleep_duration: int = 5,
+                 confidence_thresholds: Tuple[float, float] = (0.5, 0.5),
+                 **kwargs) -> None:
         self.base_currency = base_currency
         self.quote_currency = quote_currency
         self.unit = unit
         self.ohlc_interval = ohlc_interval
+        self.confidence_thresholds = confidence_thresholds
+
         self.exchange = exchange
         self.timestamp = time.strftime('%Y%m%d_%H%M%S')
 
@@ -72,7 +82,7 @@ class QNetworkStrategy(object):
               replay_memory_batch_size: int = 16,
               update_target_every: int = 1000,
               random_seed: int = None,
-              save_file: str = 'model.ckpt'):
+              save_model: bool = True):
 
         # Initialize training data
         exchange_train = Backtest(self.exchange, self.base_currency, self.quote_currency,
@@ -160,8 +170,8 @@ class QNetworkStrategy(object):
                     train_rewards.append(reward)
                     losses.append(loss)
 
-                if save_file:
-                    saver.save(sess, os.path.join(self.models_dir, save_file))
+                if save_model:
+                    saver.save(sess, os.path.join(self.models_dir, 'model.ckpt'))
 
                 # Evaluate the model
                 rewards = []
@@ -174,7 +184,7 @@ class QNetworkStrategy(object):
                     q_values, confidence_values = q_estimator.predict(sess, np.expand_dims(state, 0))
                     action = np.argmax(q_values)
                     confidence = confidence_values[0][action]
-                    reward, cum_return = self.data.step_val(action, confidence)
+                    reward, cum_return = self.data.step_val(action, confidence, self.confidence_thresholds)
 
                     # Calculate validation loss for summaries
                     next_state = self.data.state()

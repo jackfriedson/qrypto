@@ -15,6 +15,7 @@ class OHLCDataset(object):
     def __init__(self, data: List[dict] = None, indicators: List = None, charts_dir: str = None):
         self._data = None
         self._indicators = indicators or []
+        self._init_positions()
         self._init_orders()
 
         if data is not None:
@@ -29,8 +30,12 @@ class OHLCDataset(object):
         self._data = None
         self.update(data)
 
+    def _init_positions(self):
+        self._positions = pd.DataFrame(columns=['datetime', 'long', 'short'])
+        self._positions.set_index('datetime', inplace=True)
+
     def _init_orders(self):
-        self._orders = pd.DataFrame(columns=['datetime', 'long', 'short'])
+        self._orders = pd.DataFrame(columns=['datetime', 'buy', 'sell'])
         self._orders.set_index('datetime', inplace=True)
 
     def __getattr__(self, name):
@@ -53,11 +58,17 @@ class OHLCDataset(object):
         for indicator in self._indicators:
             indicator.update(self._data)
 
+    def add_position(self, long_short: str, order_info: dict):
+        if long_short == 'long':
+            self._positions.loc[self.time, 'long'] = order_info['price']
+        elif long_short == 'short':
+            self._positions.loc[self.time, 'short'] = order_info['price']
+
     def add_order(self, buy_sell: str, order_info: dict):
-        if buy_sell in ['buy', 'long']:
-            self._orders.loc[self.time, 'long'] = order_info['price']
-        elif buy_sell in ['sell', 'short']:
-            self._orders.loc[self.time, 'short'] = order_info['price']
+        if buy_sell == 'buy':
+            self._orders.loc[self.time, 'buy'] = order_info['price']
+        elif buy_sell == 'sell':
+            self._orders.loc[self.time, 'sell'] = order_info['price']
 
     def plot(self, use_column: str = 'close', show: bool = True, filename: str = 'chart'):
         fig = plt.figure(figsize=(24, 18))
@@ -67,7 +78,8 @@ class OHLCDataset(object):
         # Plot long and short positions
         ax0 = fig.add_subplot(gs[0])
         ax0.plot(self._data.index, self._data[use_column], 'black')
-        self._orders.plot(ax=ax0, style={'long': 'g', 'short': 'r'})
+        self._positions.plot(ax=ax0, style={'long': 'g', 'short': 'r'})
+        self._orders.plot(ax=ax0, style={'buy': 'g.', 'sell': 'r.'})
         ax0.set_title('Price ({})'.format(use_column))
 
         for i, indicator in enumerate(self._indicators, start=1):
@@ -78,7 +90,7 @@ class OHLCDataset(object):
         plt.tight_layout()
 
         if self.charts_dir:
-            fig.savefig(self.charts_dir + filename)
+            fig.savefig(os.path.join(self.charts_dir, filename))
 
         if show:
             plt.show()
