@@ -21,11 +21,13 @@ class QEstimator(object):
             self.inputs = tf.placeholder(shape=[None, n_inputs], dtype=tf.float32, name='inputs')
             self.targets = tf.placeholder(shape=[None], dtype=tf.float32, name='targets')
             self.actions = tf.placeholder(shape=[None], dtype=tf.int32, name='actions')
+            self.phase = tf.placeholder(dtype=tf.bool, name='phase')
 
             batch_size = tf.shape(self.inputs)[0]
 
-            # TODO: try only applying batch_norm to the first layer
-            hidden_layer = tf.contrib.layers.fully_connected(self.inputs, n_hiddens, activation_fn=tf.nn.crelu)
+            # TODO: experiment with renorm_decay value
+            norm_layer = tf.contrib.layers.batch_norm(self.inputs, renorm=True, is_training=self.phase)
+            hidden_layer = tf.contrib.layers.fully_connected(norm_layer, n_hiddens, activation_fn=tf.nn.crelu)
             self.output_layer = tf.contrib.layers.fully_connected(hidden_layer, n_outputs // 2, activation_fn=tf.nn.crelu)
             self.softmax = tf.nn.softmax(self.output_layer)
 
@@ -35,7 +37,10 @@ class QEstimator(object):
             self.losses = tf.squared_difference(self.targets, self.predictions)
             self.loss = tf.reduce_mean(self.losses)
             self.optimizer = tf.train.RMSPropOptimizer(learn_rate, decay)
-            self.train_op = self.optimizer.minimize(self.loss, global_step=tf.contrib.framework.get_global_step())
+
+            update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
+            with tf.control_dependencies(update_ops):
+                self.train_op = self.optimizer.minimize(self.loss, global_step=tf.contrib.framework.get_global_step())
 
             self.summaries = tf.summary.merge([
                 tf.summary.scalar("loss", self.loss),
@@ -52,11 +57,11 @@ class QEstimator(object):
                     os.makedirs(summary_dir)
                 self.summary_writer = tf.summary.FileWriter(summary_dir)
 
-    def predict(self, sess, state):
-        return sess.run([self.output_layer, self.softmax], {self.inputs: state})
+    def predict(self, sess, state, phase):
+        return sess.run([self.output_layer, self.softmax], {self.inputs: state, self.phase: phase})
 
     def update(self, sess, state, action, target):
-        feed_dict = {self.inputs: state, self.targets: target, self.actions: action}
+        feed_dict = {self.inputs: state, self.targets: target, self.actions: action, self.phase: True}
         summaries, global_step, _, loss = sess.run([self.summaries, tf.contrib.framework.get_global_step(),
                                                     self.train_op, self.loss], feed_dict)
 
@@ -66,7 +71,7 @@ class QEstimator(object):
         return loss
 
     def compute_loss(self, sess, state, action, target):
-        feed_dict = {self.inputs: state, self.targets: target, self.actions: action}
+        feed_dict = {self.inputs: state, self.targets: target, self.actions: action, self.phase: False}
         loss = sess.run(self.loss, feed_dict)
         return loss
 

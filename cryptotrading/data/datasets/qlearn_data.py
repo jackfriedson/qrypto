@@ -1,7 +1,4 @@
-from typing import Tuple
-
 import numpy as np
-import pandas as pd
 
 from cryptotrading.data.datasets import OHLCDataset
 
@@ -89,7 +86,7 @@ class QLearnDataset(OHLCDataset):
             result = result - self.mean
             result = result / self.std
 
-        result = np.append(result.values, .5 if self.position == 'long' else 0.)
+        result = np.append(result.values, 1. if self.position == 'long' else -1.)
         return result
 
     @property

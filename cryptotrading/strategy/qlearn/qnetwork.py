@@ -1,3 +1,4 @@
+import io
 import logging
 import os
 import random
@@ -5,7 +6,6 @@ import time
 from collections import deque, namedtuple
 from typing import Tuple
 
-import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
 
@@ -22,13 +22,10 @@ Transition = namedtuple('Transition', ['state', 'action', 'reward', 'next_state'
 
 
 experiments_dir = os.path.expanduser('~/dev/cryptotrading/experiments/')
-charts_dir = os.path.join(experiments_dir, 'charts')
 summaries_dir = os.path.join(experiments_dir, 'tf_summaries')
 models_dir = os.path.join(experiments_dir, 'models')
 
 
-if not os.path.exists(charts_dir):
-    os.makedirs(charts_dir)
 if not os.path.exists(summaries_dir):
     os.makedirs(summaries_dir)
 if not os.path.exists(models_dir):
@@ -51,16 +48,14 @@ class QNetworkStrategy(object):
         self.unit = unit
         self.ohlc_interval = ohlc_interval
         self.confidence_thresholds = confidence_thresholds
-
         self.exchange = exchange
-        self.timestamp = time.strftime('%Y%m%d_%H%M%S')
 
-        self.charts_dir = os.path.join(charts_dir, self.timestamp)
+        self.timestamp = time.strftime('%Y%m%d_%H%M%S')
         self.models_dir = os.path.join(models_dir, self.timestamp)
 
         indicators = []
         indicators.append(BasicIndicator('ppo', {'fastperiod': 12, 'slowperiod': 30, 'matype': 0}))
-        self.data = QLearnDataset(indicators=indicators, charts_dir=self.charts_dir, **kwargs)
+        self.data = QLearnDataset(indicators=indicators, **kwargs)
 
     def update(self):
         new_data = self.exchange.get_ohlc(self.base_currency, self.quote_currency, interval=self.ohlc_interval)
@@ -78,7 +73,7 @@ class QNetworkStrategy(object):
               epsilon_decay: float = 2,
               experience_replay = True,
               replay_memory_start_size: int = 1000,
-              replay_memory_max_size: int = 10000,
+              replay_memory_max_size: int = 40000,
               replay_memory_batch_size: int = 16,
               update_target_every: int = 1000,
               random_seed: int = None,
@@ -88,7 +83,7 @@ class QNetworkStrategy(object):
         exchange_train = Backtest(self.exchange, self.base_currency, self.quote_currency,
                                   start=start, end=end, interval=self.ohlc_interval)
         self.data.init_data(exchange_train.all())
-        self.data.normalize()
+        # self.data.normalize()
         n_inputs = self.data.n_state_factors
         n_outputs = self.data.n_actions
 
@@ -127,7 +122,7 @@ class QNetworkStrategy(object):
             if experience_replay:
                 print('Initializing replay memory...')
                 replay_memory = deque(maxlen=replay_memory_max_size)
-                for i in range(min(replay_memory_start_size, train_steps)):
+                for _ in range(min(replay_memory_start_size, train_steps)):
                     state = self.data.state()
                     action = policy(sess, state)
                     reward = self.data.step(action)
@@ -168,7 +163,7 @@ class QNetworkStrategy(object):
                         next_states_batch = np.array([next_state])
 
                     # Update network
-                    q_values_next, _ = target_estimator.predict(sess, next_states_batch)
+                    q_values_next, _ = target_estimator.predict(sess, next_states_batch, True)
                     targets_batch = reward_batch + gamma * np.amax(q_values_next, axis=1)
                     loss = q_estimator.update(sess, states_batch, action_batch, targets_batch)
 
@@ -186,14 +181,14 @@ class QNetworkStrategy(object):
 
                 for i in range(validation_steps):
                     state = self.data.state()
-                    q_values, confidence_values = q_estimator.predict(sess, np.expand_dims(state, 0))
+                    q_values, confidence_values = q_estimator.predict(sess, np.expand_dims(state, 0), False)
                     action = np.argmax(q_values)
                     confidence = confidence_values[0][action]
                     reward, cum_return = self.data.step_val(action, confidence, self.confidence_thresholds)
 
                     # Calculate validation loss for summaries
                     next_state = self.data.state()
-                    next_q_values = q_estimator.predict(sess, np.expand_dims(next_state, 0))[0]
+                    next_q_values = q_estimator.predict(sess, np.expand_dims(next_state, 0), False)[0]
                     target = reward + gamma * np.amax(next_q_values)
                     loss = q_estimator.compute_loss(sess, np.array([state]), np.array([action]), np.array([target]))
 
@@ -211,6 +206,13 @@ class QNetworkStrategy(object):
                 print('\tMarket return: {:.2f}%'.format(100 * market_return))
                 print('\tOutperformance: {:+.2f}%'.format(100 * outperformance))
 
+                buf = io.BytesIO()
+                self.data.plot(save_to=buf)
+                buf.seek(0)
+                image = tf.image.decode_png(buf.getvalue(), channels=4)
+                image = tf.expand_dims(image, 0)
+                epoch_chart = tf.summary.image('epoch_{}'.format(epoch), image, max_outputs=1).eval()
+
                 # Add Tensorboard summaries
                 epoch_summary = tf.Summary()
                 epoch_summary.value.add(simple_value=sess.run(epsilon), tag='epoch/train/epsilon')
@@ -220,28 +222,20 @@ class QNetworkStrategy(object):
                 epoch_summary.value.add(simple_value=outperformance, tag='epoch/validate/outperformance')
                 epoch_summary.value.add(simple_value=np.average(val_losses), tag='epoch/validate/average_loss')
                 q_estimator.summary_writer.add_summary(epoch_summary, epoch)
+                q_estimator.summary_writer.add_summary(epoch_chart, epoch)
                 q_estimator.summary_writer.flush()
-
-                # Save 10 graphs per training session
-                if epoch in range(0, n_epochs, n_epochs // 10):
-                    self.data.plot(show=False, filename='epoch_{}'.format(epoch))
 
     @staticmethod
     def _make_policy(estimator, epsilon, n_actions):
         def policy_fn(sess, observation):
             epsilon_val = sess.run(epsilon)
             action_probs = np.ones(n_actions, dtype=float) * epsilon_val / n_actions
-            q_values = estimator.predict(sess, np.expand_dims(observation, 0))[0]
+            q_values = estimator.predict(sess, np.expand_dims(observation, 0), True)[0]
             best_action = np.argmax(q_values)
             action_probs[best_action] += (1.0 - epsilon_val)
             action = np.random.choice(np.arange(len(action_probs)), p=action_probs)
             return action
         return policy_fn
-
-    def _scatter_plot(self, x, y, filename):
-        fig = plt.figure(figsize=(12,9))
-        plt.scatter(x, y)
-        fig.savefig(self.charts_dir + filename)
 
     def run(self):
         pass

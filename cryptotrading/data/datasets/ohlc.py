@@ -1,9 +1,8 @@
-import os
-from typing import List
+import io
+from typing import List, Union
 
 import matplotlib
 import matplotlib.pyplot as plt
-import numpy as np
 import pandas as pd
 from matplotlib import gridspec
 
@@ -13,7 +12,7 @@ matplotlib.style.use('ggplot')
 
 class OHLCDataset(object):
 
-    def __init__(self, data: List[dict] = None, indicators: List = None, charts_dir: str = None):
+    def __init__(self, data: List[dict] = None, indicators: List = None):
         self._data = None
         self._indicators = indicators or []
         self._init_positions()
@@ -22,9 +21,6 @@ class OHLCDataset(object):
         if data is not None:
             self.init_data(data)
 
-        self.charts_dir = charts_dir
-        if not os.path.exists(charts_dir):
-            os.makedirs(charts_dir)
         # TODO: Implement dynamic plotting of orders while running
 
     def init_data(self, data):
@@ -71,15 +67,15 @@ class OHLCDataset(object):
         elif buy_sell == 'sell':
             self._orders.loc[self.time, 'sell'] = order_info['price']
 
-    def plot(self, use_column: str = 'close', show: bool = True, filename: str = 'chart'):
+    def plot(self, data_column: str = 'close', save_to: Union[str, io.BufferedIOBase] = None):
         fig = plt.figure(figsize=(40, 30))
         ratios = [3] + ([1] * len(self._indicators))
         gs = gridspec.GridSpec(1 + len(self._indicators), 1, height_ratios=ratios)
 
         # Plot long and short positions
         ax0 = fig.add_subplot(gs[0])
-        ax0.set_title('Price ({})'.format(use_column))
-        ax0.plot(self._data.index, self._data[use_column], 'black')
+        ax0.set_title('Price ({})'.format(data_column))
+        ax0.plot(self._data.index, self._data[data_column], 'black')
         self._positions.plot(ax=ax0, style={'long': 'g', 'short': 'r'})
         all_nan = self._orders.isnull().all(axis=0)
         if not all_nan['buy']:
@@ -94,10 +90,9 @@ class OHLCDataset(object):
         fig.autofmt_xdate()
         plt.tight_layout()
 
-        if self.charts_dir:
-            fig.savefig(os.path.join(self.charts_dir, filename))
-
-        if show:
+        if save_to:
+            fig.savefig(save_to, format='png')
+        else:
             plt.show()
 
     @property
