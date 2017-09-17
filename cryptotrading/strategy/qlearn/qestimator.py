@@ -12,7 +12,7 @@ class QEstimator(object):
                  n_outputs: int,
                  hidden_units: int = None,
                  learn_rate: float = 0.0005,
-                 decay: float = 0.99,
+                 decay: float = 0.9,
                  summaries_dir: str = None):
         self.scope = scope
         n_hiddens = hidden_units if hidden_units is not None else (n_inputs + n_outputs) // 2
@@ -24,6 +24,7 @@ class QEstimator(object):
 
             batch_size = tf.shape(self.inputs)[0]
 
+            # TODO: try only applying batch_norm to the first layer
             hidden_layer = tf.contrib.layers.fully_connected(self.inputs, n_hiddens, activation_fn=tf.nn.crelu)
             self.output_layer = tf.contrib.layers.fully_connected(hidden_layer, n_outputs // 2, activation_fn=tf.nn.crelu)
             self.softmax = tf.nn.softmax(self.output_layer)
@@ -40,7 +41,8 @@ class QEstimator(object):
                 tf.summary.scalar("loss", self.loss),
                 tf.summary.histogram("loss_hist", self.losses),
                 tf.summary.histogram("q_values_hist", self.output_layer),
-                tf.summary.scalar("max_q_value", tf.reduce_max(self.output_layer))
+                tf.summary.scalar("max_q_value", tf.reduce_max(self.output_layer)),
+                tf.summary.scalar("max_confidence", tf.reduce_max(self.softmax))
             ])
 
             self.summary_writer = None

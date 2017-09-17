@@ -59,7 +59,7 @@ class QNetworkStrategy(object):
         self.models_dir = os.path.join(models_dir, self.timestamp)
 
         indicators = []
-        indicators.append(BasicIndicator('ppo', {'fastperiod': 10, 'slowperiod': 26, 'matype': 0}))
+        indicators.append(BasicIndicator('ppo', {'fastperiod': 12, 'slowperiod': 30, 'matype': 0}))
         self.data = QLearnDataset(indicators=indicators, charts_dir=self.charts_dir, **kwargs)
 
     def update(self):
@@ -89,15 +89,20 @@ class QNetworkStrategy(object):
                                   start=start, end=end, interval=self.ohlc_interval)
         self.data.init_data(exchange_train.all())
         self.data.normalize()
+        n_inputs = self.data.n_state_factors
+        n_outputs = self.data.n_actions
 
         # TODO: save training params to file for later reference
 
         total_steps = len(exchange_train.date_range)
-        train_steps = int((1. - validation_percent) * total_steps)
-        validation_steps = int(validation_percent * total_steps) - 1
+        nan_buffer = self.data.start_training()
+        total_steps -= nan_buffer
 
-        n_inputs = self.data.n_state_factors
-        n_outputs = self.data.n_actions
+        epoch_step_ratio = 1. / (1. + ((n_epochs - 1) * validation_percent))
+        epoch_steps = int(epoch_step_ratio * total_steps)
+        train_steps = int(epoch_steps * (1. - validation_percent))
+        validation_steps = int(epoch_steps * validation_percent)
+        initial_step = nan_buffer
 
         tf.reset_default_graph()
 
@@ -119,9 +124,6 @@ class QNetworkStrategy(object):
         with tf.Session() as sess:
             sess.run(tf.global_variables_initializer())
 
-            nan_buffer = self.data.start_training()
-            train_steps -= nan_buffer
-
             if experience_replay:
                 print('Initializing replay memory...')
                 replay_memory = deque(maxlen=replay_memory_max_size)
@@ -136,7 +138,10 @@ class QNetworkStrategy(object):
                 print('\nEpoch {}'.format(epoch))
                 print('\tGlobal step: {}'.format(sess.run(tf.contrib.framework.get_global_step())))
 
-                nan_buffer = self.data.start_training()
+                self.data.start_training(initial_step)
+                initial_step += validation_steps
+                print('\tStarting at: {}'.format(self.data.time))
+
                 train_rewards = []
                 losses = []
 
@@ -212,6 +217,7 @@ class QNetworkStrategy(object):
                 epoch_summary.value.add(simple_value=sum(train_rewards), tag='epoch/train/reward')
                 epoch_summary.value.add(simple_value=np.average(losses), tag='epoch/train/averge_loss')
                 epoch_summary.value.add(simple_value=sum(rewards), tag='epoch/validate/reward')
+                epoch_summary.value.add(simple_value=outperformance, tag='epoch/validate/outperformance')
                 epoch_summary.value.add(simple_value=np.average(val_losses), tag='epoch/validate/average_loss')
                 q_estimator.summary_writer.add_summary(epoch_summary, epoch)
                 q_estimator.summary_writer.flush()

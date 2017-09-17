@@ -3,6 +3,7 @@ from typing import List
 
 import matplotlib
 import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
 from matplotlib import gridspec
 
@@ -71,16 +72,20 @@ class OHLCDataset(object):
             self._orders.loc[self.time, 'sell'] = order_info['price']
 
     def plot(self, use_column: str = 'close', show: bool = True, filename: str = 'chart'):
-        fig = plt.figure(figsize=(24, 18))
+        fig = plt.figure(figsize=(40, 30))
         ratios = [3] + ([1] * len(self._indicators))
         gs = gridspec.GridSpec(1 + len(self._indicators), 1, height_ratios=ratios)
 
         # Plot long and short positions
         ax0 = fig.add_subplot(gs[0])
+        ax0.set_title('Price ({})'.format(use_column))
         ax0.plot(self._data.index, self._data[use_column], 'black')
         self._positions.plot(ax=ax0, style={'long': 'g', 'short': 'r'})
-        self._orders.plot(ax=ax0, style={'buy': 'g.', 'sell': 'r.'})
-        ax0.set_title('Price ({})'.format(use_column))
+        all_nan = self._orders.isnull().all(axis=0)
+        if not all_nan['buy']:
+            ax0.plot(self._orders.index, self._orders['buy'], color='k', marker='^', fillstyle='none')
+        if not all_nan['sell']:
+            ax0.plot(self._orders.index, self._orders['sell'], color='k', marker='v', fillstyle='none')
 
         for i, indicator in enumerate(self._indicators, start=1):
             ax_ind = fig.add_subplot(gs[i])

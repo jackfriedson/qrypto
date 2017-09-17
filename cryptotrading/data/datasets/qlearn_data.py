@@ -30,8 +30,8 @@ class QLearnDataset(OHLCDataset):
 
         super(QLearnDataset, self).__init__(*args, **kwargs)
 
-    def start_training(self):
-        self.train_counter = 0
+    def start_training(self, start_step: int = 0):
+        self.train_counter = start_step
         self._init_positions()
         self._init_orders()
 
@@ -76,7 +76,7 @@ class QLearnDataset(OHLCDataset):
 
     @property
     def n_state_factors(self) -> int:
-        return len(self.last_row)
+        return len(self.last_row) + 1
 
     @property
     def n_actions(self):
@@ -89,7 +89,8 @@ class QLearnDataset(OHLCDataset):
             result = result - self.mean
             result = result / self.std
 
-        return result.values
+        result = np.append(result.values, .5 if self.position == 'long' else 0.)
+        return result
 
     @property
     def period_return(self):
@@ -105,6 +106,7 @@ class QLearnDataset(OHLCDataset):
     def step(self, idx: int):
         action = self.actions[idx]
         self.add_position(action, {'price': self.last})
+        switch = self.position != action
         self.position = action
 
         self.next()
@@ -113,6 +115,9 @@ class QLearnDataset(OHLCDataset):
             reward = self.period_return
         else:
             reward = self.period_return * -1.
+
+        if switch:
+            reward -= self.fee
 
         return reward
 
