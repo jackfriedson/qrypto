@@ -12,7 +12,8 @@ class QEstimator(object):
                  n_outputs: int,
                  hidden_units: int = None,
                  learn_rate: float = 0.0005,
-                 decay: float = 0.9,
+                 optimizer_decay: float = 0.9,
+                 renorm_decay: float = 0.9,
                  summaries_dir: str = None):
         self.scope = scope
         n_hiddens = hidden_units if hidden_units is not None else (n_inputs + n_outputs) // 2
@@ -25,8 +26,7 @@ class QEstimator(object):
 
             batch_size = tf.shape(self.inputs)[0]
 
-            # TODO: experiment with renorm_decay value
-            norm_layer = tf.contrib.layers.batch_norm(self.inputs, renorm=True, is_training=self.phase)
+            norm_layer = tf.contrib.layers.batch_norm(self.inputs, renorm=True, renorm_decay=renorm_decay, is_training=self.phase)
             hidden_layer = tf.contrib.layers.fully_connected(norm_layer, n_hiddens, activation_fn=tf.nn.crelu)
             self.output_layer = tf.contrib.layers.fully_connected(hidden_layer, n_outputs // 2, activation_fn=tf.nn.crelu)
             self.softmax = tf.nn.softmax(self.output_layer)
@@ -36,7 +36,7 @@ class QEstimator(object):
 
             self.losses = tf.squared_difference(self.targets, self.predictions)
             self.loss = tf.reduce_mean(self.losses)
-            self.optimizer = tf.train.RMSPropOptimizer(learn_rate, decay)
+            self.optimizer = tf.train.RMSPropOptimizer(learn_rate, optimizer_decay)
 
             update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
             with tf.control_dependencies(update_ops):

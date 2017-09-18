@@ -3,7 +3,7 @@ _base_config = {
     'base_currency': 'ETH',
     'quote_currency': 'USDT',
     'unit': 0.5,
-    'fee': 0.002,
+    'fee': 0.0025,
     'ohlc_interval': 5,
     'sleep_duration': 30,
 }
@@ -21,7 +21,7 @@ _config_map = {
     },
     'qlearn': {
         'unit': 1,
-        # 'confidence_thresholds': (0.6, 0.55)
+        # 'confidence_thresholds': (0.6, 0.6)
     }
 }
 

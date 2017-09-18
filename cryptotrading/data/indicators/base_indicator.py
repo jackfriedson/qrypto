@@ -14,7 +14,7 @@ class BaseIndicator(object):
         self.fn = Function(self.indicator_name)
         self.data = None
 
-        if config_dict:
+        if config_dict is not None:
             self.config = config_dict
         else:
             self.config = self._format_config(*args)
@@ -40,9 +40,9 @@ class BaseIndicator(object):
 
 
 class BasicIndicator(BaseIndicator):
-    def __init__(self, name: str, config: dict) -> None:
+    def __init__(self, name: str, config: dict = None) -> None:
         self.indicator_name = name
-        super(BasicIndicator, self).__init__(config_dict=config)
+        super(BasicIndicator, self).__init__(config_dict=config or {})
 
     @property
     def suffix(self):

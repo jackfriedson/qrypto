@@ -53,8 +53,10 @@ class QNetworkStrategy(object):
         self.timestamp = time.strftime('%Y%m%d_%H%M%S')
         self.models_dir = os.path.join(models_dir, self.timestamp)
 
-        indicators = []
-        indicators.append(BasicIndicator('ppo', {'fastperiod': 12, 'slowperiod': 30, 'matype': 0}))
+        indicators = [
+            BasicIndicator('ppo', {'fastperiod': 12, 'slowperiod': 30}),
+            # BasicIndicator('mom')
+        ]
         self.data = QLearnDataset(indicators=indicators, **kwargs)
 
     def update(self):
@@ -83,7 +85,6 @@ class QNetworkStrategy(object):
         exchange_train = Backtest(self.exchange, self.base_currency, self.quote_currency,
                                   start=start, end=end, interval=self.ohlc_interval)
         self.data.init_data(exchange_train.all())
-        # self.data.normalize()
         n_inputs = self.data.n_state_factors
         n_outputs = self.data.n_actions
 
@@ -100,17 +101,16 @@ class QNetworkStrategy(object):
         initial_step = nan_buffer
 
         tf.reset_default_graph()
+        global_step = tf.Variable(0, name='global_step', trainable=False)
 
         if random_seed:
             tf.set_random_seed(random_seed)
-
-        tf.Variable(0, name='global_step', trainable=False)
 
         q_estimator = QEstimator('q_estimator', n_inputs, n_outputs, hidden_units=n_hidden_units, summaries_dir=summaries_dir)
         target_estimator = QEstimator('target_q', n_inputs, n_outputs, hidden_units=n_hidden_units)
         estimator_copy = ModelParametersCopier(q_estimator, target_estimator)
 
-        epsilon = tf.train.polynomial_decay(epsilon_start, tf.contrib.framework.get_global_step(),
+        epsilon = tf.train.polynomial_decay(epsilon_start, global_step,
                                             train_steps * (n_epochs - 1), end_learning_rate=epsilon_end,
                                             power=epsilon_decay)
         policy = self._make_policy(q_estimator, epsilon, n_outputs)
@@ -131,7 +131,7 @@ class QNetworkStrategy(object):
 
             for epoch in range(n_epochs):
                 print('\nEpoch {}'.format(epoch))
-                print('\tGlobal step: {}'.format(sess.run(tf.contrib.framework.get_global_step())))
+                print('\tGlobal step: {}'.format(sess.run(global_step)))
 
                 self.data.start_training(initial_step)
                 initial_step += validation_steps
@@ -143,8 +143,7 @@ class QNetworkStrategy(object):
                 # Train the model
                 for i in range(train_steps):
                     # Check whether to update target netowrk
-                    global_step = sess.run(tf.contrib.framework.get_global_step())
-                    if (global_step // replay_memory_batch_size) % update_target_every == 0:
+                    if (sess.run(global_step) // replay_memory_batch_size) % update_target_every == 0:
                         estimator_copy.make(sess)
 
                     state = self.data.state()

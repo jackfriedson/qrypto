@@ -67,10 +67,12 @@ class OHLCDataset(object):
         elif buy_sell == 'sell':
             self._orders.loc[self.time, 'sell'] = order_info['price']
 
-    def plot(self, data_column: str = 'close', save_to: Union[str, io.BufferedIOBase] = None):
+    def plot(self, data_column: str = 'close', indicators: bool = False,
+             save_to: Union[str, io.BufferedIOBase] = None):
         fig = plt.figure(figsize=(40, 30))
-        ratios = [3] + ([1] * len(self._indicators))
-        gs = gridspec.GridSpec(1 + len(self._indicators), 1, height_ratios=ratios)
+        ratios = [3] if not indicators else [3] + ([1] * len(self._indicators))
+        n_subplots = 1 if not indicators else 1 + len(self._indicators)
+        gs = gridspec.GridSpec(n_subplots, 1, height_ratios=ratios)
 
         # Plot long and short positions
         ax0 = fig.add_subplot(gs[0])
@@ -83,9 +85,10 @@ class OHLCDataset(object):
         if not all_nan['sell']:
             ax0.plot(self._orders.index, self._orders['sell'], color='k', marker='v', fillstyle='none')
 
-        for i, indicator in enumerate(self._indicators, start=1):
-            ax_ind = fig.add_subplot(gs[i])
-            indicator.plot(ax_ind)
+        if indicators:
+            for i, indicator in enumerate(self._indicators, start=1):
+                ax_ind = fig.add_subplot(gs[i])
+                indicator.plot(ax_ind)
 
         fig.autofmt_xdate()
         plt.tight_layout()
