@@ -199,10 +199,14 @@ class QNetworkStrategy(object):
 
                 # Compute outperformance of market return
                 position_value = start_price
-                for return_val in returns:
-                    position_value *= 1 + return_val
                 market_return = (self.data.last / start_price) - 1.
-                algorithm_return = (position_value / start_price) - 1.
+
+                if filter(lambda x: x != 0, returns):
+                    for return_val in returns:
+                        position_value *= 1 + return_val
+                    algorithm_return = (position_value / start_price) - 1.
+                else:
+                    algorithm_return = market_return if self.data.position == 'long' else -market_return
                 outperformance = algorithm_return - market_return
                 print('\tMarket return: {:.2f}%'.format(100 * market_return))
                 print('\tOutperformance: {:+.2f}%'.format(100 * outperformance))

@@ -25,15 +25,14 @@ class QEstimator(object):
             self.phase = tf.placeholder(dtype=tf.bool, name='phase')
 
             batch_size = tf.shape(self.inputs)[0]
-
             norm_layer = tf.contrib.layers.batch_norm(self.inputs, renorm=True, renorm_decay=renorm_decay, is_training=self.phase)
-            hidden_layer = tf.contrib.layers.fully_connected(norm_layer, n_hiddens, activation_fn=tf.nn.crelu)
 
-            self.advantage_layer = tf.contrib.layers.fully_connected(hidden_layer, n_outputs // 2, activation_fn=tf.nn.crelu)
-            self.value_layer = tf.contrib.layers.fully_connected(hidden_layer, 1, activation_fn=tf.nn.relu)  # TODO: try using linear activation fns
+            hidden_a = tf.contrib.layers.fully_connected(norm_layer, n_hiddens, activation_fn=tf.nn.crelu)
+            hidden_v = tf.contrib.layers.fully_connected(norm_layer, n_hiddens, activation_fn=tf.nn.crelu)
+            self.advantage_layer = tf.contrib.layers.fully_connected(hidden_a, n_outputs, activation_fn=None)
+            self.value_layer = tf.contrib.layers.fully_connected(hidden_v, 1, activation_fn=None)
 
             self.output_layer = self.value_layer + tf.subtract(self.advantage_layer, tf.reduce_mean(self.advantage_layer, axis=1, keep_dims=True))
-            # self.output_layer = tf.contrib.layers.fully_connected(hidden_layer, n_outputs // 2, activation_fn=tf.nn.crelu)
             self.softmax = tf.nn.softmax(self.output_layer)
 
             gather_indices = tf.range(batch_size) * tf.shape(self.output_layer)[1] + self.actions
