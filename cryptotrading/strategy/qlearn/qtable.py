@@ -6,7 +6,7 @@ import tensorflow as tf
 
 from cryptotrading.backtest import Backtest
 from cryptotrading.data.datasets import QLearnDataset
-from cryptotrading.data.indicators import BasicIndicator, MACD
+from cryptotrading.data.indicators import BasicIndicator
 
 
 log = logging.getLogger(__name__)

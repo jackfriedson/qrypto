@@ -11,7 +11,7 @@ import tensorflow as tf
 
 from cryptotrading.backtest import Backtest
 from cryptotrading.data.datasets import QLearnDataset
-from cryptotrading.data.indicators import BasicIndicator
+from cryptotrading.data.indicators import BasicIndicator, DifferenceIndicator
 from cryptotrading.strategy.qlearn.qestimator import QEstimator, ModelParametersCopier
 
 
@@ -54,8 +54,7 @@ class QNetworkStrategy(object):
         self.models_dir = os.path.join(models_dir, self.timestamp)
 
         indicators = [
-            BasicIndicator('ppo', {'fastperiod': 12, 'slowperiod': 30}),
-            # BasicIndicator('mom')
+            BasicIndicator('ppo'),
         ]
         self.data = QLearnDataset(indicators=indicators, **kwargs)
 
@@ -67,12 +66,13 @@ class QNetworkStrategy(object):
               start: str,
               end: str,
               n_epochs: int = 10,
-              validation_percent: float = 0.2,
+              validation_percent: float = 0.1,
               n_hidden_units: int = None,
               gamma: float = 0.95,
               epsilon_start: float = 0.5,
               epsilon_end: float = 0.,
               epsilon_decay: float = 2,
+              random_action_freq: int = 4,
               experience_replay = True,
               replay_memory_start_size: int = 1000,
               replay_memory_max_size: int = 40000,
@@ -113,7 +113,7 @@ class QNetworkStrategy(object):
         epsilon = tf.train.polynomial_decay(epsilon_start, global_step,
                                             train_steps * (n_epochs - 1), end_learning_rate=epsilon_end,
                                             power=epsilon_decay)
-        policy = self._make_policy(q_estimator, epsilon, n_outputs)
+        policy = self._make_policy(q_estimator, epsilon, n_outputs, random_action_freq)
 
         saver = tf.train.Saver()
         with tf.Session() as sess:
@@ -175,6 +175,7 @@ class QNetworkStrategy(object):
                 # Evaluate the model
                 rewards = []
                 returns = []
+                confidences = []
                 val_losses = []
                 start_price = self.data.last
 
@@ -193,6 +194,7 @@ class QNetworkStrategy(object):
 
                     rewards.append(reward)
                     returns.append(cum_return)
+                    confidences.append(confidence)
                     val_losses.append(loss)
 
                 # Compute outperformance of market return
@@ -219,21 +221,25 @@ class QNetworkStrategy(object):
                 epoch_summary.value.add(simple_value=np.average(losses), tag='epoch/train/averge_loss')
                 epoch_summary.value.add(simple_value=sum(rewards), tag='epoch/validate/reward')
                 epoch_summary.value.add(simple_value=outperformance, tag='epoch/validate/outperformance')
+                epoch_summary.value.add(simple_value=np.average(confidences), tag='epoch/validate/average_confidence')
                 epoch_summary.value.add(simple_value=np.average(val_losses), tag='epoch/validate/average_loss')
                 q_estimator.summary_writer.add_summary(epoch_summary, epoch)
                 q_estimator.summary_writer.add_summary(epoch_chart, epoch)
                 q_estimator.summary_writer.flush()
 
     @staticmethod
-    def _make_policy(estimator, epsilon, n_actions):
+    def _make_policy(estimator, epsilon, n_actions, random_action_freq):
         def policy_fn(sess, observation):
             epsilon_val = sess.run(epsilon)
-            action_probs = np.ones(n_actions, dtype=float) * epsilon_val / n_actions
+            step = sess.run(tf.contrib.framework.get_global_step())
             q_values = estimator.predict(sess, np.expand_dims(observation, 0), True)[0]
             best_action = np.argmax(q_values)
-            action_probs[best_action] += (1.0 - epsilon_val)
-            action = np.random.choice(np.arange(len(action_probs)), p=action_probs)
-            return action
+            if step % random_action_freq == 0:
+                action_probs = np.ones(n_actions, dtype=float) * epsilon_val / n_actions
+                action_probs[best_action] += (1.0 - epsilon_val)
+                return np.random.choice(np.arange(len(action_probs)), p=action_probs)
+            else:
+                return best_action
         return policy_fn
 
     def run(self):

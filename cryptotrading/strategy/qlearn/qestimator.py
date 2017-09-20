@@ -28,7 +28,12 @@ class QEstimator(object):
 
             norm_layer = tf.contrib.layers.batch_norm(self.inputs, renorm=True, renorm_decay=renorm_decay, is_training=self.phase)
             hidden_layer = tf.contrib.layers.fully_connected(norm_layer, n_hiddens, activation_fn=tf.nn.crelu)
-            self.output_layer = tf.contrib.layers.fully_connected(hidden_layer, n_outputs // 2, activation_fn=tf.nn.crelu)
+
+            self.advantage_layer = tf.contrib.layers.fully_connected(hidden_layer, n_outputs // 2, activation_fn=tf.nn.crelu)
+            self.value_layer = tf.contrib.layers.fully_connected(hidden_layer, 1, activation_fn=tf.nn.relu)  # TODO: try using linear activation fns
+
+            self.output_layer = self.value_layer + tf.subtract(self.advantage_layer, tf.reduce_mean(self.advantage_layer, axis=1, keep_dims=True))
+            # self.output_layer = tf.contrib.layers.fully_connected(hidden_layer, n_outputs // 2, activation_fn=tf.nn.crelu)
             self.softmax = tf.nn.softmax(self.output_layer)
 
             gather_indices = tf.range(batch_size) * tf.shape(self.output_layer)[1] + self.actions
@@ -43,11 +48,13 @@ class QEstimator(object):
                 self.train_op = self.optimizer.minimize(self.loss, global_step=tf.contrib.framework.get_global_step())
 
             self.summaries = tf.summary.merge([
-                tf.summary.scalar("loss", self.loss),
-                tf.summary.histogram("loss_hist", self.losses),
-                tf.summary.histogram("q_values_hist", self.output_layer),
-                tf.summary.scalar("max_q_value", tf.reduce_max(self.output_layer)),
-                tf.summary.scalar("max_confidence", tf.reduce_max(self.softmax))
+                tf.summary.scalar('loss', self.loss),
+                tf.summary.histogram('loss_hist', self.losses),
+                tf.summary.histogram('q_values_hist', self.output_layer),
+                tf.summary.scalar('max_q_value', tf.reduce_max(self.output_layer)),
+                tf.summary.histogram('value_hist', self.value_layer),
+                tf.summary.histogram('advantage_hist', self.advantage_layer),
+                tf.summary.scalar('max_confidence', tf.reduce_max(self.softmax))
             ])
 
             self.summary_writer = None

@@ -2,7 +2,7 @@ import logging
 from typing import Tuple
 
 from cryptotrading.data.datasets import OHLCDataset
-from cryptotrading.data.indicators import BasicIndicator, MACD
+from cryptotrading.data.indicators import BasicIndicator
 from cryptotrading.strategy.base import BaseStrategy
 
 
@@ -24,7 +24,7 @@ class MFIMomentumStrategy(BaseStrategy):
                  mfi: Tuple[int, int, int] = (14, 80, 20)):
         super(MFIMomentumStrategy, self).__init__(base_currency, exchange, unit, quote_currency, sleep_duration)
 
-        indicators = [MACD(*macd), BasicIndicator('mfi', {'timeperiod': mfi[0]})]
+        indicators = [BasicIndicator('macd'), BasicIndicator('mfi', {'timeperiod': mfi[0]})]
         self.data = OHLCDataset(indicators)
 
         self.ohlc_interval = ohlc_interval
