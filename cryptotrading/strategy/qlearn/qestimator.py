@@ -1,6 +1,7 @@
 import os
 import time
 
+import numpy as np
 import tensorflow as tf
 
 
@@ -8,7 +9,9 @@ class QEstimator(object):
 
     def __init__(self,
                  scope: str,
+                 rnn_cell,
                  n_inputs: int,
+                 n_hiddens: int,
                  n_outputs: int,
                  hidden_units: int = None,
                  learn_rate: float = 0.0005,
@@ -16,19 +19,27 @@ class QEstimator(object):
                  renorm_decay: float = 0.9,
                  summaries_dir: str = None):
         self.scope = scope
-        n_hiddens = hidden_units if hidden_units is not None else (n_inputs + n_outputs) // 2
 
         with tf.variable_scope(scope):
+            # TODO: add extra dimension for traces rather than reshaping
             self.inputs = tf.placeholder(shape=[None, n_inputs], dtype=tf.float32, name='inputs')
             self.targets = tf.placeholder(shape=[None], dtype=tf.float32, name='targets')
             self.actions = tf.placeholder(shape=[None], dtype=tf.int32, name='actions')
             self.phase = tf.placeholder(dtype=tf.bool, name='phase')
+            self.trace_length = tf.placeholder(dtype=tf.int32, name='trace_length')
 
             batch_size = tf.shape(self.inputs)[0]
+            rnn_batch_size = tf.reshape(batch_size // self.trace_length, shape=[])
             norm_layer = tf.contrib.layers.batch_norm(self.inputs, renorm=True, renorm_decay=renorm_decay, is_training=self.phase)
+            # TODO: Determine whether we need a hidden layer here
 
-            hidden_a = tf.contrib.layers.fully_connected(norm_layer, n_hiddens, activation_fn=tf.nn.crelu)
-            hidden_v = tf.contrib.layers.fully_connected(norm_layer, n_hiddens, activation_fn=tf.nn.crelu)
+            self.state_in = rnn_cell.zero_state(rnn_batch_size, dtype=tf.float32)
+            norm_flat = tf.reshape(norm_layer, shape=[rnn_batch_size, self.trace_length, n_inputs])
+            self.rnn, self.rnn_state = tf.nn.dynamic_rnn(rnn_cell, norm_flat, dtype=tf.float32, initial_state=self.state_in)
+            self.rnn = tf.reshape(self.rnn, shape=[-1, n_inputs])
+
+            hidden_a = tf.contrib.layers.fully_connected(self.rnn, n_hiddens, activation_fn=tf.nn.crelu)
+            hidden_v = tf.contrib.layers.fully_connected(self.rnn, n_hiddens, activation_fn=tf.nn.crelu)
             self.advantage_layer = tf.contrib.layers.fully_connected(hidden_a, n_outputs, activation_fn=None)
             self.value_layer = tf.contrib.layers.fully_connected(hidden_v, 1, activation_fn=None)
 
@@ -63,11 +74,25 @@ class QEstimator(object):
                     os.makedirs(summary_dir)
                 self.summary_writer = tf.summary.FileWriter(summary_dir)
 
-    def predict(self, sess, state, phase):
-        return sess.run([self.output_layer, self.softmax], {self.inputs: state, self.phase: phase})
+    def predict(self, sess, state, trace_length, rnn_state, training: bool = True):
+        feed_dict = {
+            self.inputs: state,
+            self.phase: training,
+            self.trace_length: trace_length,
+            self.state_in: rnn_state
+        }
+        return sess.run([self.output_layer, self.softmax, self.rnn_state], feed_dict)
 
-    def update(self, sess, state, action, target):
-        feed_dict = {self.inputs: state, self.targets: target, self.actions: action, self.phase: True}
+    def update(self, sess, state, action, target, trace_length, rnn_state):
+        feed_dict = {
+            self.inputs: state,
+            self.targets: target,
+            self.actions: action,
+            self.phase: True,
+            self.trace_length: trace_length,
+            self.state_in: rnn_state
+        }
+
         summaries, global_step, _, loss = sess.run([self.summaries, tf.contrib.framework.get_global_step(),
                                                     self.train_op, self.loss], feed_dict)
 
@@ -76,11 +101,16 @@ class QEstimator(object):
 
         return loss
 
-    def compute_loss(self, sess, state, action, target):
-        feed_dict = {self.inputs: state, self.targets: target, self.actions: action, self.phase: False}
-        loss = sess.run(self.loss, feed_dict)
-        return loss
-
+    def compute_loss(self, sess, state, action, target, rnn_state):
+        feed_dict = {
+            self.inputs: state,
+            self.targets: target,
+            self.actions: action,
+            self.phase: False,
+            self.trace_length: 1,
+            self.rnn_state: rnn_state
+        }
+        return sess.run(self.loss, feed_dict)
 
 class ModelParametersCopier():
     def __init__(self, estimator_from, estimator_to):
