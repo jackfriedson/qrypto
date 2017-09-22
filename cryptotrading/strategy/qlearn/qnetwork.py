@@ -67,9 +67,9 @@ class QNetworkStrategy(object):
               start: str,
               end: str,
               n_epochs: int = 10,
-              validation_percent: float = 0.1,
+              validation_percent: float = 0.2,
               gamma: float = 0.95,
-              epsilon_start: float = 0.5,
+              epsilon_start: float = 1.,
               epsilon_end: float = 0.,
               epsilon_decay: float = 2,
               random_action_freq: int = 4,
@@ -183,6 +183,8 @@ class QNetworkStrategy(object):
                 val_losses = []
                 start_price = self.data.last
 
+                rnn_state = (np.zeros([1, n_inputs]), np.zeros([1, n_inputs]))
+
                 for _ in range(validation_steps):
                     state = self.data.state()
                     q_values, confidence, next_rnn_state = q_estimator.predict(sess, np.expand_dims(state, 0), 1, rnn_state, training=False)
@@ -192,9 +194,9 @@ class QNetworkStrategy(object):
 
                     # Calculate validation loss for summaries
                     next_state = self.data.state()
-                    next_q_values = q_estimator.predict(sess, np.expand_dims(next_state, 0), 1, rnn_state, training=False)[0]
+                    next_q_values = q_estimator.predict(sess, np.expand_dims(next_state, 0), 1, next_rnn_state, training=False)[0]
                     target = reward + gamma * np.amax(next_q_values)
-                    loss = q_estimator.compute_loss(sess, np.array([state]), np.array([action]), np.array([target]), rnn_state)
+                    loss = q_estimator.compute_loss(sess, state, action, target, rnn_state)
 
                     rnn_state = next_rnn_state
 
@@ -207,7 +209,7 @@ class QNetworkStrategy(object):
                 position_value = start_price
                 market_return = (self.data.last / start_price) - 1.
 
-                returns = filter(lambda x: x != 0, returns)
+                returns = list(filter(None, returns))
                 if returns:
                     for return_val in returns:
                         position_value *= 1 + return_val
@@ -245,6 +247,7 @@ class QNetworkStrategy(object):
             epsilon_val = sess.run(epsilon)
             step = sess.run(tf.contrib.framework.get_global_step())
             q_values, _, new_rnn_state = estimator.predict(sess, np.expand_dims(observation, 0), 1, rnn_state)
+            print(q_values)
             best_action = np.argmax(q_values)
             if step % random_action_freq == 0:
                 action_probs = np.ones(n_actions, dtype=float) * epsilon_val / n_actions

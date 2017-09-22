@@ -128,14 +128,14 @@ class QLearnDataset(OHLCDataset):
                 self.add_order('buy', {'price': self.last})
                 cum_return = -self.fee
             else:
-                cum_return = 0.
+                cum_return = None
         else:
             if action == 'short' or confidence < hold_thresh:
                 cum_return = self.cumulative_return - self.fee
                 self.add_order('sell', {'price': self.last})
                 self.open_price = None
             else:
-                cum_return = 0.
+                cum_return = None
 
         reward = self.step(idx)
 
