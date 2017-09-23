@@ -3,6 +3,7 @@ asn1crypto==0.22.0
 attrs==17.2.0
 autobahn==17.8.1
 Automat==0.6.0
+bleach==1.5.0
 certifi==2017.7.27.1
 cffi==1.10.0
 chardet==3.0.4
@@ -10,28 +11,34 @@ click==6.7
 configobj==5.0.6
 constantly==15.1.0
 cryptography==2.0.3
-## !! Could not determine repository location
-cryptotrading==0.1
+cycler==0.10.0
 decorator==4.1.2
+html5lib==0.9999999
 hyperlink==17.3.1
 idna==2.6
 incremental==17.5.0
+ipdb==0.10.3
 ipython==6.1.0
 ipython-genutils==0.2.0
 jedi==0.10.2
+Markdown==2.6.9
+matplotlib==2.0.2
 numpy==1.13.1
 pandas==0.20.3
 pexpect==4.2.1
 pickleshare==0.7.4
--e git+git@github.com:jackfriedson/poloniex-python3.git@289567850cd4de4e98e97941f9334d119b087dc4#egg=Poloniex&subdirectory=../../../lib/poloniex
+progressbar2==3.34.3
 prompt-toolkit==1.0.15
+protobuf==3.4.0
 ptyprocess==0.5.2
 pyasn1==0.3.2
 pyasn1-modules==0.0.11
 pycparser==2.18
 Pygments==2.2.0
 pyOpenSSL==17.2.0
+pyparsing==2.2.0
 python-dateutil==2.6.1
+python-utils==2.2.0
 pytz==2017.2
 PyYAML==3.12
 ratelimiter==1.2.0
@@ -40,9 +47,11 @@ service-identity==17.0.0
 simplegeneric==0.8.1
 six==1.10.0
 TA-Lib==0.4.10
+tensorflow-tensorboard==0.1.5
 traitlets==4.3.2
 Twisted==17.5.0
 txaio==2.8.1
 urllib3==1.22
 wcwidth==0.1.7
+Werkzeug==0.12.2
 zope.interface==4.4.2

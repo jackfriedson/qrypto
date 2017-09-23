@@ -2,7 +2,7 @@ import time
 from typing import Callable, Optional
 
 import pandas as pd
-from src import PoloniexAPI
+from poloniex import PoloniexAPI
 
 
 class PoloniexAdapter(object):
