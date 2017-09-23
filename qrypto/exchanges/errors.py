@@ -1,4 +1,4 @@
-from cryptotrading.errors import CryptoTradingException
+from qrypto.errors import CryptoTradingException
 
 class APIException(CryptoTradingException):
     pass

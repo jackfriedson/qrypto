@@ -7,12 +7,12 @@ def get_requirements_from_file(filepath):
     return requires
 
 setup(
-    name='cryptotrading',
+    name='qrypto',
     version='0.1',
     packages=find_packages(),
     install_requires=get_requirements_from_file('requirements.txt'),
     entry_points='''
         [console_scripts]
-        crypto=cryptotrading.app:cli
+        qrypto=qrypto.app:cli
     '''
 )

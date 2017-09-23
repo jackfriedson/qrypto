@@ -1,20 +1,19 @@
 import io
 import logging
-import os
-import random
 import time
-from collections import deque, namedtuple
+from collections import namedtuple
+from pathlib import Path
 from typing import Tuple
 
 import numpy as np
 import progressbar
 import tensorflow as tf
 
-from cryptotrading.backtest import Backtest
-from cryptotrading.data.datasets import QLearnDataset
-from cryptotrading.data.indicators import BasicIndicator, DifferenceIndicator
-from cryptotrading.strategy.qlearn.experience_buffer import ExperienceBuffer
-from cryptotrading.strategy.qlearn.qestimator import QEstimator, ModelParametersCopier
+from qrypto.backtest import Backtest
+from qrypto.data.datasets import QLearnDataset
+from qrypto.data.indicators import BasicIndicator, DifferenceIndicator
+from qrypto.strategy.qlearn.experience_buffer import ExperienceBuffer
+from qrypto.strategy.qlearn.qestimator import QEstimator, ModelParametersCopier
 
 
 log = logging.getLogger(__name__)
@@ -23,15 +22,11 @@ log = logging.getLogger(__name__)
 Transition = namedtuple('Transition', ['state', 'action', 'reward', 'next_state'])
 
 
-experiments_dir = os.path.expanduser('~/dev/cryptotrading/experiments/')
-summaries_dir = os.path.join(experiments_dir, 'tf_summaries')
-models_dir = os.path.join(experiments_dir, 'models')
-
-
-if not os.path.exists(summaries_dir):
-    os.makedirs(summaries_dir)
-if not os.path.exists(models_dir):
-    os.makedirs(models_dir)
+experiments_dir = Path('experiments/').resolve()
+summaries_dir = experiments_dir / 'tf_summaries'
+models_dir = experiments_dir / 'models'
+summaries_dir.mkdir(exist_ok=True)
+models_dir.mkdir(exist_ok=True)
 
 
 class QNetworkStrategy(object):
@@ -53,7 +48,7 @@ class QNetworkStrategy(object):
         self.exchange = exchange
 
         self.timestamp = time.strftime('%Y%m%d_%H%M%S')
-        self.models_dir = os.path.join(models_dir, self.timestamp)
+        self.models_dir = models_dir/self.timestamp
 
         indicators = [
             BasicIndicator('ppo'),
@@ -174,7 +169,7 @@ class QNetworkStrategy(object):
                     losses.append(loss)
 
                 if save_model:
-                    saver.save(sess, os.path.join(self.models_dir, 'model.ckpt'))
+                    saver.save(sess, str(self.models_dir/'model.ckpt'))
 
                 # Evaluate the model
                 print('Evaluating...')

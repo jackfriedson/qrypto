@@ -1,24 +1,28 @@
 import os
 from logging.config import dictConfig
+from pathlib import Path
 
 import click
 import matplotlib
 matplotlib.use('Agg')  # Force matplotlib to not use x-windows backend
 import yaml
 
-from cryptotrading import settings
-from cryptotrading.backtest import Backtest
-from cryptotrading.exchanges import Kraken, Poloniex
-from cryptotrading.strategy import TakeProfitMomentumStrategy, MFIMomentumStrategy, QTableStrategy, QNetworkStrategy
+from qrypto import settings
+from qrypto.backtest import Backtest
+from qrypto.exchanges import Kraken, Poloniex
+from qrypto.strategy import TakeProfitMomentumStrategy, MFIMomentumStrategy, QTableStrategy, QNetworkStrategy
 
+LOG_DIR = Path('logs').resolve()
 KRAKEN_API_KEY = os.path.expanduser('~/.kraken_api_key')
 POLONIEX_API_KEY = os.path.expanduser('~/.poloniex_api_key')
-LOG_CONFIG = 'cryptotrading/logging_conf.yaml'
+LOG_CONFIG = 'qrypto/logging_conf.yaml'
 
 
 def configure_logging():
     with open(LOG_CONFIG, 'rt') as f:
         log_config = yaml.safe_load(f.read())
+        log_config['handlers']['file']['filename'] = str(LOG_DIR/'all.log')
+        log_config['handlers']['order']['filename'] = str(LOG_DIR/'orders.log')
         dictConfig(log_config)
 
 

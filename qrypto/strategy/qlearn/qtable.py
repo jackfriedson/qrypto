@@ -4,9 +4,9 @@ import numpy as np
 import pandas as pd
 import tensorflow as tf
 
-from cryptotrading.backtest import Backtest
-from cryptotrading.data.datasets import QLearnDataset
-from cryptotrading.data.indicators import BasicIndicator
+from qrypto.backtest import Backtest
+from qrypto.data.datasets import QLearnDataset
+from qrypto.data.indicators import BasicIndicator
 
 
 log = logging.getLogger(__name__)

@@ -1,6 +1,6 @@
 from typing import List
 
-from cryptotrading.data.indicators import BasicIndicator
+from qrypto.data.indicators import BasicIndicator
 
 
 class DifferenceIndicator(BasicIndicator):

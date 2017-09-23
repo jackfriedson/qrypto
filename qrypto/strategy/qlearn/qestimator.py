@@ -1,4 +1,3 @@
-import os
 import time
 
 import numpy as np
@@ -72,10 +71,9 @@ class QEstimator(object):
 
             self.summary_writer = None
             if summaries_dir:
-                summary_dir = os.path.join(summaries_dir, '{}_{}'.format(scope, time.strftime('%Y%m%d_%H%M%S')))
-                if not os.path.exists(summary_dir):
-                    os.makedirs(summary_dir)
-                self.summary_writer = tf.summary.FileWriter(summary_dir)
+                summary_dir = summaries_dir/'{}_{}'.format(scope, time.strftime('%Y%m%d_%H%M%S'))
+                summary_dir.mkdir(exist_ok=True)
+                self.summary_writer = tf.summary.FileWriter(str(summary_dir))
 
     def predict(self, sess, state, trace_length, rnn_state, training: bool = True):
         feed_dict = {

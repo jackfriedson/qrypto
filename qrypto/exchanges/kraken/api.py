@@ -10,8 +10,8 @@ import urllib.parse
 
 import requests
 
-from cryptotrading.exchanges.errors import APIException, AuthorizationException, ServiceUnavailableException
-from cryptotrading.exchanges.utils import retry_on_exception, retry_on_status_code
+from qrypto.exchanges.errors import APIException, AuthorizationException, ServiceUnavailableException
+from qrypto.exchanges.utils import retry_on_exception, retry_on_status_code
 
 
 base_url = 'https://api.kraken.com'

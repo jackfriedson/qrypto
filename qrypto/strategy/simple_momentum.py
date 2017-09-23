@@ -2,9 +2,9 @@ import logging
 import time
 from typing import Tuple
 
-from cryptotrading.data.datasets import OHLCDataset
-from cryptotrading.data.indicators import BasicIndicator
-from cryptotrading.strategy.base import BaseStrategy
+from qrypto.data.datasets import OHLCDataset
+from qrypto.data.indicators import BasicIndicator
+from qrypto.strategy.base import BaseStrategy
 
 
 log = logging.getLogger(__name__)

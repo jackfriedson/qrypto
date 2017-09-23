@@ -33,12 +33,10 @@ handlers:
     formatter: detail
     level: DEBUG
     when: midnight
-    # TODO: configure filepath to work on any machine
-    filename: '/Users/jackfriedson/dev/cryptotrading/logs/all.log'
+    filename: ''  # Added via app.py
   order:
     class: logging.handlers.TimedRotatingFileHandler
     formatter: order
     level: INFO
     when: midnight
-    # TODO: configure filepath to work on any machine
-    filename: '/Users/jackfriedson/dev/cryptotrading/logs/orders.log'
+    filename: ''  # Added via app.py

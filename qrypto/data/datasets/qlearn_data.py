@@ -1,6 +1,6 @@
 import numpy as np
 
-from cryptotrading.data.datasets import OHLCDataset
+from qrypto.data.datasets import OHLCDataset
 
 
 EXCLUDE_FIELDS = [

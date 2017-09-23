@@ -1,8 +1,8 @@
 import logging
 from contextlib import contextmanager
 
-from cryptotrading.exchanges.errors import APIException
-from cryptotrading.exchanges.kraken.api import KrakenAPI
+from qrypto.exchanges.errors import APIException
+from qrypto.exchanges.kraken.api import KrakenAPI
 
 log = logging.getLogger(__name__)
 
