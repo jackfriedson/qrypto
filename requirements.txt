@@ -27,6 +27,7 @@ numpy==1.13.1
 pandas==0.20.3
 pexpect==4.2.1
 pickleshare==0.7.4
+Poloniex==0.0.1
 progressbar2==3.34.3
 prompt-toolkit==1.0.15
 protobuf==3.4.0
@@ -47,6 +48,7 @@ service-identity==17.0.0
 simplegeneric==0.8.1
 six==1.10.0
 TA-Lib==0.4.10
+tensorflow==1.3.0
 tensorflow-tensorboard==0.1.5
 traitlets==4.3.2
 Twisted==17.5.0
@@ -55,3 +57,5 @@ urllib3==1.22
 wcwidth==0.1.7
 Werkzeug==0.12.2
 zope.interface==4.4.2
+
+git+https://github.com/jackfriedson/poloniex-python3.git
