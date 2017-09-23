@@ -4,7 +4,6 @@ from pathlib import Path
 
 import click
 import matplotlib
-matplotlib.use('Agg')  # Force matplotlib to not use x-windows backend
 import yaml
 
 from qrypto import settings
@@ -12,17 +11,24 @@ from qrypto.backtest import Backtest
 from qrypto.exchanges import Kraken, Poloniex
 from qrypto.strategy import TakeProfitMomentumStrategy, MFIMomentumStrategy, QTableStrategy, QNetworkStrategy
 
-LOG_DIR = Path('logs').resolve()
+
+matplotlib.use('Agg')  # Force matplotlib to not use x-windows backend
+
+
 KRAKEN_API_KEY = os.path.expanduser('~/.kraken_api_key')
 POLONIEX_API_KEY = os.path.expanduser('~/.poloniex_api_key')
 LOG_CONFIG = 'qrypto/logging_conf.yaml'
 
 
+log_dir = Path().resolve()/'logs'
+log_dir.mkdir(exist_ok=True)
+
+
 def configure_logging():
     with open(LOG_CONFIG, 'rt') as f:
         log_config = yaml.safe_load(f.read())
-        log_config['handlers']['file']['filename'] = str(LOG_DIR/'all.log')
-        log_config['handlers']['order']['filename'] = str(LOG_DIR/'orders.log')
+        log_config['handlers']['file']['filename'] = str(log_dir/'all.log')
+        log_config['handlers']['order']['filename'] = str(log_dir/'orders.log')
         dictConfig(log_config)
 
 
