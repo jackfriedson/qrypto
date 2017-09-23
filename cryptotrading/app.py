@@ -2,6 +2,8 @@ import os
 from logging.config import dictConfig
 
 import click
+import matplotlib
+matplotlib.use('Agg')  # Force matplotlib to not use x-windows backend
 import yaml
 
 from cryptotrading import settings
