@@ -72,12 +72,13 @@ class QNetworkStrategy(object):
               epsilon_start: float = 1.,
               epsilon_end: float = 0.,
               epsilon_decay: float = 2,
-              random_action_freq: int = 4,
+              random_action_every: int = 2,
               replay_memory_start_size: int = 1000,
               replay_memory_max_size: int = 40000,
-              batch_size: int = 4,
-              trace_length: int = 8,
+              batch_size: int = 8,
+              trace_length: int = 16,
               update_target_every: int = 1000,
+              keep_prob: float = 0.5,
               random_seed: int = None,
               save_model: bool = True):
 
@@ -109,15 +110,17 @@ class QNetworkStrategy(object):
             tf.set_random_seed(random_seed)
 
         cell = tf.contrib.rnn.BasicLSTMCell(num_units=n_inputs, state_is_tuple=True)
-        cellT = tf.contrib.rnn.BasicLSTMCell(num_units=n_inputs, state_is_tuple=True)
+        cell = tf.contrib.rnn.DropoutWrapper(cell, output_keep_prob=keep_prob)
+        target_cell = tf.contrib.rnn.BasicLSTMCell(num_units=n_inputs, state_is_tuple=True)
+        target_cell = tf.contrib.rnn.DropoutWrapper(target_cell, output_keep_prob=keep_prob)
         q_estimator = QEstimator('q_estimator', cell, n_inputs, n_hiddens, n_outputs, summaries_dir=summaries_dir)
-        target_estimator = QEstimator('target_q', cellT, n_inputs, n_hiddens, n_outputs)
+        target_estimator = QEstimator('target_q', target_cell, n_inputs, n_hiddens, n_outputs)
         estimator_copy = ModelParametersCopier(q_estimator, target_estimator)
 
         epsilon = tf.train.polynomial_decay(epsilon_start, global_step,
                                             train_steps * (n_epochs - 1), end_learning_rate=epsilon_end,
                                             power=epsilon_decay)
-        policy = self._make_policy(q_estimator, epsilon, n_outputs, random_action_freq, random)
+        policy = self._make_policy(q_estimator, epsilon, n_outputs, random_action_every, random)
 
         saver = tf.train.Saver()
         with tf.Session() as sess:
@@ -242,13 +245,13 @@ class QNetworkStrategy(object):
                 q_estimator.summary_writer.flush()
 
     @staticmethod
-    def _make_policy(estimator, epsilon, n_actions, random_action_freq, random_state):
+    def _make_policy(estimator, epsilon, n_actions, random_action_every, random_state):
         def policy_fn(sess, observation, rnn_state):
             epsilon_val = sess.run(epsilon)
             step = sess.run(tf.contrib.framework.get_global_step())
             q_values, _, new_rnn_state = estimator.predict(sess, np.expand_dims(observation, 0), 1, rnn_state)
             best_action = np.argmax(q_values)
-            if step % random_action_freq == 0:
+            if step % random_action_every == 0:
                 action_probs = np.ones(n_actions, dtype=float) * epsilon_val / n_actions
                 action_probs[best_action] += (1.0 - epsilon_val)
                 return random_state.choice(np.arange(len(action_probs)), p=action_probs), new_rnn_state
