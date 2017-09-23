@@ -88,6 +88,7 @@ class QNetworkStrategy(object):
         n_inputs = self.data.n_state_factors
         n_outputs = self.data.n_actions
         n_hiddens = (n_inputs + n_outputs) // 2
+        random = np.random.RandomState(random_seed)
 
         # TODO: save training params to file for later reference
 
@@ -124,15 +125,14 @@ class QNetworkStrategy(object):
             rnn_state = (np.zeros([1, n_inputs]), np.zeros([1, n_inputs]))
 
             print('Initializing replay memory...')
-            replay_memory = ExperienceBuffer(replay_memory_max_size)
+            replay_memory = ExperienceBuffer(replay_memory_max_size, random=random)
 
             for _ in range(min(replay_memory_start_size, train_steps)):
                 state = self.data.state()
-                action, rnn_state = policy(sess, state, rnn_state)
+                action = random.randint(n_outputs)
                 reward = self.data.step(action)
                 next_state = self.data.state()
                 replay_memory.add(Transition(state, action, reward, next_state))
-            initial_step += min(replay_memory_start_size, train_steps)
 
             for epoch in range(n_epochs):
                 self.data.start_training(initial_step)
@@ -247,12 +247,11 @@ class QNetworkStrategy(object):
             epsilon_val = sess.run(epsilon)
             step = sess.run(tf.contrib.framework.get_global_step())
             q_values, _, new_rnn_state = estimator.predict(sess, np.expand_dims(observation, 0), 1, rnn_state)
-            print(q_values)
             best_action = np.argmax(q_values)
             if step % random_action_freq == 0:
                 action_probs = np.ones(n_actions, dtype=float) * epsilon_val / n_actions
                 action_probs[best_action] += (1.0 - epsilon_val)
-                return np.random.choice(np.arange(len(action_probs)), p=action_probs), new_rnn_state
+                return random.choice(np.arange(len(action_probs)), p=action_probs), new_rnn_state
             else:
                 return best_action, new_rnn_state
         return policy_fn

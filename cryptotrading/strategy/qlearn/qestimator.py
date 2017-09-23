@@ -40,7 +40,7 @@ class QEstimator(object):
             # TODO: try spliting instead of fully connecting to both streams
 
             # TODO: Use a random weights initializer so replay memory starts random
-            self.output_layer = tf.contrib.layers.fully_connected(self.rnn, n_outputs, activation_fn=None, weights_initializer=)
+            self.output_layer = tf.contrib.layers.fully_connected(self.rnn, n_outputs, activation_fn=None)
             self.softmax = tf.nn.softmax(self.output_layer)
 
             gather_indices = tf.range(batch_size) * tf.shape(self.output_layer)[1] + self.actions
