@@ -7,6 +7,7 @@ from collections import deque, namedtuple
 from typing import Tuple
 
 import numpy as np
+import progressbar
 import tensorflow as tf
 
 from cryptotrading.backtest import Backtest
@@ -117,15 +118,14 @@ class QNetworkStrategy(object):
         epsilon = tf.train.polynomial_decay(epsilon_start, global_step,
                                             train_steps * (n_epochs - 1), end_learning_rate=epsilon_end,
                                             power=epsilon_decay)
-        policy = self._make_policy(q_estimator, epsilon, n_outputs, random_action_freq)
+        policy = self._make_policy(q_estimator, epsilon, n_outputs, random_action_freq, random)
 
         saver = tf.train.Saver()
         with tf.Session() as sess:
             sess.run(tf.global_variables_initializer())
-            rnn_state = (np.zeros([1, n_inputs]), np.zeros([1, n_inputs]))
 
             print('Initializing replay memory...')
-            replay_memory = ExperienceBuffer(replay_memory_max_size, random=random)
+            replay_memory = ExperienceBuffer(replay_memory_max_size, random)
 
             for _ in range(min(replay_memory_start_size, train_steps)):
                 state = self.data.state()
@@ -141,13 +141,13 @@ class QNetworkStrategy(object):
                 rnn_state = (np.zeros([1, n_inputs]), np.zeros([1, n_inputs]))
 
                 print('\nEpoch {}'.format(epoch))
-                print('\tGlobal step: {}'.format(sess.run(global_step)))
-                print('\tStarting at: {}'.format(self.data.time))
+                print('Training...')
+                train_bar = progressbar.ProgressBar(term_width=80)
 
                 train_rewards = []
                 losses = []
 
-                for _ in range(train_steps):
+                for _ in train_bar(range(train_steps)):
                     # Maybe update the target network
                     if (sess.run(global_step) // batch_size) % update_target_every == 0:
                         estimator_copy.make(sess)
@@ -177,6 +177,7 @@ class QNetworkStrategy(object):
                     saver.save(sess, os.path.join(self.models_dir, 'model.ckpt'))
 
                 # Evaluate the model
+                print('Evaluating...')
                 rewards = []
                 returns = []
                 confidences = []
@@ -218,8 +219,8 @@ class QNetworkStrategy(object):
                     # No buys/sells were made
                     algorithm_return = market_return if self.data.position == 'long' else 0.
                 outperformance = algorithm_return - market_return
-                print('\tMarket return: {:.2f}%'.format(100 * market_return))
-                print('\tOutperformance: {:+.2f}%'.format(100 * outperformance))
+                print('Market return: {:.2f}%'.format(100 * market_return))
+                print('Outperformance: {:+.2f}%'.format(100 * outperformance))
 
                 buf = io.BytesIO()
                 self.data.plot(save_to=buf)
@@ -242,7 +243,7 @@ class QNetworkStrategy(object):
                 q_estimator.summary_writer.flush()
 
     @staticmethod
-    def _make_policy(estimator, epsilon, n_actions, random_action_freq):
+    def _make_policy(estimator, epsilon, n_actions, random_action_freq, random_state):
         def policy_fn(sess, observation, rnn_state):
             epsilon_val = sess.run(epsilon)
             step = sess.run(tf.contrib.framework.get_global_step())
@@ -251,7 +252,7 @@ class QNetworkStrategy(object):
             if step % random_action_freq == 0:
                 action_probs = np.ones(n_actions, dtype=float) * epsilon_val / n_actions
                 action_probs[best_action] += (1.0 - epsilon_val)
-                return random.choice(np.arange(len(action_probs)), p=action_probs), new_rnn_state
+                return random_state.choice(np.arange(len(action_probs)), p=action_probs), new_rnn_state
             else:
                 return best_action, new_rnn_state
         return policy_fn
