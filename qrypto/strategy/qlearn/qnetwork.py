@@ -22,7 +22,8 @@ log = logging.getLogger(__name__)
 Transition = namedtuple('Transition', ['state', 'action', 'reward', 'next_state'])
 
 
-experiments_dir = Path('experiments/').resolve()
+root_dir = Path().resolve()
+experiments_dir = root_dir/'experiments'
 experiments_dir.mkdir(exist_ok=True)
 
 summaries_dir = experiments_dir/'summaries'
