@@ -4,15 +4,13 @@ from pathlib import Path
 
 import click
 import matplotlib
+matplotlib.use('Agg')  # Force matplotlib to not use x-windows backend
 import yaml
 
 from qrypto import settings
 from qrypto.backtest import Backtest
 from qrypto.exchanges import Kraken, Poloniex
 from qrypto.strategy import TakeProfitMomentumStrategy, MFIMomentumStrategy, QTableStrategy, QNetworkStrategy
-
-
-matplotlib.use('Agg')  # Force matplotlib to not use x-windows backend
 
 
 KRAKEN_API_KEY = os.path.expanduser('~/.kraken_api_key')
