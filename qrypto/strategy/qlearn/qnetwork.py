@@ -23,9 +23,12 @@ Transition = namedtuple('Transition', ['state', 'action', 'reward', 'next_state'
 
 
 experiments_dir = Path('experiments/').resolve()
-summaries_dir = experiments_dir / 'tf_summaries'
-models_dir = experiments_dir / 'models'
+experiments_dir.mkdir(exist_ok=True)
+
+summaries_dir = experiments_dir/'summaries'
 summaries_dir.mkdir(exist_ok=True)
+
+models_dir = experiments_dir/'models'
 models_dir.mkdir(exist_ok=True)
 
 
