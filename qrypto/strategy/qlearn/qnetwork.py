@@ -56,6 +56,9 @@ class QNetworkStrategy(object):
 
         indicators = [
             BasicIndicator('ppo'),
+            BasicIndicator('mom', {'timeperiod': 12})
+            # BasicIndicator('mom', {'timeperiod': 36})
+            # BasicIndicator('mom', {'timeperiod': 144})
         ]
         self.data = QLearnDataset(indicators=indicators, **kwargs)
 
@@ -74,11 +77,10 @@ class QNetworkStrategy(object):
               epsilon_decay: float = 2,
               random_action_every: int = 2,
               replay_memory_start_size: int = 1000,
-              replay_memory_max_size: int = 40000,
+              replay_memory_max_size: int = 100000,
               batch_size: int = 8,
-              trace_length: int = 16,
+              trace_length: int = 12,
               update_target_every: int = 1000,
-              keep_prob: float = 0.5,
               random_seed: int = None,
               save_model: bool = True):
 
@@ -88,7 +90,6 @@ class QNetworkStrategy(object):
         self.data.init_data(exchange_train.all())
         n_inputs = self.data.n_state_factors
         n_outputs = self.data.n_actions
-        n_hiddens = (n_inputs + n_outputs) // 2
         random = np.random.RandomState(random_seed)
 
         # TODO: save training params to file for later reference
@@ -110,11 +111,9 @@ class QNetworkStrategy(object):
             tf.set_random_seed(random_seed)
 
         cell = tf.contrib.rnn.BasicLSTMCell(num_units=n_inputs, state_is_tuple=True)
-        # cell = tf.contrib.rnn.DropoutWrapper(cell, output_keep_prob=keep_prob)
         target_cell = tf.contrib.rnn.BasicLSTMCell(num_units=n_inputs, state_is_tuple=True)
-        # target_cell = tf.contrib.rnn.DropoutWrapper(target_cell, output_keep_prob=keep_prob)
-        q_estimator = QEstimator('q_estimator', cell, n_inputs, n_hiddens, n_outputs, summaries_dir=summaries_dir)
-        target_estimator = QEstimator('target_q', target_cell, n_inputs, n_hiddens, n_outputs)
+        q_estimator = QEstimator('q_estimator', cell, n_inputs, n_outputs, summaries_dir=summaries_dir)
+        target_estimator = QEstimator('target_q', target_cell, n_inputs, n_outputs)
         estimator_copy = ModelParametersCopier(q_estimator, target_estimator)
 
         epsilon = tf.train.polynomial_decay(epsilon_start, global_step,

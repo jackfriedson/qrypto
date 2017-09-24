@@ -10,7 +10,6 @@ class QEstimator(object):
                  scope: str,
                  rnn_cell,
                  n_inputs: int,
-                 n_hiddens: int,
                  n_outputs: int,
                  hidden_units: int = None,
                  learn_rate: float = 0.0005,
@@ -20,7 +19,6 @@ class QEstimator(object):
         self.scope = scope
 
         with tf.variable_scope(scope):
-            # TODO: add extra dimension for traces rather than reshaping
             self.inputs = tf.placeholder(shape=[None, n_inputs], dtype=tf.float32, name='inputs')
             self.targets = tf.placeholder(shape=[None], dtype=tf.float32, name='targets')
             self.actions = tf.placeholder(shape=[None], dtype=tf.int32, name='actions')
@@ -36,12 +34,7 @@ class QEstimator(object):
             self.rnn_in = rnn_cell.zero_state(rnn_batch_size, dtype=tf.float32)
             self.rnn, self.rnn_state = tf.nn.dynamic_rnn(rnn_cell, self.norm_flat, dtype=tf.float32, initial_state=self.rnn_in)
             self.rnn = tf.reshape(self.rnn, shape=tf.shape(self.norm_layer))
-            # TODO: try spliting instead of fully connecting to both streams
 
-            # self.advantage_layer = tf.contrib.layers.fully_connected(self.rnn, n_outputs, activation_fn=None)
-            # self.value_layer = tf.contrib.layers.fully_connected(self.rnn, 1, activation_fn=None)
-
-            # self.output_layer = tf.add(self.value_layer, tf.subtract(self.advantage_layer, tf.reduce_mean(self.advantage_layer, axis=1, keep_dims=True)))
             self.output_layer = tf.contrib.layers.fully_connected(self.rnn, n_outputs, activation_fn=None)
             self.softmax = tf.nn.softmax(self.output_layer)
 
