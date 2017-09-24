@@ -76,7 +76,7 @@ class QNetworkStrategy(object):
               replay_memory_start_size: int = 1000,
               replay_memory_max_size: int = 100000,
               batch_size: int = 8,
-              trace_length: int = 12,
+              trace_length: int = 36,
               update_target_every: int = 1000,
               random_seed: int = None,
               save_model: bool = True):
