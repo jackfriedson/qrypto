@@ -67,7 +67,7 @@ class QNetworkStrategy(object):
               start: str,
               end: str,
               n_epochs: int = 10,
-              validation_percent: float = 0.1,
+              validation_percent: float = 0.2,
               gamma: float = 0.95,
               epsilon_start: float = 1.,
               epsilon_end: float = 0.,
