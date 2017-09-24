@@ -55,10 +55,7 @@ class QNetworkStrategy(object):
         self.models_dir = models_dir/self.timestamp
 
         indicators = [
-            BasicIndicator('ppo'),
-            BasicIndicator('mom', {'timeperiod': 12})
-            # BasicIndicator('mom', {'timeperiod': 36})
-            # BasicIndicator('mom', {'timeperiod': 144})
+            BasicIndicator('ppo')
         ]
         self.data = QLearnDataset(indicators=indicators, **kwargs)
 
@@ -70,7 +67,7 @@ class QNetworkStrategy(object):
               start: str,
               end: str,
               n_epochs: int = 10,
-              validation_percent: float = 0.2,
+              validation_percent: float = 0.1,
               gamma: float = 0.95,
               epsilon_start: float = 1.,
               epsilon_end: float = 0.,
