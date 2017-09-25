@@ -126,10 +126,10 @@ class QLearnDataset(OHLCDataset):
         if self.position != action:
             test_reward -= self.fee
 
-        if action == 'long':
-            self.add_order('buy', {'price': self.last})
-        elif action == 'short':
-            self.add_order('sell', {'price': self.last})
+            if action == 'long':
+                self.add_order('buy', {'price': self.last})
+            elif action == 'short':
+                self.add_order('sell', {'price': self.last})
 
         train_reward = self.step(idx)
 
