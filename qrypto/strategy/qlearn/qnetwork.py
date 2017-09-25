@@ -211,7 +211,8 @@ class QNetworkStrategy(object):
 
                 returns = list(filter(None, returns))
                 if returns:
-                    position_value = functools.reduce(lambda acc, ret: acc * (1 + ret), returns)
+                    for return_val in returns:
+                        position_value *= 1 + return_val
                     algorithm_return = (position_value / start_price) - 1.
                 else:
                     # No buys/sells were made
