@@ -10,6 +10,7 @@ class QEstimator(object):
                  scope: str,
                  rnn_cell,
                  n_inputs: int,
+                 n_hiddens: int,
                  n_outputs: int,
                  hidden_units: int = None,
                  learn_rate: float = 0.0005,
@@ -35,7 +36,8 @@ class QEstimator(object):
             self.rnn, self.rnn_state = tf.nn.dynamic_rnn(rnn_cell, self.norm_flat, dtype=tf.float32, initial_state=self.rnn_in)
             self.rnn = tf.reshape(self.rnn, shape=tf.shape(self.norm_layer))
 
-            self.output_layer = tf.contrib.layers.fully_connected(self.rnn, n_outputs, activation_fn=None)
+            # self.hidden_layer = tf.contrib.layers.fully_connected(self.rnn, n_hiddens, activation_fn=tf.nn.crelu)
+            self.output_layer = tf.contrib.layers.fully_connected(self.rnn, n_outputs, activation_fn=None, biases_initializer=None)
             self.softmax = tf.nn.softmax(self.output_layer)
 
             gather_indices = tf.range(batch_size) * tf.shape(self.output_layer)[1] + self.actions

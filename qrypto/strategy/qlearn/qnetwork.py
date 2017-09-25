@@ -68,7 +68,7 @@ class QNetworkStrategy(object):
               end: str,
               n_epochs: int = 10,
               validation_percent: float = 0.2,
-              gamma: float = 0.95,
+              gamma: float = 0.98,
               epsilon_start: float = 1.,
               epsilon_end: float = 0.,
               epsilon_decay: float = 2,
@@ -76,7 +76,7 @@ class QNetworkStrategy(object):
               replay_memory_start_size: int = 1000,
               replay_memory_max_size: int = 100000,
               batch_size: int = 8,
-              trace_length: int = 36,
+              trace_length: int = 16,
               update_target_every: int = 1000,
               random_seed: int = None,
               save_model: bool = True):
@@ -210,8 +210,7 @@ class QNetworkStrategy(object):
 
                 returns = list(filter(None, returns))
                 if returns:
-                    for return_val in returns:
-                        position_value *= 1 + return_val
+                    position_value = reduce(lambda acc, ret: acc * (1 + ret), returns)
                     algorithm_return = (position_value / start_price) - 1.
                 else:
                     # No buys/sells were made
