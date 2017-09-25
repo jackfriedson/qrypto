@@ -24,6 +24,7 @@ class QLearnDataset(OHLCDataset):
         self.train_counter = None
         self.open_price = None
         self.position = 'long'
+        self.test_position = 'long'
 
         super(QLearnDataset, self).__init__(*args, **kwargs)
 
@@ -118,22 +119,21 @@ class QLearnDataset(OHLCDataset):
 
         return reward
 
-    def step_val(self, idx: int, confidence: float, threshold = (0.5, 0.5)):
-        open_thresh, hold_thresh = threshold
+    def step_val(self, idx: int):
         action = self.actions[idx]
+        test_reward = 0.
 
-        cum_return = None
-        if self.open_price is None:
-            if action == 'long' and confidence > open_thresh:
-                self.open_price = self.last
-                self.add_order('buy', {'price': self.last})
-                cum_return = -self.fee
-        else:
-            if action != 'long' or confidence < hold_thresh:
-                cum_return = self.cumulative_return - self.fee
-                self.add_order('sell', {'price': self.last})
-                self.open_price = None
+        if self.position != action:
+            test_reward -= self.fee
 
-        reward = self.step(idx)
+        if action == 'long':
+            self.add_order('buy', {'price': self.last})
+        elif action == 'short':
+            self.add_order('sell', {'price': self.last})
 
-        return reward, cum_return
+        train_reward = self.step(idx)
+
+        if self.position == 'long':
+            test_reward += self.period_return
+
+        return train_reward, test_reward

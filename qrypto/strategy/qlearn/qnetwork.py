@@ -190,7 +190,7 @@ class QNetworkStrategy(object):
                     q_values, confidence, next_rnn_state = q_estimator.predict(sess, np.expand_dims(state, 0), 1, rnn_state, training=False)
                     action = np.argmax(q_values)
                     confidence = confidence[0][action]
-                    reward, cum_return = self.data.step_val(action, confidence, self.confidence_thresholds)
+                    reward, cum_return = self.data.step_val(action)
 
                     # Calculate validation loss for summaries
                     next_state = self.data.state()
@@ -206,17 +206,11 @@ class QNetworkStrategy(object):
                     val_losses.append(loss)
 
                 # Compute outperformance of market return
-                position_value = start_price
                 market_return = (self.data.last / start_price) - 1.
-
-                returns = list(filter(None, returns))
-                if returns:
-                    for return_val in returns:
-                        position_value *= 1 + return_val
-                    algorithm_return = (position_value / start_price) - 1.
-                else:
-                    # No buys/sells were made
-                    algorithm_return = market_return if self.data.position == 'long' else 0.
+                position_value = start_price
+                for return_val in returns:
+                    position_value *= 1 + return_val
+                algorithm_return = (position_value / start_price) - 1.
                 outperformance = algorithm_return - market_return
                 print('Market return: {:.2f}%'.format(100 * market_return))
                 print('Outperformance: {:+.2f}%'.format(100 * outperformance))
