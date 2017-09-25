@@ -10,7 +10,6 @@ class QEstimator(object):
                  scope: str,
                  rnn_cell,
                  n_inputs: int,
-                 n_hiddens: int,
                  n_outputs: int,
                  hidden_units: int = None,
                  learn_rate: float = 0.0005,
