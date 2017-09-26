@@ -37,7 +37,10 @@ class QEstimator(object):
 
             n_hiddens = (n_inputs + n_outputs) // 2
             self.hidden_layer = tf.contrib.layers.fully_connected(self.rnn, n_hiddens, activation_fn=tf.nn.tanh)
-            self.output_layer = tf.contrib.layers.fully_connected(self.hidden_layer, n_outputs, activation_fn=None, biases_initializer=None)
+            self.advantage_layer = tf.contrib.layers.fully_connected(self.hidden_layer, n_outputs, activation_fn=None, biases_initializer=None)
+            self.value_layer = tf.contrib.layers.fully_connected(self.hidden_layer, n_outputs, activation_fn=None, biases_initializer=None)
+            # self.output_layer = tf.contrib.layers.fully_connected(self.hidden_layer, n_outputs, activation_fn=None, biases_initializer=None)
+            self.output_layer = tf.add(self.value_layer, tf.subtract(self.advantage_layer, tf.reduce_mean(self.advantage_layer, axis=1, keep_dims=True)))
             self.softmax = tf.nn.softmax(self.output_layer)
 
             gather_indices = tf.range(batch_size) * tf.shape(self.output_layer)[1] + self.actions
