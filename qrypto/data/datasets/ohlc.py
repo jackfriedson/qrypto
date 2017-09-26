@@ -69,7 +69,7 @@ class OHLCDataset(object):
 
     def plot(self, data_column: str = 'close', indicators: bool = False,
              save_to: Union[str, io.BufferedIOBase] = None):
-        fig = plt.figure(figsize=(40, 30))
+        fig = plt.figure(figsize=(60, 30))
         ratios = [3] if not indicators else [3] + ([1] * len(self._indicators))
         n_subplots = 1 if not indicators else 1 + len(self._indicators)
         gs = gridspec.GridSpec(n_subplots, 1, height_ratios=ratios)
