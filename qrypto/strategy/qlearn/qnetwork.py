@@ -80,7 +80,7 @@ class QNetworkStrategy(object):
               trace_length: int = 16,
               update_target_every: int = 1000,
               random_seed: int = None,
-              save_model: bool = True):
+              load_model: str = None):
 
         # Initialize training data
         exchange_train = Backtest(self.exchange, self.base_currency, self.quote_currency,
@@ -172,8 +172,7 @@ class QNetworkStrategy(object):
                     train_rewards.append(reward)
                     losses.append(loss)
 
-                if save_model:
-                    saver.save(sess, str(self.models_dir/'model.ckpt'))
+                saver.save(sess, str(self.models_dir/'model.ckpt'))
 
                 # Evaluate the model
                 print('Evaluating...')
