@@ -36,8 +36,10 @@ class QEstimator(object):
             self.rnn = tf.reshape(self.rnn, shape=tf.shape(self.norm_layer))
 
             n_hiddens = (n_inputs + n_outputs) // 2
-            self.hidden_layer = tf.contrib.layers.fully_connected(self.rnn, n_hiddens, activation_fn=tf.nn.crelu)
-            self.output_layer = tf.contrib.layers.fully_connected(self.hidden_layer, n_outputs, activation_fn=None, biases_initializer=None)
+            # self.hidden_layer = tf.contrib.layers.fully_connected(self.rnn, n_hiddens, activation_fn=tf.nn.crelu)
+            # self.output_layer = tf.contrib.layers.fully_connected(self.hidden_layer, n_outputs, activation_fn=None, biases_initializer=None)
+            self.output_layer = tf.contrib.layers.fully_connected(self.rnn, n_outputs, activation_fn=None, biases_initializer=None)
+
             self.softmax = tf.nn.softmax(self.output_layer)
 
             gather_indices = tf.range(batch_size) * tf.shape(self.output_layer)[1] + self.actions
