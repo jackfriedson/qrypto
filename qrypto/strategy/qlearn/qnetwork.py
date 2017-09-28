@@ -94,13 +94,13 @@ class QNetworkStrategy(object):
 
         total_steps = len(exchange_train.date_range)
         nan_buffer = self.data.start_training()
-        total_steps -= nan_buffer
+        total_steps -= nan_buffer + 1
+        initial_step = nan_buffer
 
         epoch_step_ratio = 1. / (1. + ((n_epochs - 1) * validation_percent))
         epoch_steps = int(epoch_step_ratio * total_steps)
         train_steps = int(epoch_steps * (1. - validation_percent))
         validation_steps = int(epoch_steps * validation_percent)
-        initial_step = nan_buffer
 
         tf.reset_default_graph()
         global_step = tf.Variable(0, name='global_step', trainable=False)
