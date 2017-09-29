@@ -70,11 +70,10 @@ class QNetworkStrategy(object):
               n_epochs: int = 10,
               validation_percent: float = 0.2,
               gamma: float = 0.9,
-              epsilon_start: float = 1.,
+              epsilon_start: float = .7,
               epsilon_end: float = 0.,
               epsilon_decay: float = 2,
               learn_rate: float = 0.0005,
-              random_action_every: int = 2,
               replay_memory_start_size: int = 1000,
               replay_memory_max_size: int = 100000,
               batch_size: int = 8,
@@ -118,7 +117,7 @@ class QNetworkStrategy(object):
         epsilon = tf.train.polynomial_decay(epsilon_start, global_step,
                                             train_steps * (n_epochs - 1), end_learning_rate=epsilon_end,
                                             power=epsilon_decay)
-        policy = self._make_policy(q_estimator, epsilon, n_outputs, random_action_every, random)
+        policy = self._make_policy(q_estimator, epsilon, n_outputs, random)
 
         saver = tf.train.Saver()
         with tf.Session() as sess:
@@ -149,7 +148,7 @@ class QNetworkStrategy(object):
 
                 for i in train_bar(range(train_steps)):
                     # Maybe update the target network
-                    if sess.run(tf.contrib.framework.get_global_step()) % update_target_every == 0:
+                    if i % update_target_every == 0:
                         estimator_copy.make(sess)
 
                     # Make a prediction
@@ -236,18 +235,14 @@ class QNetworkStrategy(object):
                 q_estimator.summary_writer.flush()
 
     @staticmethod
-    def _make_policy(estimator, epsilon, n_actions, random_action_every, random_state):
+    def _make_policy(estimator, epsilon, n_actions, random_state):
         def policy_fn(sess, observation, rnn_state):
             epsilon_val = sess.run(epsilon)
-            step = sess.run(tf.contrib.framework.get_global_step())
             q_values, _, new_rnn_state = estimator.predict(sess, np.expand_dims(observation, 0), 1, rnn_state)
             best_action = np.argmax(q_values)
-            if step % random_action_every == 0:
-                action_probs = np.ones(n_actions, dtype=float) * epsilon_val / n_actions
-                action_probs[best_action] += (1.0 - epsilon_val)
-                return random_state.choice(np.arange(len(action_probs)), p=action_probs), new_rnn_state
-            else:
-                return best_action, new_rnn_state
+            action_probs = np.ones(n_actions, dtype=float) * epsilon_val / n_actions
+            action_probs[best_action] += (1.0 - epsilon_val)
+            return random_state.choice(np.arange(len(action_probs)), p=action_probs), new_rnn_state
         return policy_fn
 
     def run(self):
