@@ -40,7 +40,6 @@ class QLearnDataset(OHLCDataset):
 
     def next(self):
         self.train_counter += 1
-        return self.state()
 
     def stop_training(self):
         self.train_counter = None
@@ -62,7 +61,11 @@ class QLearnDataset(OHLCDataset):
 
     @property
     def last_row(self):
-        return self.all.iloc[self.last_idx]
+        result = self._data.iloc[self.last_idx].values
+        for indicator in self._indicators:
+            row_vals = indicator.data.iloc[self.last_idx].values
+            result = np.append(result, row_vals)
+        return result
 
     @property
     def last(self):
@@ -87,7 +90,7 @@ class QLearnDataset(OHLCDataset):
             result = result - self.mean
             result = result / self.std
 
-        result = np.append(result.values, 1. if self.position == 'long' else -1.)
+        result = np.append(result, 1. if self.position == 'long' else -1.)
         return result
 
     @property

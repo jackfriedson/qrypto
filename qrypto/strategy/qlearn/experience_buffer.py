@@ -29,9 +29,8 @@ class ExperienceBuffer(object):
         # TODO: Implement prioritized experience replay
         valid_buffers = list(filter(lambda b: len(b) > trace_length, self._buffers))
         sampled_buffers_idxs = self._random.choice(len(valid_buffers), size=batch_size, replace=True)
-        sampled_buffers = np.take(valid_buffers, sampled_buffers_idxs, axis=0)
         sampled_traces = []
-        for buf in sampled_buffers:
-            start = self._random.randint(0, len(buf) + 1 - trace_length)
-            sampled_traces.extend(list(itertools.islice(buf, start, start+trace_length)))
+        for buf_idx in sampled_buffers_idxs:
+            start = self._random.randint(0, len(valid_buffers[buf_idx]) + 1 - trace_length)
+            sampled_traces.extend(list(itertools.islice(valid_buffers[buf_idx], start, start+trace_length)))
         return sampled_traces

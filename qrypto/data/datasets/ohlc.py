@@ -35,14 +35,6 @@ class OHLCDataset(object):
         self._orders = pd.DataFrame(columns=['datetime', 'buy', 'sell'])
         self._orders.set_index('datetime', inplace=True)
 
-    def __getattr__(self, name):
-        for indicator in self._indicators:
-            try:
-                return getattr(indicator, name)
-            except AttributeError:
-                continue
-        raise AttributeError
-
     def update(self, incoming_data: List[dict]) -> None:
         if self._data is None:
             self._data = pd.DataFrame(incoming_data)
