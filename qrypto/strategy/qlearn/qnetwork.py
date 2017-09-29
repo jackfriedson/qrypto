@@ -149,7 +149,7 @@ class QNetworkStrategy(object):
 
                 for i in train_bar(range(train_steps)):
                     # Maybe update the target network
-                    if sess.run(tf.contrib.framkework.get_global_step()) % update_target_every == 0:
+                    if sess.run(tf.contrib.framework.get_global_step()) % update_target_every == 0:
                         estimator_copy.make(sess)
 
                     # Make a prediction
