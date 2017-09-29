@@ -107,7 +107,7 @@ class QLearnDataset(OHLCDataset):
     def step(self, idx: int):
         action = self.actions[idx]
         reward = 0.
-        self.add_position(action, {'price': self.last})
+        self.add_position(action)
 
         if self.position != action:
             reward -= self.fee

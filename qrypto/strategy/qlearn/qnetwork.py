@@ -6,7 +6,6 @@ from collections import namedtuple
 from pathlib import Path
 from typing import Tuple
 
-import line_profiler
 import numpy as np
 import progressbar
 import tensorflow as tf
@@ -65,7 +64,6 @@ class QNetworkStrategy(object):
         new_data = self.exchange.get_ohlc(self.base_currency, self.quote_currency, interval=self.ohlc_interval)
         self.data.update(new_data)
 
-    @profile
     def train(self,
               start: str,
               end: str,

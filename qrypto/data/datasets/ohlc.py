@@ -1,6 +1,7 @@
 import io
 from typing import List, Union
 
+import line_profiler
 import matplotlib
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -28,6 +29,8 @@ class OHLCDataset(object):
         self.update(data)
 
     def _init_positions(self):
+        self._longs = {}
+        self._shorts = {}
         self._positions = pd.DataFrame(columns=['datetime', 'long', 'short'])
         self._positions.set_index('datetime', inplace=True)
 
@@ -47,11 +50,12 @@ class OHLCDataset(object):
         for indicator in self._indicators:
             indicator.update(self._data)
 
-    def add_position(self, long_short: str, order_info: dict):
+    def add_position(self, long_short: str):
+        price = self.last
         if long_short == 'long':
-            self._positions.loc[self.time, 'long'] = order_info['price']
+            self._longs[self.time] = price
         elif long_short == 'short':
-            self._positions.loc[self.time, 'short'] = order_info['price']
+            self._shorts[self.time] = price
 
     def add_order(self, buy_sell: str, order_info: dict):
         if buy_sell == 'buy':
@@ -70,7 +74,10 @@ class OHLCDataset(object):
         ax0 = fig.add_subplot(gs[0])
         ax0.set_title('Price ({})'.format(data_column))
         ax0.plot(self._data.index, self._data[data_column], 'black')
-        self._positions.plot(ax=ax0, style={'long': 'g', 'short': 'r'})
+        longs = pd.DataFrame.from_dict(self._longs, orient='index')
+        longs.plot(ax=ax0, style='g')
+        shorts = pd.DataFrame.from_dict(self._shorts, orient='index')
+        shorts.plot(ax=ax0, style='r')
         all_nan = self._orders.isnull().all(axis=0)
         if not all_nan['buy']:
             ax0.plot(self._orders.index, self._orders['buy'], color='k', marker='^', fillstyle='none')
