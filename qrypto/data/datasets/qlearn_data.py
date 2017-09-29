@@ -61,7 +61,9 @@ class QLearnDataset(OHLCDataset):
 
     @property
     def last_row(self):
-        result = self._data.iloc[self.last_idx].values
+        result = self._data.iloc[self.last_idx]
+        result.drop(EXCLUDE_FIELDS, inplace=True)
+        result = result.values
         for indicator in self._indicators:
             row_vals = indicator.data.iloc[self.last_idx].values
             result = np.append(result, row_vals)
