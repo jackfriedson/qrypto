@@ -13,7 +13,6 @@ class QEstimator(object):
                  n_outputs: int,
                  hidden_units: int = None,
                  learn_rate: float = 0.0005,
-                 optimizer_decay: float = 0.9,
                  renorm_decay: float = 0.9,
                  summaries_dir: str = None):
         self.scope = scope

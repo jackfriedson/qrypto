@@ -73,6 +73,7 @@ class QNetworkStrategy(object):
               epsilon_start: float = 1.,
               epsilon_end: float = 0.,
               epsilon_decay: float = 2,
+              learn_rate: float = 0.0005,
               random_action_every: int = 2,
               replay_memory_start_size: int = 1000,
               replay_memory_max_size: int = 100000,
@@ -110,8 +111,8 @@ class QNetworkStrategy(object):
 
         cell = tf.contrib.rnn.BasicLSTMCell(num_units=n_inputs, state_is_tuple=True)
         target_cell = tf.contrib.rnn.BasicLSTMCell(num_units=n_inputs, state_is_tuple=True)
-        q_estimator = QEstimator('q_estimator', cell, n_inputs, n_outputs, summaries_dir=summaries_dir)
-        target_estimator = QEstimator('target_q', target_cell, n_inputs, n_outputs)
+        q_estimator = QEstimator('q_estimator', cell, n_inputs, n_outputs, learn_rate=learn_rate, summaries_dir=summaries_dir)
+        target_estimator = QEstimator('target_q', target_cell, n_inputs, n_outputs, learn_rate=learn_rate)
         estimator_copy = ModelParametersCopier(q_estimator, target_estimator)
 
         epsilon = tf.train.polynomial_decay(epsilon_start, global_step,

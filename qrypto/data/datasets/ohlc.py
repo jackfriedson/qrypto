@@ -1,9 +1,9 @@
 import io
 from typing import List, Union
 
-import line_profiler
 import matplotlib
 import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
 from matplotlib import gridspec
 
@@ -31,8 +31,6 @@ class OHLCDataset(object):
     def _init_positions(self):
         self._longs = {}
         self._shorts = {}
-        self._positions = pd.DataFrame(columns=['datetime', 'long', 'short'])
-        self._positions.set_index('datetime', inplace=True)
 
     def _init_orders(self):
         self._orders = pd.DataFrame(columns=['datetime', 'buy', 'sell'])
@@ -74,10 +72,15 @@ class OHLCDataset(object):
         ax0 = fig.add_subplot(gs[0])
         ax0.set_title('Price ({})'.format(data_column))
         ax0.plot(self._data.index, self._data[data_column], 'black')
-        longs = pd.DataFrame.from_dict(self._longs, orient='index')
-        longs.plot(ax=ax0, style='g')
-        shorts = pd.DataFrame.from_dict(self._shorts, orient='index')
-        shorts.plot(ax=ax0, style='r')
+
+        long_df = pd.DataFrame(np.nan, index=self._data.index, columns=[0])
+        long_df.update(pd.DataFrame.from_dict(self._longs, orient='index'))
+        long_df.plot(ax=ax0, style='g')
+
+        short_df = pd.DataFrame(np.nan, index=self._data.index, columns=[0])
+        short_df.update(pd.DataFrame.from_dict(self._shorts, orient='index'))
+        short_df.plot(ax=ax0, style='r')
+
         all_nan = self._orders.isnull().all(axis=0)
         if not all_nan['buy']:
             ax0.plot(self._orders.index, self._orders['buy'], color='k', marker='^', fillstyle='none')
