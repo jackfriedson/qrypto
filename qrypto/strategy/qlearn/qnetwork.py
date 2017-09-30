@@ -148,7 +148,7 @@ class QNetworkStrategy(object):
 
                 for i in train_bar(range(train_steps)):
                     # Maybe update the target network
-                    if i % update_target_every == 0:
+                    if (sess.run(global_step) // batch_size) % update_target_every == 0:
                         estimator_copy.make(sess)
 
                     # Make a prediction
