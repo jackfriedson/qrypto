@@ -73,12 +73,12 @@ class QNetworkStrategy(object):
               epsilon_start: float = .7,
               epsilon_end: float = 0.,
               epsilon_decay: float = 2,
-              learn_rate: float = 0.0005,
+              learn_rate: float = 0.001,
               replay_memory_start_size: int = 1000,
               replay_memory_max_size: int = 100000,
               batch_size: int = 8,
               trace_length: int = 16,
-              update_target_every: int = 1000,
+              update_target_every: int = 500,
               random_seed: int = None,
               load_model: str = None):
 

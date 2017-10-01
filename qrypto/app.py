@@ -57,7 +57,7 @@ def qlearn(ctx):
 @click.option('--train-start', type=str, default='6/1/2017')
 @click.option('--train-end', type=str, default='7/1/2017')
 @click.option('--n-epochs', type=int, default=10)
-@click.option('--learn-rate', type=float, default=0.0005)
+@click.option('--learn-rate', type=float, default=0.001)
 @click.option('--validation-percent', type=float, default=0.2)
 @click.option('--load-model', type=str)
 @click.pass_context
