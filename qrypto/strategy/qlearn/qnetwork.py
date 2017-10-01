@@ -56,7 +56,8 @@ class QNetworkStrategy(object):
         self.models_dir = models_dir/self.timestamp
 
         indicators = [
-            BasicIndicator('ppo')
+            BasicIndicator('ppo'),
+            BasicIndicator('adx')
         ]
         self.data = QLearnDataset(indicators=indicators, **kwargs)
 
