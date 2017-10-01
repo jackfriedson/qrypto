@@ -19,8 +19,6 @@ class QLearnDataset(OHLCDataset):
 
     def __init__(self, *args, fee: float = 0.002, **kwargs):
         self.fee = fee
-
-        self._normalized = False
         self.train_counter = None
         self.open_price = None
         self.position = 'long'
@@ -43,11 +41,6 @@ class QLearnDataset(OHLCDataset):
 
     def stop_training(self):
         self.train_counter = None
-
-    def normalize(self):
-        self._normalized = True
-        self.mean = self.all.mean()
-        self.std = self.all.std()
 
     @property
     def all(self):
@@ -87,11 +80,6 @@ class QLearnDataset(OHLCDataset):
 
     def state(self):
         result = self.last_row
-
-        if self._normalized:
-            result = result - self.mean
-            result = result / self.std
-
         result = np.append(result, 1. if self.position == 'long' else -1.)
         return result
 

@@ -75,14 +75,14 @@ class QNetworkStrategy(object):
               epsilon_start: float = .7,
               epsilon_end: float = 0.,
               epsilon_decay: float = 2,
-              learn_rate: float = 0.001,
               replay_memory_start_size: int = 1000,
               replay_memory_max_size: int = 100000,
               batch_size: int = 8,
               trace_length: int = 16,
               update_target_every: int = 500,
               random_seed: int = None,
-              load_model: str = None):
+              load_model: str = None,
+              **kwargs):
 
         # Initialize training data
         exchange_train = Backtest(self.exchange, self.base_currency, self.quote_currency,
@@ -110,10 +110,10 @@ class QNetworkStrategy(object):
         if random_seed:
             tf.set_random_seed(random_seed)
 
-        cell = tf.contrib.rnn.LSTMCell(num_units=n_inputs, state_is_tuple=True, activation=tf.nn.softsign, use_peepholes=True)
-        target_cell = tf.contrib.rnn.LSTMCell(num_units=n_inputs, state_is_tuple=True, activation=tf.nn.softsign, use_peepholes=True)
-        q_estimator = QEstimator('q_estimator', cell, n_inputs, n_outputs, learn_rate=learn_rate, summaries_dir=summaries_dir)
-        target_estimator = QEstimator('target_q', target_cell, n_inputs, n_outputs, learn_rate=learn_rate)
+        cell = tf.contrib.rnn.LSTMCell(num_units=n_inputs, state_is_tuple=True, activation=tf.nn.softsign)
+        target_cell = tf.contrib.rnn.LSTMCell(num_units=n_inputs, state_is_tuple=True, activation=tf.nn.softsign)
+        q_estimator = QEstimator('q_estimator', cell, n_inputs, n_outputs, summaries_dir=summaries_dir, **kwargs)
+        target_estimator = QEstimator('target_q', target_cell, n_inputs, n_outputs, **kwargs)
         estimator_copy = ModelParametersCopier(q_estimator, target_estimator)
 
         epsilon = tf.train.polynomial_decay(epsilon_start, global_step,
@@ -236,6 +236,7 @@ class QNetworkStrategy(object):
                     q_estimator.summary_writer.add_summary(epoch_chart, epoch)
                     q_estimator.summary_writer.flush()
 
+                # After all repeats, move to the next timeframe
                 initial_step += validation_steps
 
     @staticmethod
