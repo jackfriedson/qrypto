@@ -27,10 +27,14 @@ class ExperienceBuffer(object):
 
     def sample(self, batch_size, trace_length):
         # TODO: Implement prioritized experience replay
+
         valid_buffers = list(filter(lambda b: len(b) > trace_length, self._buffers))
-        sampled_buffers_idxs = self._random.choice(len(valid_buffers), size=batch_size, replace=True)
+        total_memories = sum([sum(buf) for buf in valid_buffers])
+        sample_probs = [len(buf) / total_memories for buf in valid_buffers]
+        sampled_buffer_idxs = self._random.choice(len(valid_buffers), size=batch_size, replace=True, p=sample_probs)
+
         sampled_traces = []
-        for buf_idx in sampled_buffers_idxs:
+        for buf_idx in sampled_buffer_idxs:
             start = self._random.randint(0, len(valid_buffers[buf_idx]) + 1 - trace_length)
             sampled_traces.extend(list(itertools.islice(valid_buffers[buf_idx], start, start+trace_length)))
         return sampled_traces
