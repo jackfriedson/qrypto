@@ -109,8 +109,8 @@ class QNetworkStrategy(object):
         if random_seed:
             tf.set_random_seed(random_seed)
 
-        cell = tf.contrib.rnn.BasicLSTMCell(num_units=n_inputs, state_is_tuple=True)
-        target_cell = tf.contrib.rnn.BasicLSTMCell(num_units=n_inputs, state_is_tuple=True)
+        cell = tf.contrib.rnn.LSTMCell(num_units=n_inputs, state_is_tuple=True, activation=tf.nn.softsign, use_peepholes=True)
+        target_cell = tf.contrib.rnn.LSTMCell(num_units=n_inputs, state_is_tuple=True, activation=tf.nn.softsign, use_peepholes=True)
         q_estimator = QEstimator('q_estimator', cell, n_inputs, n_outputs, learn_rate=learn_rate, summaries_dir=summaries_dir)
         target_estimator = QEstimator('target_q', target_cell, n_inputs, n_outputs, learn_rate=learn_rate)
         estimator_copy = ModelParametersCopier(q_estimator, target_estimator)
