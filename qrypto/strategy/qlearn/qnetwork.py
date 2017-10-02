@@ -137,14 +137,13 @@ class QNetworkStrategy(object):
 
             for data_slice in range(n_slices):
                 for epoch in range(n_epochs):
-                    absolute_epoch = (epoch * n_slices) + epoch
+                    absolute_epoch = (data_slice * n_epochs) + epoch
 
                     self.data.start_training(initial_step)
                     replay_memory.new_episode()
                     rnn_state = (np.zeros([1, n_inputs]), np.zeros([1, n_inputs]))
 
-                    print('\nSlice {}'.format(data_slice))
-                    print('Epoch {}'.format(epoch))
+                    print('\nSlice {}; Epoch {}'.format(data_slice, epoch))
                     print('Training...')
                     train_bar = progressbar.ProgressBar(term_width=80)
 
