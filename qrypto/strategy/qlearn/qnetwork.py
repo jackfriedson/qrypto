@@ -72,7 +72,7 @@ class QNetworkStrategy(object):
               n_epochs: int = 1,
               validation_percent: float = 0.2,
               gamma: float = 0.9,
-              epsilon_start: float = .7,
+              epsilon_start: float = 1.,
               epsilon_end: float = 0.,
               epsilon_decay: float = 2,
               replay_memory_start_size: int = 1000,
@@ -117,7 +117,8 @@ class QNetworkStrategy(object):
         estimator_copy = ModelParametersCopier(q_estimator, target_estimator)
 
         epsilon = tf.train.polynomial_decay(epsilon_start, global_step,
-                                            train_steps * (n_slices - 1), end_learning_rate=epsilon_end,
+                                            train_steps * (n_slices * n_epochs - 1),
+                                            end_learning_rate=epsilon_end,
                                             power=epsilon_decay)
         policy = self._make_policy(q_estimator, epsilon, n_outputs, random)
 
