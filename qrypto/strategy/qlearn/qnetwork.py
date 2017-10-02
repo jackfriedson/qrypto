@@ -68,8 +68,8 @@ class QNetworkStrategy(object):
     def train(self,
               start: str,
               end: str,
-              n_epochs: int = 10,
-              epoch_repeats: int = 1,
+              n_slices: int = 10,
+              n_epochs: int = 1,
               validation_percent: float = 0.2,
               gamma: float = 0.9,
               epsilon_start: float = .7,
@@ -99,7 +99,7 @@ class QNetworkStrategy(object):
         total_steps -= nan_buffer + 1
         initial_step = nan_buffer
 
-        epoch_step_ratio = 1. / (1. + ((n_epochs - 1) * validation_percent))
+        epoch_step_ratio = 1. / (1. + ((n_slices - 1) * validation_percent))
         epoch_steps = int(epoch_step_ratio * total_steps)
         train_steps = int(epoch_steps * (1. - validation_percent))
         validation_steps = int(epoch_steps * validation_percent)
@@ -117,7 +117,7 @@ class QNetworkStrategy(object):
         estimator_copy = ModelParametersCopier(q_estimator, target_estimator)
 
         epsilon = tf.train.polynomial_decay(epsilon_start, global_step,
-                                            train_steps * (n_epochs - 1), end_learning_rate=epsilon_end,
+                                            train_steps * (n_slices - 1), end_learning_rate=epsilon_end,
                                             power=epsilon_decay)
         policy = self._make_policy(q_estimator, epsilon, n_outputs, random)
 
@@ -135,13 +135,16 @@ class QNetworkStrategy(object):
                 next_state = self.data.state()
                 replay_memory.add(Transition(state, action, reward, next_state))
 
-            for epoch in range(n_epochs):
-                for _ in range(epoch_repeats):
+            for data_slice in range(n_slices):
+                for epoch in range(n_epochs):
+                    absolute_epoch = (epoch * n_slices) + epoch
+
                     self.data.start_training(initial_step)
                     replay_memory.new_episode()
                     rnn_state = (np.zeros([1, n_inputs]), np.zeros([1, n_inputs]))
 
-                    print('\nEpoch {}'.format(epoch))
+                    print('\nEpoch {}'.format(data_slice))
+                    print('Repetition {}'.format(rep))
                     print('Training...')
                     train_bar = progressbar.ProgressBar(term_width=80)
 
@@ -221,7 +224,7 @@ class QNetworkStrategy(object):
                     buf.seek(0)
                     image = tf.image.decode_png(buf.getvalue(), channels=4)
                     image = tf.expand_dims(image, 0)
-                    epoch_chart = tf.summary.image('epoch_{}'.format(epoch), image, max_outputs=1).eval()
+                    epoch_chart = tf.summary.image('epoch_{}'.format(absolute_epoch), image, max_outputs=1).eval()
 
                     # Add Tensorboard summaries
                     epoch_summary = tf.Summary()
@@ -232,8 +235,8 @@ class QNetworkStrategy(object):
                     epoch_summary.value.add(simple_value=outperformance, tag='epoch/validate/outperformance')
                     epoch_summary.value.add(simple_value=np.average(confidences), tag='epoch/validate/average_confidence')
                     epoch_summary.value.add(simple_value=np.average(val_losses), tag='epoch/validate/average_loss')
-                    q_estimator.summary_writer.add_summary(epoch_summary, epoch)
-                    q_estimator.summary_writer.add_summary(epoch_chart, epoch)
+                    q_estimator.summary_writer.add_summary(epoch_summary, absolute_epoch)
+                    q_estimator.summary_writer.add_summary(epoch_chart, absolute_epoch)
                     q_estimator.summary_writer.flush()
 
                 # After all repeats, move to the next timeframe
