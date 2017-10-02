@@ -75,6 +75,7 @@ class QNetworkStrategy(object):
               epsilon_start: float = 1.,
               epsilon_end: float = 0.,
               epsilon_decay: float = 2,
+              random_action_every: int = 4,
               replay_memory_start_size: int = 1000,
               replay_memory_max_size: int = 100000,
               batch_size: int = 8,
@@ -120,7 +121,7 @@ class QNetworkStrategy(object):
                                             train_steps * (n_slices * n_epochs - 1),
                                             end_learning_rate=epsilon_end,
                                             power=epsilon_decay)
-        policy = self._make_policy(q_estimator, epsilon, n_outputs, random)
+        policy = self._make_policy(q_estimator, epsilon, n_outputs, random, random_action_every)
 
         saver = tf.train.Saver()
         with tf.Session() as sess:
@@ -243,14 +244,17 @@ class QNetworkStrategy(object):
                 initial_step += validation_steps
 
     @staticmethod
-    def _make_policy(estimator, epsilon, n_actions, random_state):
+    def _make_policy(estimator, epsilon, n_actions, random_state, random_every):
         def policy_fn(sess, observation, rnn_state):
             epsilon_val = sess.run(epsilon)
             q_values, _, new_rnn_state = estimator.predict(sess, np.expand_dims(observation, 0), 1, rnn_state)
             best_action = np.argmax(q_values)
-            action_probs = np.ones(n_actions, dtype=float) * epsilon_val / n_actions
-            action_probs[best_action] += (1.0 - epsilon_val)
-            return random_state.choice(np.arange(len(action_probs)), p=action_probs), new_rnn_state
+            if sess.run(tf.contrib.framework.get_global_step()) % random_every == 0:
+                action_probs = np.ones(n_actions, dtype=float) * epsilon_val / n_actions
+                action_probs[best_action] += (1.0 - epsilon_val)
+                return random_state.choice(np.arange(len(action_probs)), p=action_probs), new_rnn_state
+            else:
+                return best_action, new_rnn_state
         return policy_fn
 
     def run(self):
