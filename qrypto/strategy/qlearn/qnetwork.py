@@ -143,8 +143,8 @@ class QNetworkStrategy(object):
                     replay_memory.new_episode()
                     rnn_state = (np.zeros([1, n_inputs]), np.zeros([1, n_inputs]))
 
-                    print('\nEpoch {}'.format(data_slice))
-                    print('Repetition {}'.format(rep))
+                    print('\nSlice {}'.format(data_slice))
+                    print('Epoch {}'.format(epoch))
                     print('Training...')
                     train_bar = progressbar.ProgressBar(term_width=80)
 
