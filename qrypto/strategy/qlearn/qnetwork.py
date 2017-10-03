@@ -57,7 +57,7 @@ class QNetworkStrategy(object):
 
         indicators = [
             BasicIndicator('ppo'),
-            BasicIndicator('adx')
+            # BasicIndicator('adx')
         ]
         self.data = QLearnDataset(indicators=indicators, **kwargs)
 
