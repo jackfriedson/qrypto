@@ -100,7 +100,7 @@ class ClassifierStrategy(object):
         if random_seed:
             tf.set_random_seed(random_seed)
 
-        cell = tf.contrib.rnn.LSTMCell(num_units=n_inputs, state_is_tuple=True, activation=tf.nn.softsign)
+        cell = tf.contrib.rnn.LSTMCell(num_units=n_inputs, state_is_tuple=True, activation=tf.nn.softsign, use_peepholes=True)
         classifier = RNNClassifier('rnn_classifier', cell, n_inputs, n_outputs, summaries_dir=summaries_dir, **kwargs)
 
         saver = tf.train.Saver()
