@@ -80,7 +80,6 @@ class QLearnDataset(OHLCDataset):
 
     def state(self):
         result = self.last_row
-        # result = np.append(result, 1. if self.position == 'long' else -1.)
         return result
 
     @property

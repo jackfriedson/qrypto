@@ -150,7 +150,7 @@ class ClassifierStrategy(object):
                     self.data.start_training(initial_step + train_steps)
                     returns = []
                     confidences = []
-                    val_losses = []
+                    predictions = []
                     start_price = self.data.last
 
                     rnn_state = (np.zeros([1, n_inputs]), np.zeros([1, n_inputs]))
@@ -158,20 +158,15 @@ class ClassifierStrategy(object):
                     for _ in range(validation_steps):
                         price = self.data.last
                         state = self.data.state()
-                        logits, probabilities, next_rnn_state = classifier.predict(sess, np.expand_dims(state, 0), 1, rnn_state, training=False)
-                        action = np.argmax(probabilities)
-                        confidence = probabilities[0][action]
-                        _, cum_return = self.data.step_val(action)
-
-                        # Calculate validation loss for summaries
+                        _, probabilities, rnn_state = classifier.predict(sess, np.expand_dims(state, 0), 1, rnn_state, training=False)
+                        prediction = np.argmax(probabilities)
+                        confidence = probabilities[0][prediction]
+                        _, cum_return = self.data.step_val(prediction)
                         label = 1 if self.data.last > price else 0
-                        loss = classifier.compute_loss(sess, state, label, rnn_state)
-
-                        rnn_state = next_rnn_state
 
                         returns.append(cum_return)
                         confidences.append(confidence)
-                        val_losses.append(loss)
+                        predictions.append(prediction == label)
 
                     # Compute outperformance of market return
                     market_return = (self.data.last / start_price) - 1.
@@ -195,7 +190,7 @@ class ClassifierStrategy(object):
                     epoch_summary.value.add(simple_value=np.average(losses), tag='epoch/train/averge_loss')
                     epoch_summary.value.add(simple_value=outperformance, tag='epoch/validate/outperformance')
                     epoch_summary.value.add(simple_value=np.average(confidences), tag='epoch/validate/average_confidence')
-                    epoch_summary.value.add(simple_value=np.average(val_losses), tag='epoch/validate/average_loss')
+                    epoch_summary.value.add(simple_value=np.average(predictions), tag='epoch/validate/accuracy')
                     classifier.summary_writer.add_summary(epoch_summary, absolute_epoch)
                     classifier.summary_writer.add_summary(epoch_chart, absolute_epoch)
                     classifier.summary_writer.flush()
