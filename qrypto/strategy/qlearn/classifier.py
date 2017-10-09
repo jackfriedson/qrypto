@@ -114,34 +114,35 @@ class ClassifierStrategy(object):
             sess.run(tf.global_variables_initializer())
 
             for data_slice in range(n_slices):
-                for epoch in range(n_epochs):
-                    absolute_epoch = (data_slice * n_epochs) + epoch
+                self.data.start_training(initial_step)
 
+                # Populate replay memory with data
+                replay_memory = ExperienceBuffer(replay_memory_max_size, random)
+                for _ in range(train_steps):
+                    price = self.data.last
+                    state = self.data.state()
+                    self.data.next()
+                    label = 1 if self.data.last > price else 0
+                    replay_memory.add((state, label))
+
+                for epoch in range(n_epochs):
                     self.data.start_training(initial_step)
+                    absolute_epoch = (data_slice * n_epochs) + epoch
 
                     print('\nSlice {}; Epoch {}'.format(data_slice, epoch))
                     print('Training...')
                     train_bar = progressbar.ProgressBar(term_width=80)
-
                     losses = []
-
-                    # Populate replay memory with data
-                    replay_memory = ExperienceBuffer(replay_memory_max_size, random)
-                    for _ in range(train_steps):
-                        price = self.data.last
-                        state = self.data.state()
-                        self.data.next()
-                        label = 1 if self.data.last > price else 0
-                        replay_memory.add((state, label))
 
                     n_batches = train_steps // batch_size // trace_length
                     # Train the network
-                    for i in train_bar(range(n_batches)):
+                    for i in train_bar(range(2 * n_batches)):
                         rnn_state = (np.zeros([batch_size, n_inputs]), np.zeros([batch_size, n_inputs]))
                         samples = replay_memory.sample(batch_size, trace_length)
                         inputs, labels = map(np.array, zip(*samples))
                         loss = classifier.update(sess, inputs, labels, trace_length, rnn_state)
                         losses.append(loss)
+                        self.data.next()
 
                     saver.save(sess, str(self.models_dir/'model.ckpt'))
 
