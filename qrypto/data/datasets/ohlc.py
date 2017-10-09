@@ -62,7 +62,7 @@ class OHLCDataset(object):
             self._orders.loc[self.time, 'sell'] = order_info['price']
 
     def plot(self, data_column: str = 'close', indicators: bool = False,
-             save_to: Union[str, io.BufferedIOBase] = None):
+             orders: bool = True, save_to: Union[str, io.BufferedIOBase] = None):
         fig = plt.figure(figsize=(60, 30))
         ratios = [3] if not indicators else [3] + ([1] * len(self._indicators))
         n_subplots = 1 if not indicators else 1 + len(self._indicators)
@@ -81,11 +81,12 @@ class OHLCDataset(object):
         short_df.update(pd.DataFrame.from_dict(self._shorts, orient='index'))
         short_df.plot(ax=ax0, style='r')
 
-        all_nan = self._orders.isnull().all(axis=0)
-        if not all_nan['buy']:
-            ax0.plot(self._orders.index, self._orders['buy'], color='k', marker='^', fillstyle='none')
-        if not all_nan['sell']:
-            ax0.plot(self._orders.index, self._orders['sell'], color='k', marker='v', fillstyle='none')
+        if orders:
+            all_nan = self._orders.isnull().all(axis=0)
+            if not all_nan['buy']:
+                ax0.plot(self._orders.index, self._orders['buy'], color='k', marker='^', fillstyle='none')
+            if not all_nan['sell']:
+                ax0.plot(self._orders.index, self._orders['sell'], color='k', marker='v', fillstyle='none')
 
         if indicators:
             for i, indicator in enumerate(self._indicators, start=1):

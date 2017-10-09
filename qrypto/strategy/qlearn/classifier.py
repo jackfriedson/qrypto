@@ -176,7 +176,7 @@ class ClassifierStrategy(object):
                     print('Outperformance: {:+.2f}%'.format(100 * outperformance))
 
                     buf = io.BytesIO()
-                    self.data.plot(save_to=buf)
+                    self.data.plot(orders=False, save_to=buf)
                     buf.seek(0)
                     image = tf.image.decode_png(buf.getvalue(), channels=4)
                     image = tf.expand_dims(image, 0)
