@@ -53,8 +53,7 @@ class ClassifierStrategy(object):
         self.models_dir = models_dir/self.timestamp
 
         indicators = [
-            BasicIndicator('ppo'),
-            BasicIndicator('adx')
+            BasicIndicator('ppo')
         ]
         self.data = QLearnDataset(indicators=indicators, **kwargs)
 

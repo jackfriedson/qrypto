@@ -46,6 +46,8 @@ class RNNClassifier(object):
                 self.train_op = self.optimizer.minimize(self.loss, global_step=tf.contrib.framework.get_global_step())
 
             self.summaries = tf.summary.merge([
+                tf.summary.histogram('inputs', self.inputs),
+                tf.summary.histogram('normed_inputs', self.norm_layer),
                 tf.summary.scalar('loss', self.loss),
                 tf.summary.histogram('loss_hist', self.losses),
                 tf.summary.histogram('output_hist', self.output_layer),
