@@ -126,6 +126,7 @@ class ClassifierStrategy(object):
                     replay_memory.add((state, label))
 
                 for epoch in range(n_epochs):
+                    self.data.start_training(initial_step)
                     absolute_epoch = (data_slice * n_epochs) + epoch
 
                     print('\nSlice {}; Epoch {}'.format(data_slice, epoch))
@@ -146,13 +147,13 @@ class ClassifierStrategy(object):
 
                     # Evaluate the model
                     print('Evaluating...')
+                    self.data.start_training(initial_step + train_steps)
                     returns = []
                     confidences = []
                     val_losses = []
                     start_price = self.data.last
 
                     rnn_state = (np.zeros([1, n_inputs]), np.zeros([1, n_inputs]))
-                    self.data.start_training(initial_step + train_steps)
 
                     for _ in range(validation_steps):
                         price = self.data.last
