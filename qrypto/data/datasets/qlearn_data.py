@@ -15,7 +15,7 @@ EXCLUDE_FIELDS = [
 
 
 class QLearnDataset(OHLCDataset):
-    actions = ['long', 'short']
+    actions = ['short', 'long']
 
     def __init__(self, *args, fee: float = 0.002, **kwargs):
         self.fee = fee
