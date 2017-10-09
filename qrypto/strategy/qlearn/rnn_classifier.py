@@ -49,6 +49,7 @@ class RNNClassifier(object):
                 tf.summary.scalar('loss', self.loss),
                 tf.summary.histogram('loss_hist', self.losses),
                 tf.summary.histogram('output_hist', self.output_layer),
+                tf.summary.histogram('probabilities', self.probabilities)
                 tf.summary.scalar('max_confidence', tf.reduce_max(self.probabilities))
             ])
 
