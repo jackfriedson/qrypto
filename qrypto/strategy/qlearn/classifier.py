@@ -70,6 +70,7 @@ class ClassifierStrategy(object):
               n_slices: int = 10,
               n_epochs: int = 1,
               validation_percent: float = 0.2,
+              softmax_threshold: float = 0.65,
               replay_memory_max_size: int = 100000,
               batch_size: int = 8,
               rnn_layers: int = 1,
@@ -160,10 +161,14 @@ class ClassifierStrategy(object):
                         _, probabilities, rnn_state = classifier.predict(sess, np.expand_dims(state, 0), 1, rnn_state, training=False)
                         prediction = np.argmax(probabilities)
                         confidence = probabilities[0][prediction]
-                        _, cum_return = self.data.step_val(prediction)
-                        label = 1 if self.data.last > price else 0
 
-                        returns.append(cum_return)
+                        if confidence >= softmax_threshold:
+                            _, cum_return = self.data.step_val(prediction)
+                            returns.append(cum_return)
+                        else:
+                            self.data.next()
+
+                        label = 1 if self.data.last > price else 0
                         confidences.append(confidence)
                         predictions.append(prediction == label)
 
