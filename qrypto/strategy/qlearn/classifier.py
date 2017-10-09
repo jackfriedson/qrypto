@@ -136,7 +136,7 @@ class ClassifierStrategy(object):
 
                     n_batches = train_steps // batch_size // trace_length
                     # Train the network
-                    for i in train_bar(range(2 * n_batches)):
+                    for i in train_bar(range(10 * n_batches)):
                         rnn_state = (np.zeros([batch_size, n_inputs]), np.zeros([batch_size, n_inputs]))
                         samples = replay_memory.sample(batch_size, trace_length)
                         inputs, labels = map(np.array, zip(*samples))
