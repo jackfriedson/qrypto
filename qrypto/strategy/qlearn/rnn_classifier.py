@@ -33,7 +33,7 @@ class RNNClassifier(object):
             self.rnn = tf.reshape(self.rnn, shape=tf.shape(self.norm_layer))
 
             n_hiddens = hidden_units or (n_inputs + n_outputs) // 2
-            self.hidden_layer = tf.contrib.layers.fully_connected(self.norm_layer, n_hiddens)
+            self.hidden_layer = tf.contrib.layers.fully_connected(self.norm_layer, n_hiddens, activation_fn=tf.nn.crelu)
             self.output_layer = tf.contrib.layers.fully_connected(self.hidden_layer, n_outputs)
             self.probabilities = tf.nn.softmax(self.output_layer)
 
