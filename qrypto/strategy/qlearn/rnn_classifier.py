@@ -25,7 +25,7 @@ class RNNClassifier(object):
 
             batch_size = tf.reshape(tf.shape(self.inputs)[0] // self.trace_length, shape=[])
 
-            self.norm_layer = tf.contrib.layers.batch_norm(self.inputs, scale=True, renorm=True, renorm_decay=renorm_decay, is_training=self.phase)
+            self.norm_layer = tf.contrib.layers.batch_norm(self.inputs, scale=True, renorm=True, renorm_decay=renorm_decay, is_training=self.phase, updates_collections=None)
             self.norm_flat = tf.reshape(self.norm_layer, shape=[batch_size, self.trace_length, n_inputs])
 
             self.rnn_in = rnn_cell.zero_state(batch_size, dtype=tf.float32)
@@ -33,17 +33,17 @@ class RNNClassifier(object):
             self.rnn = tf.reshape(self.rnn, shape=tf.shape(self.norm_layer))
 
             n_hiddens = hidden_units or (n_inputs + n_outputs) // 2
-            self.hidden_layer = tf.contrib.layers.fully_connected(self.norm_layer, n_hiddens, activation_fn=tf.nn.crelu)
-            self.output_layer = tf.contrib.layers.fully_connected(self.hidden_layer, n_outputs)
+            # self.hidden_layer = tf.contrib.layers.fully_connected(self.norm_layer, n_hiddens, activation_fn=tf.nn.crelu)
+            self.output_layer = tf.contrib.layers.fully_connected(self.norm_layer, n_outputs, activation_fn=None)
             self.probabilities = tf.nn.softmax(self.output_layer)
 
             self.losses = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=self.output_layer, labels=self.labels)
             self.loss = tf.reduce_mean(self.losses)
             self.optimizer = tf.train.AdamOptimizer(learn_rate)
 
-            update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
-            with tf.control_dependencies(update_ops):
-                self.train_op = self.optimizer.minimize(self.loss, global_step=tf.contrib.framework.get_global_step())
+            # update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
+            # with tf.control_dependencies(update_ops):
+            self.train_op = self.optimizer.minimize(self.loss, global_step=tf.contrib.framework.get_global_step())
 
             self.summaries = tf.summary.merge([
                 tf.summary.histogram('inputs', self.inputs),
