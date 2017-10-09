@@ -32,9 +32,9 @@ class RNNClassifier(object):
             self.rnn, self.rnn_state = tf.nn.dynamic_rnn(rnn_cell, self.norm_flat, dtype=tf.float32, initial_state=self.rnn_in)
             self.rnn = tf.reshape(self.rnn, shape=tf.shape(self.norm_layer))
 
-            n_hiddens = hidden_units or (n_inputs + n_outputs) // 2
+            # n_hiddens = hidden_units or (n_inputs + n_outputs) // 2
             # self.hidden_layer = tf.contrib.layers.fully_connected(self.norm_layer, n_hiddens, activation_fn=tf.nn.crelu)
-            self.output_layer = tf.contrib.layers.fully_connected(self.norm_layer, n_outputs, activation_fn=None)
+            self.output_layer = tf.contrib.layers.fully_connected(self.rnn, n_outputs, activation_fn=None)
             self.probabilities = tf.nn.softmax(self.output_layer)
 
             self.losses = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=self.output_layer, labels=self.labels)
