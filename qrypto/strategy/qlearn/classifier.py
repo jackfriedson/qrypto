@@ -72,7 +72,7 @@ class ClassifierStrategy(object):
               validation_percent: float = 0.2,
               replay_memory_max_size: int = 100000,
               batch_size: int = 8,
-              rnn_layers: int = 2,
+              rnn_layers: int = 1,
               trace_length: int = 16,
               random_seed: int = None,
               load_model: str = None,
