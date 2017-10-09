@@ -72,7 +72,7 @@ class QLearnDataset(OHLCDataset):
 
     @property
     def n_state_factors(self) -> int:
-        return len(self.last_row) + 1
+        return len(self.last_row)
 
     @property
     def n_actions(self):
@@ -80,7 +80,7 @@ class QLearnDataset(OHLCDataset):
 
     def state(self):
         result = self.last_row
-        result = np.append(result, 1. if self.position == 'long' else -1.)
+        # result = np.append(result, 1. if self.position == 'long' else -1.)
         return result
 
     @property
