@@ -34,7 +34,7 @@ class RNNClassifier(object):
 
             # n_hiddens = (n_inputs + n_outputs) // 2
             # self.hidden_layer = tf.contrib.layers.fully_connected(self.rnn, n_hiddens, activation_fn=tf.nn.crelu, biases_initializer=None)
-            self.output_layer = tf.contrib.layers.fully_connected(self.inputs, n_outputs, activation_fn=None)
+            self.output_layer = tf.contrib.layers.fully_connected(self.norm_layer, n_outputs, activation_fn=None)
             self.probabilities = tf.nn.softmax(self.output_layer)
 
             self.losses = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=self.output_layer, labels=self.labels)
