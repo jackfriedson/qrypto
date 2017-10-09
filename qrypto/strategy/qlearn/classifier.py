@@ -72,6 +72,7 @@ class ClassifierStrategy(object):
               validation_percent: float = 0.2,
               replay_memory_max_size: int = 100000,
               batch_size: int = 8,
+              rnn_layers: int = 2,
               trace_length: int = 16,
               random_seed: int = None,
               load_model: str = None,
@@ -104,6 +105,7 @@ class ClassifierStrategy(object):
             tf.set_random_seed(random_seed)
 
         cell = tf.contrib.rnn.LSTMCell(num_units=n_inputs, state_is_tuple=True, activation=tf.nn.softsign, use_peepholes=True)
+        cell = tf.contrib.rnn.MultiRNNCell([cell] * rnn_layers, state_is_tuple=True)
         classifier = RNNClassifier('rnn_classifier', cell, n_inputs, n_outputs, summaries_dir=summaries_dir, **kwargs)
 
         saver = tf.train.Saver()
@@ -134,7 +136,7 @@ class ClassifierStrategy(object):
                     n_batches = train_steps // batch_size // trace_length
                     # Train the network
                     for i in train_bar(range(10 * n_batches)):
-                        rnn_state = (np.zeros([batch_size, n_inputs]), np.zeros([batch_size, n_inputs]))
+                        rnn_state = [(np.zeros([batch_size, n_inputs]), np.zeros([batch_size, n_inputs]))] * rnn_layers
                         samples = replay_memory.sample(batch_size, trace_length)
                         inputs, labels = map(np.array, zip(*samples))
                         loss = classifier.update(sess, inputs, labels, trace_length, rnn_state)
@@ -150,7 +152,7 @@ class ClassifierStrategy(object):
                     predictions = []
                     start_price = self.data.last
 
-                    rnn_state = (np.zeros([1, n_inputs]), np.zeros([1, n_inputs]))
+                    rnn_state = [(np.zeros([1, n_inputs]), np.zeros([1, n_inputs]))] * rnn_layers
 
                     for _ in range(validation_steps):
                         price = self.data.last
