@@ -13,7 +13,7 @@ class RNNClassifier(object):
                  n_outputs: int,
                  hidden_units: int = None,
                  learn_rate: float = 0.0005,
-                 renorm_decay: float = 0.9,
+                 renorm_decay: float = 0.99,
                  summaries_dir: str = None):
         self.scope = scope
 
@@ -25,7 +25,7 @@ class RNNClassifier(object):
 
             batch_size = tf.reshape(tf.shape(self.inputs)[0] // self.trace_length, shape=[])
 
-            self.norm_layer = tf.contrib.layers.batch_norm(self.inputs, scale=True, renorm=True, renorm_decay=renorm_decay, is_training=self.phase, updates_collections=None)
+            self.norm_layer = tf.contrib.layers.batch_norm(self.inputs, scale=True, renorm=True, renorm_decay=renorm_decay, is_training=self.phase)
             self.norm_flat = tf.reshape(self.norm_layer, shape=[batch_size, self.trace_length, n_inputs])
 
             self.rnn_in = rnn_cell.zero_state(batch_size, dtype=tf.float32)
@@ -41,9 +41,9 @@ class RNNClassifier(object):
             self.loss = tf.reduce_mean(self.losses)
             self.optimizer = tf.train.AdamOptimizer(learn_rate)
 
-            # update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
-            # with tf.control_dependencies(update_ops):
-            self.train_op = self.optimizer.minimize(self.loss, global_step=tf.contrib.framework.get_global_step())
+            update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
+            with tf.control_dependencies(update_ops):
+                self.train_op = self.optimizer.minimize(self.loss, global_step=tf.contrib.framework.get_global_step())
 
             self.summaries = tf.summary.merge([
                 tf.summary.histogram('inputs', self.inputs),
