@@ -116,7 +116,7 @@ class ClassifierStrategy(object):
             for data_slice in range(n_slices):
                 self.data.start_training(initial_step)
 
-                # Populate replay memory with data
+                print('Populating data...')
                 replay_memory = ExperienceBuffer(replay_memory_max_size, random)
                 for _ in range(train_steps):
                     price = self.data.last
@@ -126,7 +126,6 @@ class ClassifierStrategy(object):
                     replay_memory.add((state, label))
 
                 for epoch in range(n_epochs):
-                    self.data.start_training(initial_step)
                     absolute_epoch = (data_slice * n_epochs) + epoch
 
                     print('\nSlice {}; Epoch {}'.format(data_slice, epoch))
@@ -142,7 +141,6 @@ class ClassifierStrategy(object):
                         inputs, labels = map(np.array, zip(*samples))
                         loss = classifier.update(sess, inputs, labels, trace_length, rnn_state)
                         losses.append(loss)
-                        self.data.next()
 
                     saver.save(sess, str(self.models_dir/'model.ckpt'))
 
@@ -154,6 +152,7 @@ class ClassifierStrategy(object):
                     start_price = self.data.last
 
                     rnn_state = (np.zeros([1, n_inputs]), np.zeros([1, n_inputs]))
+                    self.data.start_training(initial_step + train_steps)
 
                     for _ in range(validation_steps):
                         price = self.data.last
