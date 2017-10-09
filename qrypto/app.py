@@ -78,6 +78,7 @@ def qlearnnet(ctx, train_start, train_end, **kwargs):
 @click.option('--n-epochs', type=int, default=1)
 @click.option('--validation-percent', type=float, default=0.2)
 @click.option('--learn-rate', type=float, default=0.001)
+@click.option('--hidden-units', type=int, default=4)
 @click.option('--load-model', type=str)
 @click.pass_context
 def classifier(ctx, train_start, train_end, **kwargs):
