@@ -77,6 +77,7 @@ def qlearnnet(ctx, train_start, train_end, **kwargs):
 @click.option('--n-slices', type=int, default=10)
 @click.option('--n-epochs', type=int, default=1)
 @click.option('--validation-percent', type=float, default=0.2)
+@click.option('--softmax-threshold', type=float, default=0.65)
 @click.option('--learn-rate', type=float, default=0.001)
 @click.option('--hidden-units', type=int, default=4)
 @click.option('--rnn-layers', type=int, default=1)
