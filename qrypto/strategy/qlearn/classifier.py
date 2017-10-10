@@ -56,7 +56,7 @@ class ClassifierStrategy(object):
             BasicIndicator('ppo'),
             BasicIndicator('rsi'),
             BasicIndicator('obv'),
-            BasicIndicator('ad')
+            BasicIndicator('stochrsi')
         ]
         self.data = QLearnDataset(indicators=indicators, **kwargs)
 
@@ -70,7 +70,7 @@ class ClassifierStrategy(object):
               n_slices: int = 10,
               n_epochs: int = 1,
               validation_percent: float = 0.2,
-              softmax_threshold: float = 0.65,
+              softmax_threshold: float = 0.5,
               replay_memory_max_size: int = 100000,
               batch_size: int = 8,
               rnn_layers: int = 1,
