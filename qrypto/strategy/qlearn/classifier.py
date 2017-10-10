@@ -52,6 +52,7 @@ class ClassifierStrategy(object):
 
         indicators = [
             BasicIndicator('ppo'),
+            BasicIndicator('mom'),
             BasicIndicator('rsi'),
             BasicIndicator('stochrsi'),
             BasicIndicator('obv'),
