@@ -80,6 +80,8 @@ def qlearnnet(ctx, train_start, train_end, **kwargs):
 @click.option('--softmax-threshold', type=float, default=0.5)
 @click.option('--learn-rate', type=float, default=0.001)
 @click.option('--hidden-units', type=int, default=None)
+@click.option('--batch-size', type=int, default=8)
+@click.option('--trace-length', type=int, default=16)
 @click.option('--rnn-layers', type=int, default=1)
 @click.option('--load-model', type=str)
 @click.pass_context
