@@ -56,7 +56,7 @@ class ClassifierStrategy(object):
             BasicIndicator('ppo'),
             BasicIndicator('rsi'),
             BasicIndicator('obv'),
-            BasicIndicator('natr')
+            BasicIndicator('ad')
         ]
         self.data = QLearnDataset(indicators=indicators, **kwargs)
 
