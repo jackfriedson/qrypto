@@ -147,6 +147,7 @@ class ClassifierStrategy(object):
 
                     # Evaluate the model
                     print('Evaluating...')
+                    validate_bar = progressbar.ProgressBar(term_width=80)
                     self.data.start_training(initial_step + train_steps)
                     returns = []
                     confidences = []
@@ -155,7 +156,7 @@ class ClassifierStrategy(object):
 
                     rnn_state = [(np.zeros([1, n_inputs]), np.zeros([1, n_inputs]))] * rnn_layers
 
-                    for _ in range(validation_steps):
+                    for _ in validate_bar(range(validation_steps)):
                         price = self.data.last
                         state = self.data.state()
                         _, probabilities, rnn_state = classifier.predict(sess, np.expand_dims(state, 0), 1, rnn_state, training=False)
