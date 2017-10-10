@@ -40,13 +40,11 @@ class ClassifierStrategy(object):
                  unit: float,
                  ohlc_interval: int = 5,
                  sleep_duration: int = 5,
-                 confidence_thresholds: Tuple[float, float] = (0.5, 0.5),
                  **kwargs) -> None:
         self.base_currency = base_currency
         self.quote_currency = quote_currency
         self.unit = unit
         self.ohlc_interval = ohlc_interval
-        self.confidence_thresholds = confidence_thresholds
         self.exchange = exchange
 
         self.timestamp = time.strftime('%Y%m%d_%H%M%S')
@@ -55,9 +53,9 @@ class ClassifierStrategy(object):
         indicators = [
             BasicIndicator('ppo'),
             BasicIndicator('rsi'),
-            BasicIndicator('stochrsi'),
             BasicIndicator('obv'),
-            BasicIndicator('rocp')
+            # BasicIndicator('stochrsi'),
+            # BasicIndicator('rocp')
         ]
         self.data = QLearnDataset(indicators=indicators, **kwargs)
 
