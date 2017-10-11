@@ -4,7 +4,7 @@ _base_config = {
     'quote_currency': 'USDT',
     'unit': 0.5,
     'fee': 0.0025,
-    'ohlc_interval': 5,
+    'ohlc_interval': 15,
     'sleep_duration': 30,
 }
 
