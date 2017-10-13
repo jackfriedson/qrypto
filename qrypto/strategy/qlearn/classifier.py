@@ -51,9 +51,10 @@ class ClassifierStrategy(object):
         self.models_dir = models_dir/self.timestamp
 
         indicators = [
-            BasicIndicator('rsi'),
+            BasicIndicator('mfi'),
+            # BasicIndicator('rsi', {'timeperiod': 26})
             # BasicIndicator('ppo'),
-            BasicIndicator('mom', {'timeperiod': 12}),
+            # BasicIndicator('mom', {'timeperiod': 12}),
             # BasicIndicator('mom', {'timeperiod': 36}),
             # BasicIndicator('stochrsi'),
             # BasicIndicator('rocp'),
@@ -118,7 +119,7 @@ class ClassifierStrategy(object):
             for data_slice in range(n_slices):
                 self.data.start_training(initial_step)
 
-                print('Populating data...')
+                print('\nPopulating data...')
                 replay_memory = ExperienceBuffer(replay_memory_max_size, random)
                 for _ in range(train_steps):
                     price = self.data.last
