@@ -52,7 +52,6 @@ class ClassifierStrategy(object):
 
         indicators = [
             BasicIndicator('rsi'),
-            BasicIndicator('rsi', {'timeperiod': 26})
             # BasicIndicator('ppo'),
             # BasicIndicator('mom', {'timeperiod': 12}),
             # BasicIndicator('mom', {'timeperiod': 36}),
