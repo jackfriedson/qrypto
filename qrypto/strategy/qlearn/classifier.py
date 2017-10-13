@@ -51,8 +51,8 @@ class ClassifierStrategy(object):
         self.models_dir = models_dir/self.timestamp
 
         indicators = [
-            BasicIndicator('mfi'),
-            # BasicIndicator('rsi', {'timeperiod': 26})
+            BasicIndicator('rsi'),
+            BasicIndicator('rsi', {'timeperiod': 26})
             # BasicIndicator('ppo'),
             # BasicIndicator('mom', {'timeperiod': 12}),
             # BasicIndicator('mom', {'timeperiod': 36}),
