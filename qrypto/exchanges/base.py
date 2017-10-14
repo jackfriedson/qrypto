@@ -1,4 +1,4 @@
-from abc import ABC, abstractmethod
+from abc import ABC, abstractmethod, abstractstaticmethod
 from typing import Dict, List, Optional, Union
 
 import pandas as pd

@@ -4,7 +4,7 @@ from typing import Callable, Optional
 import pandas as pd
 from poloniex import PoloniexAPI
 
-from qryptotrading.exchanges import BaseAPIAdapter
+from qrypto.exchanges import BaseAPIAdapter
 
 
 class PoloniexAPIAdapter(BaseAPIAdapter):

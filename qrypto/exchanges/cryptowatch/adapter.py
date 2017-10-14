@@ -3,17 +3,17 @@ from typing import List, Optional
 import cryptowatch as cw
 import pandas as pd
 
-from qryptotrading.exchanges import BaseAPIAdapter, OHLC, OrderBook, Timestamp, Trade
+from qrypto.exchanges import BaseAPIAdapter, OHLC, OrderBook, Timestamp, Trade
 
 
 class CryptowatchAPIAdapter(BaseAPIAdapter):
 
-    def __init__(self, exchange: str = 'poloniex') -> None:
+    def __init__(self, exchange: str = 'kraken') -> None:
         self.exchange = exchange
 
     @staticmethod
     def currency_pair(base_currency: str, quote_currency: str) -> str:
-        result = quote_currency + base_currency
+        result = base_currency + quote_currency
         return result.lower()
 
     def get_ohlc(self,
@@ -26,14 +26,16 @@ class CryptowatchAPIAdapter(BaseAPIAdapter):
                                         self.currency_pair(base_currency, quote_currency))
         period = interval * 60
 
-        # TODO: consider adding support for multiple periods in a single call
         kwargs = {
-            'periods': [period]
+            # TODO: consider adding support for multiple periods in a single call
+            'periods': [str(period)]
         }
+
         if start:
             if isinstance(start, pd.Timestamp):
                 start = start.astype(int)
             kwargs['after'] = start
+
         if end:
             if isinstance(end, pd.Timestamp):
                 end = end.astype(int)
