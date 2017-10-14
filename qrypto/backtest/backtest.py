@@ -4,6 +4,9 @@ import pandas as pd
 
 
 class Backtest(object):
+    """ Wrapper around an exchange's API adapter in order to provide an easy interface for
+    backtesting.
+    """
 
     def __init__(self, exchange, base_currency: str, quote_currency: str,
                  start: str = '1/1/2016', end: str = '1/1/2017', interval: int = 5) -> None:

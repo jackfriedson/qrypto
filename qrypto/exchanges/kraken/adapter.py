@@ -76,10 +76,11 @@ class KrakenAPIAdapter(object):
         quote = currency_map.get(quote, quote)
         return base + quote
 
-    def _get_data_since_last(self, data_method, name, base_currency, quote_currency, **kwargs):
-        since = self.last_txs.get(name)
+    def _get_data(self, data_method, name, base_currency, quote_currency, since_last=True, **kwargs):
+        if since_last:
+            kwargs['since'] = self.last_txs.get(name)
         pair = self._generate_currency_pair(base_currency, quote_currency)
-        resp = data_method(pair, since=since, **kwargs)
+        resp = data_method(pair, **kwargs)
         # self.last_txs[name] = resp['last']
         return resp[pair]
 
@@ -98,7 +99,7 @@ class KrakenAPIAdapter(object):
 
     @handle_api_exception()
     def get_trades(self, base_currency, quote_currency='USD'):
-        data = self._get_data_since_last(self.api.get_recent_trades, 'trades', base_currency, quote_currency)
+        data = self._get_data(self.api.get_recent_trades, 'trades', base_currency, quote_currency)
         return [{
             'price': float(t[0]),
             'volume': float(t[1]),
@@ -109,7 +110,7 @@ class KrakenAPIAdapter(object):
         } for t in data]
 
     @handle_api_exception()
-    def get_ohlc(self, base_currency, quote_currency='USD', interval=1):
+    def get_ohlc(self, base_currency, quote_currency='USD', interval=1, start=None, end=None):
         """
         :param interval: time period duration in minutes (see KrakenAPI for valid intervals)
         :returns: {
@@ -123,8 +124,26 @@ class KrakenAPIAdapter(object):
             'count': ,
         }
         """
-        data = self._get_data_since_last(self.api.get_OHLC_data, 'ohlc', base_currency, quote_currency,
-                                         interval=interval)
+        since_last = start is None
+
+        data = self._get_data(self.api.get_OHLC_data, 'ohlc', base_currency, quote_currency,
+                              since_last=since_last, interval=interval)
+
+        if end and end < data[0][0]:
+            raise ValueError('Given end date is before the first data point')
+
+        #  Only return data between `start` and `end`
+        def date_filter(data_point):
+            result = True
+            if start is not None:
+                result = result and data_point[0] >= start
+            if end is not None:
+                result = result and data_point[0] <= end
+            return result
+
+        data = filter(date_filter, data)
+
+        # Format data as described in docstring
         return [{
             'datetime': d[0],
             'open': float(d[1]),
@@ -138,7 +157,7 @@ class KrakenAPIAdapter(object):
 
     @handle_api_exception()
     def get_spread(self, base_currency, quote_currency='USD'):
-        data = self._get_data_since_last(self.api.get_recent_spread_data, 'spread', base_currency, quote_currency)
+        data = self._get_data(self.api.get_recent_spread_data, 'spread', base_currency, quote_currency)
         return [{
             'datetime': s[0],
             'bid': float(s[1]),

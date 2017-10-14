@@ -21,6 +21,10 @@ class PoloniexAdapter(object):
 
     @classmethod
     def pair(cls, base_currency: str, quote_currency: str) -> str:
+        # Poloniex only has Tether exchanges, not USD
+        if quote_currency == 'USD':
+            quote_currency = 'USDT'
+
         return quote_currency + '_' + base_currency
 
     def subscribe(self, callback: Callable) -> None:

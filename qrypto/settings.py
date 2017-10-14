@@ -1,10 +1,10 @@
 
 _base_config = {
     'base_currency': 'ETH',
-    'quote_currency': 'USDT',
+    'quote_currency': 'USD',
     'unit': 0.5,
     'fee': 0.0025,
-    'ohlc_interval': 30,
+    'ohlc_interval': 5,
     'sleep_duration': 30,
 }
 
