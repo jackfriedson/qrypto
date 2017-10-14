@@ -4,8 +4,10 @@ from typing import Callable, Optional
 import pandas as pd
 from poloniex import PoloniexAPI
 
+from qryptotrading.exchanges import BaseAPIAdapter
 
-class PoloniexAdapter(object):
+
+class PoloniexAPIAdapter(BaseAPIAdapter):
 
     def __init__(self, key_path: str) -> None:
         apikey, secret = self.load_api_key(key_path)
@@ -19,8 +21,8 @@ class PoloniexAdapter(object):
             secret = f.readline().strip()
         return key, secret
 
-    @classmethod
-    def pair(cls, base_currency: str, quote_currency: str) -> str:
+    @staticmethod
+    def currency_pair(base_currency: str, quote_currency: str) -> str:
         # Poloniex only has Tether exchanges, not USD
         if quote_currency == 'USD':
             quote_currency = 'USDT'
@@ -33,7 +35,7 @@ class PoloniexAdapter(object):
     def get_ohlc(self, base_currency: str, quote_currency: str = 'USDT', interval: int = 5,
                  since_last: bool = False, **kwargs) -> list:
         kwargs.update({
-            'currencyPair': self.pair(base_currency, quote_currency),
+            'currencyPair': self.currency_pair(base_currency, quote_currency),
             'period': interval * 60
         })
 
@@ -47,7 +49,8 @@ class PoloniexAdapter(object):
 
         def format_ohlc(datapoint):
             datapoint['datetime'] = pd.to_datetime(datapoint.pop('date'), unit='s')
-            datapoint['avg'] = datapoint.pop('weightedAverage')
+            datapoint.pop('weightedAverage')
+            datapoint.pop('quoteVolume')
             return datapoint
 
         return list(map(format_ohlc, result))
@@ -58,7 +61,7 @@ class PoloniexAdapter(object):
 
     def limit_order(self, base_currency: str, buy_sell: str, price: float, volume: float,
                     quote_currency: str = 'USDT', wait: bool = True, **kwargs) -> dict:
-        pair = self.pair(base_currency, quote_currency)
+        pair = self.currency_pair(base_currency, quote_currency)
 
         if buy_sell == 'buy':
             order_info = self.api.buy(price, volume, pair)

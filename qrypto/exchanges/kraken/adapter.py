@@ -1,8 +1,9 @@
 import logging
 from contextlib import contextmanager
 
-from qrypto.exchanges.errors import APIException
-from qrypto.exchanges.kraken.api import KrakenAPI
+from qrypto.exchanges import APIException, BaseAPIAdapter
+
+from .api import KrakenAPI
 
 log = logging.getLogger(__name__)
 
@@ -25,7 +26,7 @@ def handle_api_exception():
         raise
 
 
-class KrakenAPIAdapter(object):
+class KrakenAPIAdapter(BaseAPIAdapter):
     """ Adapter from the core Kraken API to the exchange API interface.
     """
 
@@ -150,7 +151,7 @@ class KrakenAPIAdapter(object):
             'high': float(d[2]),
             'low': float(d[3]),
             'close': float(d[4]),
-            'avg': float(d[5]),
+            'average': float(d[5]),
             'volume': float(d[6]),
             'quoteVolume': float(d[7])
         } for d in data]

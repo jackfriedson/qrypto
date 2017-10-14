@@ -9,7 +9,7 @@ import yaml
 
 from qrypto import settings
 from qrypto.backtest import Backtest
-from qrypto.exchanges import Kraken, Poloniex
+from qrypto.exchanges import Cryptowatch, Kraken, Poloniex
 from qrypto.strategy import (TakeProfitMomentumStrategy, MFIMomentumStrategy, QTableStrategy, QNetworkStrategy,
                              ClassifierStrategy)
 
@@ -39,8 +39,10 @@ def cli(ctx, exchange):
 
     if exchange == 'kraken':
         exchange_adapter = Kraken(key_path=KRAKEN_API_KEY)
-    else:
+    elif exchange == 'poloniex':
         exchange_adapter = Poloniex(key_path=POLONIEX_API_KEY)
+    elif exchange == 'cryptowatch':
+        exchange_adapter = Cryptowatch()
 
     ctx.obj = {'exchange': exchange_adapter}
 
