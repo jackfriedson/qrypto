@@ -52,7 +52,7 @@ class ClassifierStrategy(object):
 
         configs = {
             base_currency: [
-                BasicIndicator('rsi', {'timeperiod': 6})
+                BasicIndicator('rsi', {'timeperiod': 6}),
                 BasicIndicator('rsi', {'timeperiod': 12}),
                 BasicIndicator('mom', {'timeperiod': 1}),
                 BasicIndicator('mom', {'timeperiod': 3}),
@@ -67,8 +67,8 @@ class ClassifierStrategy(object):
                 BasicIndicator('rocr', {'timeperiod': 12}),
                 BasicIndicator('cci', {'timeperiod': 12}),
                 BasicIndicator('cci', {'timeperiod': 20}),
-                BasicIndicator('sma', {'timeperiod': 3})
-                BasicIndicator('ema', {'timeperiod': 6})
+                BasicIndicator('sma', {'timeperiod': 3}),
+                BasicIndicator('ema', {'timeperiod': 6}),
                 BasicIndicator('ema', {'timeperiod': 12})
             ],
             # 'BTC': [
