@@ -157,8 +157,27 @@ class ClassifierStrategy(object):
 
                     # saver.save(sess, str(self.models_dir/'model.ckpt'))
 
-                    # Evaluate the model
+                    # Compute accuracy over training set
                     print('Evaluating...')
+                    self.data.start_training(initial_step)
+                    train_confidences = []
+                    train_predictions = []
+                    rnn_state = [(np.zeros([1, n_inputs]), np.zeros([1, n_inputs]))] * rnn_layers
+
+                    for _ in range(train_steps):
+                        price = self.data.last_price
+                        state = self.data.state()
+                        _, probabilities, rnn_state = classifier.predict(sess, np.expand_dims(state, 0), 1, rnn_state, training=False)
+                        prediction = np.argmax(probabilities)
+                        confidence = probabilities[0][prediction]
+
+                        self.data.next()
+
+                        label = 1 if self.data.last_price > price else 0
+                        train_confidences.append(confidence)
+                        train_predictions.append(prediction == label)
+
+                    # Compute accuracy over validation set
                     validate_bar = progressbar.ProgressBar(term_width=80)
                     self.data.start_training(initial_step + train_steps)
                     returns = []
@@ -200,9 +219,12 @@ class ClassifierStrategy(object):
                     # Add Tensorboard summaries
                     epoch_summary = tf.Summary()
                     epoch_summary.value.add(simple_value=np.average(losses), tag='epoch/train/averge_loss')
+                    epoch_summary.value.add(simple_value=np.average(train_predictions), tag='epoch/train/accuracy')
+                    epoch_summary.value.add(simple_value=np.average(train_confidences), tag='epoch/train/averge_confidence')
+
                     epoch_summary.value.add(simple_value=outperformance, tag='epoch/validate/outperformance')
-                    epoch_summary.value.add(simple_value=np.average(confidences), tag='epoch/validate/average_confidence')
                     epoch_summary.value.add(simple_value=np.average(predictions), tag='epoch/validate/accuracy')
+                    epoch_summary.value.add(simple_value=np.average(confidences), tag='epoch/validate/average_confidence')
                     classifier.summary_writer.add_summary(epoch_summary, absolute_epoch)
                     classifier.summary_writer.add_summary(epoch_chart, absolute_epoch)
                     classifier.summary_writer.flush()
