@@ -11,16 +11,9 @@ from qrypto.types import MaybeOrder, OHLC, OrderBook, OrderInfo, Timestamp, Trad
 class PoloniexAPIAdapter(BaseAPIAdapter, PrivateExchangeMixin):
 
     def __init__(self, key_path: str) -> None:
-        apikey, secret = self.load_api_key(key_path)
-        self.api = PoloniexAPI(self.apikey, secret)
+        key, secret = utils.read_key_from(path_to_key)
+        self.api = PoloniexAPI(key, secret)
         self.last = {}
-
-    @classmethod
-    def load_api_key(cls, path: str) -> dict:
-        with open(path, 'rb') as f:
-            key = f.readline().strip()
-            secret = f.readline().strip()
-        return key, secret
 
     @staticmethod
     def currency_pair(base_currency: str, quote_currency: str) -> str:
@@ -59,6 +52,17 @@ class PoloniexAPIAdapter(BaseAPIAdapter, PrivateExchangeMixin):
 
         return self._format_ohlc(result)
 
+    @staticmethod
+    def _format_ohlc(data):
+        return [{
+            'datetime': pd.to_datetime(d['date'], unit='s'),
+            'open': d['open'],
+            'high': d['high'],
+            'low': d['low'],
+            'close': d['close'],
+            'volume': d['volume']
+        } for d in data]
+
     def get_trades(self,
                    base_currency: str,
                    quote_currency: str = 'USDT',
@@ -66,13 +70,17 @@ class PoloniexAPIAdapter(BaseAPIAdapter, PrivateExchangeMixin):
         raise NotImplementedError('TODO')
 
     @staticmethod
-    def _format_trades(trades):
+    def _format_trades(data):
         pass
 
     def get_order_book(self,
                        base_currency: str,
                        quote_currency: str = 'USDT') -> OrderBook:
         raise NotImplementedError('TODO')
+
+    @staticmethod
+    def _format_order_book(data):
+        pass
 
     def get_balance(self) -> dict:
         result = self.api.returnBalances()
@@ -91,9 +99,10 @@ class PoloniexAPIAdapter(BaseAPIAdapter, PrivateExchangeMixin):
                     wait_for_fill: bool = False) -> MaybeOrder:
         pair = self.currency_pair(base_currency, quote_currency)
         order_fn = self.api.buy if buy_sell == 'buy' else self.api.sell
-        order_info = order_fn(price, volume, pair)
 
         # TODO: handle failed order, return None
+        order_info = order_fn(price, volume, pair)
+
         order_info.update({'status': 'open',
                            'buy_sell': buy_sell,
                            'ask_price': price,
@@ -126,20 +135,9 @@ class PoloniexAPIAdapter(BaseAPIAdapter, PrivateExchangeMixin):
         order_info.update(filled_info)
         return order_info
 
-    def _wait_for_fill(self, order_id: int, pair: str) -> dict:
+    def _wait_for_fill(self, order_id: int, currency_pair: str) -> None:
         filled = False
         while not filled:
-            open_orders = self.api.returnOpenOrders(pair)
+            open_orders = self.api.returnOpenOrders(currency_pair)
             target_orders = filter(lambda order: order['orderNumber'] == order_id, open_orders)
             filled = not target_orders
-
-    @staticmethod
-    def _format_ohlc(data):
-        return [{
-            'datetime': pd.to_datetime(d['date'], unit='s'),
-            'open': d['open'],
-            'high': d['high'],
-            'low': d['low'],
-            'close': d['close'],
-            'volume': d['volume']
-        } for d in data]

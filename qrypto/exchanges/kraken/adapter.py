@@ -4,7 +4,7 @@ from typing import Dict, List, Optional
 
 import pandas as pd
 
-from qrypto.exchanges import APIException, BaseAPIAdapter, PrivateExchangeMixin
+from qrypto.exchanges import APIException, BaseAPIAdapter, PrivateExchangeMixin, utils
 from qrypto.types import MaybeOrder, OHLC, OrderBook, OrderInfo, Timestamp, Trade
 
 from .api import KrakenAPI
@@ -33,49 +33,12 @@ def handle_api_exception():
 
 
 class KrakenAPIAdapter(BaseAPIAdapter, PrivateExchangeMixin):
-    """ Adapter from the core Kraken API to the exchange API interface.
-    """
+    """Adapter from the core Kraken API to the exchange API interface."""
 
-    def __init__(self, api=None, key=None, secret=None, key_path=None):
-        if api and issubclass(api, KrakenAPI):
-            self.api = api
-        elif key_path:
-            self.api = KrakenAPI()
-            self.api.load_api_key(key_path)
-        else:
-            self.api = KrakenAPI(key=key, secret=secret)
-
+    def __init__(self, key_path: str) -> None:
+        key, secret = utils.read_key_from(key_path)
+        self.api = KrakenAPI(key, secret)
         self.last_txs = {}
-
-    @handle_api_exception()
-    def _place_order(self,
-                     order_type,
-                     base_currency,
-                     buy_sell,
-                     volume,
-                     quote_currency='USD',
-                     **kwargs):
-        """
-        """
-
-        pair = self.currency_pair(base_currency, quote_currency)
-        resp = self.api.add_standard_order(pair, buy_sell, order_type, volume, **kwargs)
-
-        txid = resp['txid']
-        order_data = {
-            'txid': txid,
-            'pair': pair,
-            'type': buy_sell,
-            'order_type': order_type,
-            'volume': volume
-        }
-        order_data.update(kwargs)
-        log.info('%s order placed: %s', order_type, txid, extra={
-            'event_name': 'order_open',
-            'event_data': order_data
-        })
-
-        return txid
 
     @staticmethod
     def currency_pair(base_currency, quote_currency):
@@ -218,6 +181,34 @@ class KrakenAPIAdapter(BaseAPIAdapter, PrivateExchangeMixin):
         return self.get_orders_info([txid]).get(txid)
 
     # Orders
+
+    @handle_api_exception()
+    def _place_order(self,
+                     order_type,
+                     base_currency,
+                     buy_sell,
+                     volume,
+                     quote_currency='USD',
+                     **kwargs):
+        pair = self.currency_pair(base_currency, quote_currency)
+        resp = self.api.add_standard_order(pair, buy_sell, order_type, volume, **kwargs)
+
+        txid = resp['txid']
+        order_data = {
+            'id': txid,
+            'pair': pair,
+            'buy_sell': buy_sell,
+            'order_type': order_type,
+            'volume': volume
+        }
+        order_data.update(kwargs)
+        log.info('%s order placed: %s', order_type, txid, extra={
+            'event_name': 'order_open',
+            'event_data': order_data
+        })
+
+        return order_data
+
     def market_order(self, base_currency, buy_sell, volume, **kwargs):
         """
         :returns: txid of the placed order

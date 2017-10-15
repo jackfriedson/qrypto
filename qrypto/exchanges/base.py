@@ -81,15 +81,6 @@ class PrivateExchangeMixin(ABC):
     """
 
     @abstractmethod
-    def load_api_key(self, path_to_key: str) -> None:
-        """Reads the API key from the file at the given path and updates the `api_key`
-        and `api_secret` fields on this object.
-
-        :param path_to_key: location of the file to read the key from
-        """
-        pass
-
-    @abstractmethod
     def market_order(self,
                      base_currency: str,
                      buy_sell: str,

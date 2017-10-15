@@ -1,5 +1,6 @@
 import logging
 import time
+from typing import Tuple
 
 import pandas as pd
 
@@ -13,6 +14,13 @@ def to_unixtime(ts: Timestamp) -> int:
     if isinstance(ts, pd.Timestamp):
         ts = ts.astype(int)
     return ts
+
+
+def read_key_from(path: str) -> Tuple[str, str]:
+    with open(path, 'rb') as f:
+        key = f.readline().strip()
+        secret = f.readline().strip()
+    return key, secret
 
 
 class retry_on_status_code(object):
