@@ -88,7 +88,12 @@ class ClassifierStrategy(object):
         # Initialize training data
         exchange_train = Backtest(self.exchange, self.base_currency, self.quote_currency,
                                   start=start, end=end, interval=self.ohlc_interval)
-        self.data.init_data(exchange_train.all())
+        self.data.init_data(exchange_train.all(), self.base_currency)
+
+        btc_data = Backtest(self.exchange, 'BTC', self.quote_currency, start=start, end=end,
+                            interval=self.ohlc_interval).all()
+        self.data.init_data(btc_data, 'BTC')
+
         n_inputs = self.data.n_state_factors
         n_outputs = 2
         random = np.random.RandomState(random_seed)

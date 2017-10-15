@@ -55,8 +55,8 @@ class CompositeQLearnDataset(object):
     @property
     def all(self):
         result = pd.Dataframe()
-        for pair, dataset in self._datasets.items():
-            suffix = '_' + pair
+        for name, dataset in self._datasets.items():
+            suffix = '_' + name
             result.join(dataset.all(), rsuffix=suffix)
         return result
 
@@ -72,8 +72,8 @@ class CompositeQLearnDataset(object):
         return result
 
     @property
-    def last_price(self, pair: Optional[str] = None):
-        dataset = self._datasets[pair] if pair else self._primary
+    def last_price(self, name: Optional[str] = None):
+        dataset = self._datasets[name] if name else self._primary
         return dataset.last_price
 
     @property
@@ -81,22 +81,22 @@ class CompositeQLearnDataset(object):
         return self._primary.time
 
     @property
-    def period_return(self, pair: Optional[str] = None):
-        dataset = self._datasets[pair] if pair else self._primary
+    def period_return(self, name: Optional[str] = None):
+        dataset = self._datasets[name] if name else self._primary
         return dataset.period_return
 
     @property
-    def cumulative_return(self, pair: Optional[str] = None):
-        dataset = self._datasets[pair] if pair else self._primary
+    def cumulative_return(self, name: Optional[str] = None):
+        dataset = self._datasets[name] if name else self._primary
         return dataset.cumulative_return
 
-    def init_data(self, data):
-        for dataset in self._datasets.values():
-            dataset.init_data(data)
+    def init_data(self, data, name: Optional[str] = None):
+        dataset = self._datasets[name] if name else self._primary
+        dataset.init_data(data)
 
-    def update(self, incoming_data):
-        for dataset in self._datasets.values():
-            dataset.update(incoming_data)
+    def update(self, data, name: Optional[str] = None):
+        dataset = self._datasets[name] if name else self._primary
+        dataset.update(data)
 
     def add_position(self, *args):
         self._primary.add_position(*args)
