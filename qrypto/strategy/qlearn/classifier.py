@@ -52,18 +52,29 @@ class ClassifierStrategy(object):
 
         configs = {
             base_currency: [
-                BasicIndicator('rsi', {'timeperiod': 10}),
-                BasicIndicator('ppo'),
-                BasicIndicator('mom', {'timeperiod': 12}),
-                BasicIndicator('obv')
-                # BasicIndicator('stochrsi'),
-                # BasicIndicator('rocp'),
-                # BasicIndicator('natr'),
+                BasicIndicator('rsi', {'timeperiod': 6})
+                BasicIndicator('rsi', {'timeperiod': 12}),
+                BasicIndicator('mom', {'timeperiod': 1}),
+                BasicIndicator('mom', {'timeperiod': 3}),
+                BasicIndicator('obv'),
+                BasicIndicator('adx', {'timeperiod': 14}),
+                BasicIndicator('adx', {'timeperiod': 20}),
+                BasicIndicator('macd'),
+                BasicIndicator('bbands'),
+                BasicIndicator('willr'),
+                BasicIndicator('atr', {'timeperiod': 14}),
+                BasicIndicator('rocr', {'timeperiod': 3}),
+                BasicIndicator('rocr', {'timeperiod': 12}),
+                BasicIndicator('cci', {'timeperiod': 12}),
+                BasicIndicator('cci', {'timeperiod': 20}),
+                BasicIndicator('sma', {'timeperiod': 3})
+                BasicIndicator('ema', {'timeperiod': 6})
+                BasicIndicator('ema', {'timeperiod': 12})
             ],
-            'BTC': [
-                BasicIndicator('rsi', {'timeperiod': 10}),
-                BasicIndicator('mom', {'timeperiod': 6})
-            ]
+            # 'BTC': [
+            #     BasicIndicator('rsi', {'timeperiod': 10}),
+            #     BasicIndicator('mom', {'timeperiod': 6})
+            # ]
         }
         self.data = CompositeQLearnDataset(base_currency, configs)
 
@@ -157,8 +168,8 @@ class ClassifierStrategy(object):
 
                     # saver.save(sess, str(self.models_dir/'model.ckpt'))
 
-                    # Compute accuracy over training set
                     print('Evaluating...')
+                    # Compute accuracy over training set
                     self.data.start_training(initial_step)
                     train_confidences = []
                     train_predictions = []
@@ -221,7 +232,6 @@ class ClassifierStrategy(object):
                     epoch_summary.value.add(simple_value=np.average(losses), tag='epoch/train/averge_loss')
                     epoch_summary.value.add(simple_value=np.average(train_predictions), tag='epoch/train/accuracy')
                     epoch_summary.value.add(simple_value=np.average(train_confidences), tag='epoch/train/averge_confidence')
-
                     epoch_summary.value.add(simple_value=outperformance, tag='epoch/validate/outperformance')
                     epoch_summary.value.add(simple_value=np.average(predictions), tag='epoch/validate/accuracy')
                     epoch_summary.value.add(simple_value=np.average(confidences), tag='epoch/validate/average_confidence')

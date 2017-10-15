@@ -7,8 +7,8 @@ EXCLUDE_FIELDS = [
     'open',
     'high',
     'low',
-    'close',
-    'volume'
+    # 'close',
+    # 'volume'
 ]
 
 
