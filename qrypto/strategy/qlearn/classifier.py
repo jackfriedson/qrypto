@@ -71,10 +71,11 @@ class ClassifierStrategy(object):
                 BasicIndicator('ema', {'timeperiod': 6}),
                 BasicIndicator('ema', {'timeperiod': 12})
             ],
-            # 'BTC': [
-            #     BasicIndicator('rsi', {'timeperiod': 10}),
-            #     BasicIndicator('mom', {'timeperiod': 6})
-            # ]
+            'BTC': [
+                # BasicIndicator('rsi', {'timeperiod': 10}),
+                BasicIndicator('mom', {'timeperiod': 1}),
+                BasicIndicator('mom', {'timeperiod': 3})
+            ]
         }
         self.data = CompositeQLearnDataset(base_currency, configs)
 
@@ -87,9 +88,9 @@ class ClassifierStrategy(object):
                                   start=start, end=end, interval=self.ohlc_interval)
         self.data.init_data(exchange_train.all(), self.base_currency)
 
-        # btc_data = Backtest(self.exchange, 'BTC', self.quote_currency, start=start, end=end,
-        #                     interval=self.ohlc_interval).all()
-        # self.data.init_data(btc_data, 'BTC')
+        btc_data = Backtest(self.exchange, 'BTC', self.quote_currency, start=start, end=end,
+                            interval=self.ohlc_interval).all()
+        self.data.init_data(btc_data, 'BTC')
 
         return len(exchange_train.date_range)
 
@@ -109,8 +110,12 @@ class ClassifierStrategy(object):
         # TODO: save training params to file for later reference
 
         total_steps = self._initialize_training_data(start, end)
-        n_inputs = self.data.n_state_factors
-        n_outputs = 2
+
+        # TODO: move these to init
+        self.n_inputs = self.data.n_state_factors
+        self.n_outputs = 2
+        self.rnn_layers = rnn_layers
+        self.softmax_threshold = softmax_threshold
         random = np.random.RandomState(random_seed)
 
         nan_buffer = self.data.set_to()
@@ -128,9 +133,9 @@ class ClassifierStrategy(object):
         if random_seed:
             tf.set_random_seed(random_seed)
 
-        cell = tf.contrib.rnn.LSTMCell(num_units=n_inputs, state_is_tuple=True, activation=tf.nn.softsign, use_peepholes=True)
-        cell = tf.contrib.rnn.MultiRNNCell([cell] * rnn_layers, state_is_tuple=True)
-        classifier = RNNClassifier('rnn_classifier', cell, n_inputs, n_outputs, summaries_dir=summaries_dir, **kwargs)
+        cell = tf.contrib.rnn.LSTMCell(num_units=self.n_inputs, state_is_tuple=True, activation=tf.nn.softsign, use_peepholes=True)
+        cell = tf.contrib.rnn.MultiRNNCell([cell] * self.rnn_layers, state_is_tuple=True)
+        classifier = RNNClassifier('rnn_classifier', cell, self.n_inputs, self.n_outputs, summaries_dir=summaries_dir, **kwargs)
 
         # saver = tf.train.Saver()
         with tf.Session() as sess:
@@ -150,7 +155,7 @@ class ClassifierStrategy(object):
 
                 for epoch in range(n_epochs):
                     self.data.set_to(initial_step)
-                    absolute_epoch = (data_slice * n_epochs) + epoch
+                    abs_epoch = (data_slice * n_epochs) + epoch
 
                     print('\nSlice {}; Epoch {}'.format(data_slice, epoch))
                     print('Training...')
@@ -160,7 +165,7 @@ class ClassifierStrategy(object):
                     n_batches = train_steps // batch_size // trace_length
                     # Train the network
                     for i in prog_bar(range(10 * n_batches)):
-                        rnn_state = [(np.zeros([batch_size, n_inputs]), np.zeros([batch_size, n_inputs]))] * rnn_layers
+                        rnn_state = self._initial_rnn_state(batch_size)
                         samples = replay_memory.sample(batch_size, trace_length)
                         inputs, labels = map(np.array, zip(*samples))
                         loss = classifier.update(sess, inputs, labels, trace_length, rnn_state)
@@ -171,13 +176,13 @@ class ClassifierStrategy(object):
                     # Compute accuracy over training set
                     print('Evaluating test set...')
                     self.data.set_to(initial_step)
-                    train_predictions, train_confidences, _ = self._evaluate(classifier, train_steps, place_orders=False)
+                    train_predictions, train_confidences, _ = self._evaluate(sess, classifier, train_steps, place_orders=False)
 
                     # Compute accuracy over validation set
                     print('Evaluating validation set...')
                     self.data.set_to(initial_step + train_steps)
                     start_price = self.data.last_price
-                    val_predictions, val_confidences, returns = self._evaluate(classifier, validation_steps)
+                    val_predictions, val_confidences, returns = self._evaluate(sess, classifier, validation_steps)
 
                     # Compute outperformance of market return
                     market_return, outperformance = self._calculate_performance(returns, start_price)
@@ -192,16 +197,19 @@ class ClassifierStrategy(object):
                     epoch_summary.value.add(simple_value=np.average(val_predictions), tag='epoch/validate/accuracy')
                     epoch_summary.value.add(simple_value=np.average(val_confidences), tag='epoch/validate/confidence')
                     epoch_summary.value.add(simple_value=outperformance, tag='epoch/validate/outperformance')
-                    classifier.summary_writer.add_summary(epoch_summary, absolute_epoch)
-                    classifier.summary_writer.add_summary(self._get_epoch_chart(), absolute_epoch)
+                    classifier.summary_writer.add_summary(epoch_summary, abs_epoch)
+                    classifier.summary_writer.add_summary(self._get_epoch_chart(abs_epoch), abs_epoch)
                     classifier.summary_writer.flush()
 
                 # After all repeats, move to the next timeframe
                 initial_step += validation_steps
 
-    def _evaluate(self, classifier, n_steps, place_orders: bool = True):
+    def _initial_rnn_state(self, size: int = 1):
+        return [(np.zeros([size, self.n_inputs]), np.zeros([size, self.n_inputs]))] * self.rnn_layers
+
+    def _evaluate(self, session, classifier, n_steps, place_orders: bool = True):
         prog_bar = progressbar.ProgressBar(term_width=80)
-        initial_rnn_state = rnn_state = [(np.zeros([1, n_inputs]), np.zeros([1, n_inputs]))] * rnn_layers
+        initial_rnn_state = rnn_state = self._initial_rnn_state()
 
         returns = []
         confidences = []
@@ -210,7 +218,7 @@ class ClassifierStrategy(object):
         for _ in prog_bar(range(n_steps)):
             price = self.data.last_price
             state = self.data.state()
-            _, probabilities, rnn_state = classifier.predict(sess, np.expand_dims(state, 0), 1, rnn_state, training=False)
+            _, probabilities, rnn_state = classifier.predict(session, np.expand_dims(state, 0), 1, rnn_state, training=False)
             prediction = np.argmax(probabilities)
             confidence = probabilities[0][prediction]
 
@@ -234,13 +242,13 @@ class ClassifierStrategy(object):
         outperformance = algorithm_return - market_return
         return market_return, outperformance
 
-    def _get_epoch_chart(self):
+    def _get_epoch_chart(self, epoch):
         buf = io.BytesIO()
         self.data.plot(orders=False, save_to=buf)
         buf.seek(0)
         image = tf.image.decode_png(buf.getvalue(), channels=4)
         image = tf.expand_dims(image, 0)
-        return tf.summary.image('epoch_{}'.format(absolute_epoch), image, max_outputs=1).eval()
+        return tf.summary.image('epoch_{}'.format(epoch), image, max_outputs=1).eval()
 
     def run(self):
         pass
