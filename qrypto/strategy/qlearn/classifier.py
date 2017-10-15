@@ -121,7 +121,7 @@ class ClassifierStrategy(object):
         cell = tf.contrib.rnn.MultiRNNCell([cell] * rnn_layers, state_is_tuple=True)
         classifier = RNNClassifier('rnn_classifier', cell, n_inputs, n_outputs, summaries_dir=summaries_dir, **kwargs)
 
-        saver = tf.train.Saver()
+        # saver = tf.train.Saver()
         with tf.Session() as sess:
             sess.run(tf.global_variables_initializer())
 
@@ -155,7 +155,7 @@ class ClassifierStrategy(object):
                         loss = classifier.update(sess, inputs, labels, trace_length, rnn_state)
                         losses.append(loss)
 
-                    saver.save(sess, str(self.models_dir/'model.ckpt'))
+                    # saver.save(sess, str(self.models_dir/'model.ckpt'))
 
                     # Evaluate the model
                     print('Evaluating...')
