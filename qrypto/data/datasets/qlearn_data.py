@@ -4,9 +4,9 @@ from qrypto.data.datasets import OHLCDataset
 
 
 EXCLUDE_FIELDS = [
-    # 'open',
-    # 'high',
-    # 'low',
+    'open',
+    'high',
+    'low',
     # 'close',
     # 'volume'
 ]
