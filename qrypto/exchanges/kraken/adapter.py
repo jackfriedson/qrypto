@@ -4,11 +4,14 @@ from typing import Dict, List, Optional
 
 import pandas as pd
 
-from qrypto.exchanges import APIException, BaseAPIAdapter, OHLC, OrderBook, Timestamp, Trade
+from qrypto.exchanges import APIException, BaseAPIAdapter, PrivateExchangeMixin
+from qrypto.types import MaybeOrder, OHLC, OrderBook, OrderInfo, Timestamp, Trade
 
 from .api import KrakenAPI
 
+
 log = logging.getLogger(__name__)
+
 
 currency_map = {
     'BTC': 'XXBT',
@@ -29,7 +32,7 @@ def handle_api_exception():
         raise
 
 
-class KrakenAPIAdapter(BaseAPIAdapter):
+class KrakenAPIAdapter(BaseAPIAdapter, PrivateExchangeMixin):
     """ Adapter from the core Kraken API to the exchange API interface.
     """
 

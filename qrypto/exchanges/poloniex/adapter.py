@@ -4,14 +4,15 @@ from typing import Callable, List, Optional
 import pandas as pd
 from poloniex import PoloniexAPI
 
-from qrypto.exchanges import BaseAPIAdapter, OHLC, OrderBook, Timestamp, Trade, utils
+from qrypto.exchanges import BaseAPIAdapter, PrivateExchangeMixin, utils
+from qrypto.types import MaybeOrder, OHLC, OrderBook, OrderInfo, Timestamp, Trade
 
 
-class PoloniexAPIAdapter(BaseAPIAdapter):
+class PoloniexAPIAdapter(BaseAPIAdapter, PrivateExchangeMixin):
 
     def __init__(self, key_path: str) -> None:
         apikey, secret = self.load_api_key(key_path)
-        self.api = PoloniexAPI(apikey, secret)
+        self.api = PoloniexAPI(self.apikey, secret)
         self.last = {}
 
     @classmethod
@@ -64,6 +65,10 @@ class PoloniexAPIAdapter(BaseAPIAdapter):
                    since: Optional[Timestamp] = None) -> List[Trade]:
         raise NotImplementedError('TODO')
 
+    @staticmethod
+    def _format_trades(trades):
+        pass
+
     def get_order_book(self,
                        base_currency: str,
                        quote_currency: str = 'USDT') -> OrderBook:
@@ -73,27 +78,52 @@ class PoloniexAPIAdapter(BaseAPIAdapter):
         result = self.api.returnBalances()
         return result
 
-    def limit_order(self, base_currency: str, buy_sell: str, price: float, volume: float,
-                    quote_currency: str = 'USDT', wait: bool = True, **kwargs) -> dict:
+    def market_order(self):
+        # TODO: Implement market orders using limit orders
+        raise NotImplementedError('Poloniex does not support market orders')
+
+    def limit_order(self,
+                    base_currency: str,
+                    buy_sell: str,
+                    price: float,
+                    volume: float,
+                    quote_currency: str = DEFAULT_QUOTE_CURRENCY,
+                    wait_for_fill: bool = False) -> MaybeOrder:
         pair = self.currency_pair(base_currency, quote_currency)
+        order_fn = self.api.buy if buy_sell == 'buy' else self.api.sell
+        order_info = order_fn(price, volume, pair)
 
-        if buy_sell == 'buy':
-            order_info = self.api.buy(price, volume, pair)
-        else:
-            assert buy_sell == 'sell'
-            order_info = self.api.sell(price, volume, pair)
+        # TODO: handle failed order, return None
+        order_info.update({'status': 'open',
+                           'buy_sell': buy_sell,
+                           'ask_price': price,
+                           'volume': volume})
 
-        # TODO: handle failed orders
-        if not wait:
-            return order_info
+        filled_order_info = {}
+        if wait_for_fill:
+            self._wait_for_fill(order_info['orderNumber'], pair)
+            trades = self.api.returnOrderTrades(order_info['orderNumber'])
+            fill_price = sum(trade['total'] for trade in trades)
+            fee = sum(trade['fee'] for trade in trades)
+            filled_order_info = {
+                'status': 'closed',
+                'fill_price': fill_price,
+                'trades': trades,
+                'fee': fee
+            }
 
-        self._wait_for_fill(order_info['orderNumber'], pair)
-        trades = self.api.returnOrderTrades(order_info['orderNumber'])
-        price = sum(trade['total'] for trade in trades)
-        fee = sum(trade['fee'] for trade in trades)
-        order_info.update({'trades': trades,
-                           'price': price,
-                           'fee': fee})
+        return self._format_order(order_info, filled_info=filled_order_info)
+
+    @staticmethod
+    def _format_order(order, filled_info):
+        order_info = {
+            'id': order['orderNumber'],
+            'status': order['status'],
+            'buy_sell': order['buy_sell'],
+            'ask_price': order['ask_price'],
+            'volume': order['volume']
+        }
+        order_info.update(filled_info)
         return order_info
 
     def _wait_for_fill(self, order_id: int, pair: str) -> dict:

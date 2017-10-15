@@ -1,43 +1,12 @@
 from abc import ABC, abstractmethod, abstractstaticmethod
-from typing import Dict, List, Optional, Union
+from typing import List, Optional
 
 import pandas as pd
 
+from qrypto.types import MaybeOrder, OHLC, OrderBook, Timestamp, Trade
+
 
 DEFAULT_QUOTE_CURRENCY = 'USD'
-
-Timestamp = Union[int, pd.Timestamp]
-"""A Timestamp can be either a unix timestamp, or the builtin pandas Timestamp."""
-
-OHLC = Dict[str, Union[Timestamp, float]]
-"""An OHLC is a dictionary of the following form:
-    {
-        'datetime': ,
-        'open': ...,
-        'high': ...,
-        'low': ...,
-        'close': ...,
-        'volume': ...,
-    }
-"""
-
-Trade = Dict[str, float]
-"""Trades are dictionaries of the following form:
-        {
-            'id': ... ,
-            'timestamp': ...,
-            'price': ...,
-            'amount': ...,
-        }
-"""
-
-OrderBook = Dict[str, List[Dict[str, float]]]
-"""An OrderBook is a dictionary of the following form:
-    {
-        'asks': [ { 'price': ..., 'amount': ... }, ... ],
-        'bids': [ { 'price': ..., 'amount': ... }, ... ]
-    }
-"""
 
 
 class BaseAPIAdapter(ABC):
@@ -104,3 +73,64 @@ class BaseAPIAdapter(ABC):
         """
         pass
 
+
+class PrivateExchangeMixin(ABC):
+    """Abstract base class to provide additional functionality for private exchanges.
+    Includes methods for placing, cancelling, and managing orders, as well as
+    other account-related actions.
+    """
+
+    @abstractmethod
+    def load_api_key(self, path_to_key: str) -> None:
+        """Reads the API key from the file at the given path and updates the `api_key`
+        and `api_secret` fields on this object.
+
+        :param path_to_key: location of the file to read the key from
+        """
+        pass
+
+    @abstractmethod
+    def market_order(self,
+                     base_currency: str,
+                     buy_sell: str,
+                     volume: float,
+                     quote_currency: str = DEFAULT_QUOTE_CURRENCY) -> MaybeOrder:
+        """Places a market order.
+
+        :param base_currency:
+        :param buy_sell: whether or not the order is a 'buy' or a 'sell'
+        :param volume: how many units of the base currency to buy/sell
+        :param quote_currency:
+        :returns: info about the order that was placed if successful, None otherwise
+        """
+        pass
+
+    @abstractmethod
+    def limit_order(self,
+                    base_currency: str,
+                    buy_sell: str,
+                    price: float,
+                    volume: float,
+                    quote_currency: str = DEFAULT_QUOTE_CURRENCY,
+                    wait_for_fill: bool = False) -> MaybeOrder:
+        """Places a limit order at the specified price.
+
+        :param base_currency:
+        :param buy_sell: whether or not the order is a 'buy' or a 'sell'
+        :param price: the asking price of the order
+        :param volume: how many units of the base currency to buy/sell
+        :param quote_currency:
+        :param wait_for_fill: if True, wait until the order is filled and return more complete info
+                              (e.g. will include fill_price)
+        :returns: info about the order that was placed if successful, None otherwise
+        """
+        pass
+
+    @abstractmethod
+    def cancel_order(self, order_id: str) -> bool:
+        """Cancels the specified order.
+
+        :param order_id: the ID of the order to cancel
+        :returns: True if the order was successfully cancelled, False otherwise
+        """
+        pass
