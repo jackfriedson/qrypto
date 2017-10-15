@@ -9,7 +9,7 @@ import yaml
 
 from qrypto import settings
 from qrypto.backtest import Backtest
-from qrypto.exchanges import Cryptowatch, Kraken, Poloniex
+from qrypto.exchanges import Kraken, Poloniex
 from qrypto.strategy import (TakeProfitMomentumStrategy, MFIMomentumStrategy, QTableStrategy, QNetworkStrategy,
                              ClassifierStrategy)
 
@@ -32,7 +32,7 @@ def configure_logging():
 
 
 @click.group(chain=True)
-@click.option('--exchange', type=click.Choice(['kraken', 'poloniex', 'cryptowatch']), default='poloniex')
+@click.option('--exchange', type=click.Choice(['kraken', 'poloniex']), default='poloniex')
 @click.pass_context
 def cli(ctx, exchange):
     configure_logging()
@@ -41,8 +41,8 @@ def cli(ctx, exchange):
         exchange_adapter = Kraken(key_path=KRAKEN_API_KEY)
     elif exchange == 'poloniex':
         exchange_adapter = Poloniex(key_path=POLONIEX_API_KEY)
-    elif exchange == 'cryptowatch':
-        exchange_adapter = Cryptowatch()
+    # elif exchange == 'cryptowatch':
+    #     exchange_adapter = Cryptowatch()
 
     ctx.obj = {'exchange': exchange_adapter}
 

@@ -1,1 +1,1 @@
-from .adapter import CryptowatchAPIAdapter
+# from .adapter import CryptowatchAPIAdapter
