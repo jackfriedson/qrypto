@@ -80,6 +80,8 @@ class ClassifierStrategy(object):
                             interval=self.ohlc_interval).all()
         self.data.init_data(btc_data, 'BTC')
 
+        return len(exchange_train.date_range)
+
     def train(self,
               start: str,
               end: str,
@@ -95,12 +97,11 @@ class ClassifierStrategy(object):
               **kwargs):
         # TODO: save training params to file for later reference
 
-        self._initialize_training_data(start, end)
+        total_steps = self._initialize_training_data(start, end)
         n_inputs = self.data.n_state_factors
         n_outputs = 2
         random = np.random.RandomState(random_seed)
 
-        total_steps = len(exchange_train.date_range)
         nan_buffer = self.data.start_training()
         total_steps -= nan_buffer + 1
         initial_step = nan_buffer
