@@ -186,7 +186,7 @@ class ClassifierStrategy(object):
                         predictions.append(prediction == label)
 
                     # Compute outperformance of market return
-                    market_return, outperformance = self._calculate_performance(epoch_info['validate']['returns'], start_price)
+                    market_return, outperformance = self._calculate_performance(returns, start_price)
                     print('Market return: {:.2f}%'.format(100 * market_return))
                     print('Outperformance: {:+.2f}%'.format(100 * outperformance))
 
