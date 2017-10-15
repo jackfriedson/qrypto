@@ -87,9 +87,9 @@ class ClassifierStrategy(object):
                                   start=start, end=end, interval=self.ohlc_interval)
         self.data.init_data(exchange_train.all(), self.base_currency)
 
-        btc_data = Backtest(self.exchange, 'BTC', self.quote_currency, start=start, end=end,
-                            interval=self.ohlc_interval).all()
-        self.data.init_data(btc_data, 'BTC')
+        # btc_data = Backtest(self.exchange, 'BTC', self.quote_currency, start=start, end=end,
+        #                     interval=self.ohlc_interval).all()
+        # self.data.init_data(btc_data, 'BTC')
 
         return len(exchange_train.date_range)
 
