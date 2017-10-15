@@ -1,7 +1,10 @@
 import logging
 from contextlib import contextmanager
+from typing import Dict, List, Optional
 
-from qrypto.exchanges import APIException, BaseAPIAdapter
+import pandas as pd
+
+from qrypto.exchanges import APIException, BaseAPIAdapter, OHLC, OrderBook, Timestamp, Trade
 
 from .api import KrakenAPI
 
@@ -52,7 +55,7 @@ class KrakenAPIAdapter(BaseAPIAdapter):
         """
         """
 
-        pair = self._generate_currency_pair(base_currency, quote_currency)
+        pair = self.currency_pair(base_currency, quote_currency)
         resp = self.api.add_standard_order(pair, buy_sell, order_type, volume, **kwargs)
 
         txid = resp['txid']
@@ -71,60 +74,68 @@ class KrakenAPIAdapter(BaseAPIAdapter):
 
         return txid
 
-    @classmethod
-    def _generate_currency_pair(cls, base, quote):
-        base = currency_map.get(base, base)
-        quote = currency_map.get(quote, quote)
-        return base + quote
+    @staticmethod
+    def currency_pair(base_currency, quote_currency):
+        base_currency = currency_map.get(base_currency, base_currency)
+        quote_currency = currency_map.get(quote_currency, quote_currency)
+        return base_currency + quote_currency
 
     def _get_data(self, data_method, name, base_currency, quote_currency, since_last=True, **kwargs):
         if since_last:
             kwargs['since'] = self.last_txs.get(name)
-        pair = self._generate_currency_pair(base_currency, quote_currency)
+        pair = self.currency_pair(base_currency, quote_currency)
         resp = data_method(pair, **kwargs)
         # self.last_txs[name] = resp['last']
         return resp[pair]
 
     # Market Info
     @handle_api_exception()
-    def get_order_book(self, base_currency, quote_currency='USD'):
-        """
-        :returns: {
-            'asks': list of asks,
-            'bids': list of bids
-        }
-        """
-        pair = self._generate_currency_pair(base_currency, quote_currency)
+    def get_order_book(self,
+                       base_currency: str,
+                       quote_currency: str = 'USD') -> OrderBook:
+        pair = self.currency_pair(base_currency, quote_currency)
         resp = self.api.get_order_book(pair)
-        return resp[pair]
+        return self._format_order_book(resp[pair])
+
+    @staticmethod
+    def _format_order_book(data: Dict[str, list]) -> OrderBook:
+        return {
+            'asks': [{'price': d[0], 'amount': d[1]} for d in data['asks']],
+            'bids': [{'price': d[0], 'amount': d[1]} for d in data['bids']],
+        }
 
     @handle_api_exception()
-    def get_trades(self, base_currency, quote_currency='USD'):
-        data = self._get_data(self.api.get_recent_trades, 'trades', base_currency, quote_currency)
+    def get_trades(self,
+                   base_currency: str,
+                   quote_currency: str = 'USD',
+                   since: Optional[Timestamp] = None) -> List[Trade]:
+        kwargs = {}
+
+        if since is not None:
+            kwargs.update({'since': utils.to_unixtime(since)})
+
+        data = self._get_data(self.api.get_recent_trades, 'trades', base_currency, quote_currency, **kwargs)
+        return self._format_trades(data)
+
+    @staticmethod
+    def _format_trades(data: List[list]) -> List[Trade]:
         return [{
+            'id': None,
+            'timestamp': t[2],
             'price': float(t[0]),
-            'volume': float(t[1]),
-            'datetime': t[2],
+            'amount': float(t[1]),
             'buy_sell': t[3],
             'type': t[4],
             'misc': t[5]
         } for t in data]
 
     @handle_api_exception()
-    def get_ohlc(self, base_currency, quote_currency='USD', interval=1, start=None, end=None):
-        """
-        :param interval: time period duration in minutes (see KrakenAPI for valid intervals)
-        :returns: {
-            'time': ,
-            'open': opening price for the time period,
-            'high': highest price for the time period,
-            'low': lowest price for the time period,
-            'close': closing price for the time period,
-            'avg': volume weighted average price,
-            'volume': ,
-            'count': ,
-        }
-        """
+    def get_ohlc(self,
+                 base_currency: str,
+                 quote_currency: str = 'USD',
+                 interval: int = 1,
+                 start: Optional[Timestamp] = None,
+                 end: Optional[Timestamp] = None) -> List[OHLC]:
         since_last = start is None
 
         data = self._get_data(self.api.get_OHLC_data, 'ohlc', base_currency, quote_currency,
@@ -145,15 +156,17 @@ class KrakenAPIAdapter(BaseAPIAdapter):
         data = filter(date_filter, data)
 
         # Format data as described in docstring
+        return self._format_ohlc(data)
+
+    @staticmethod
+    def _format_ohlc(data: List[list]) -> List[OHLC]:
         return [{
-            'datetime': d[0],
+            'datetime': pd.to_datetime(d[0], unit='s'),
             'open': float(d[1]),
             'high': float(d[2]),
             'low': float(d[3]),
             'close': float(d[4]),
-            'average': float(d[5]),
-            'volume': float(d[6]),
-            'quoteVolume': float(d[7])
+            'volume': float(d[6])
         } for d in data]
 
     @handle_api_exception()

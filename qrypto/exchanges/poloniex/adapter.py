@@ -1,10 +1,10 @@
 import time
-from typing import Callable, Optional
+from typing import Callable, List, Optional
 
 import pandas as pd
 from poloniex import PoloniexAPI
 
-from qrypto.exchanges import BaseAPIAdapter
+from qrypto.exchanges import BaseAPIAdapter, OHLC, OrderBook, Timestamp, Trade, utils
 
 
 class PoloniexAPIAdapter(BaseAPIAdapter):
@@ -32,28 +32,42 @@ class PoloniexAPIAdapter(BaseAPIAdapter):
     def subscribe(self, callback: Callable) -> None:
         self.api.subscribe('ticker', callback)
 
-    def get_ohlc(self, base_currency: str, quote_currency: str = 'USDT', interval: int = 5,
-                 since_last: bool = False, **kwargs) -> list:
-        kwargs.update({
+    def get_ohlc(self,
+                 base_currency: str,
+                 quote_currency: str = 'USDT',
+                 interval: int = 5,
+                 start: Optional[Timestamp] = None,
+                 end: Optional[Timestamp] = None) -> List[OHLC]:
+        kwargs = {
             'currencyPair': self.currency_pair(base_currency, quote_currency),
-            'period': interval * 60
-        })
+            'period': interval * 60,
+        }
 
-        if since_last and 'ohlc' in self.last:
+        if start is not None:
+            kwargs.update({'start': utils.to_unixtime(start)})
+        elif 'ohlc' in self.last:
             kwargs.update({'start': self.last['ohlc']})
+
+        if end is not None:
+            kwargs.update({'end': utils.to_unixtime(end)})
 
         result = self.api.returnChartData(**kwargs)
 
-        if since_last:
-            self.last['ohlc'] = result[-1]['date']
+        # Record the most recent timestamp we've seen
+        self.last['ohlc'] = result[-1]['date']
 
-        def format_ohlc(datapoint):
-            datapoint['datetime'] = pd.to_datetime(datapoint.pop('date'), unit='s')
-            datapoint.pop('weightedAverage')
-            datapoint.pop('quoteVolume')
-            return datapoint
+        return self._format_ohlc(result)
 
-        return list(map(format_ohlc, result))
+    def get_trades(self,
+                   base_currency: str,
+                   quote_currency: str = 'USDT',
+                   since: Optional[Timestamp] = None) -> List[Trade]:
+        raise NotImplementedError('TODO')
+
+    def get_order_book(self,
+                       base_currency: str,
+                       quote_currency: str = 'USDT') -> OrderBook:
+        raise NotImplementedError('TODO')
 
     def get_balance(self) -> dict:
         result = self.api.returnBalances()
@@ -88,3 +102,14 @@ class PoloniexAPIAdapter(BaseAPIAdapter):
             open_orders = self.api.returnOpenOrders(pair)
             target_orders = filter(lambda order: order['orderNumber'] == order_id, open_orders)
             filled = not target_orders
+
+    @staticmethod
+    def _format_ohlc(data):
+        return [{
+            'datetime': pd.to_datetime(d['date'], unit='s'),
+            'open': d['open'],
+            'high': d['high'],
+            'low': d['low'],
+            'close': d['close'],
+            'volume': d['volume']
+        } for d in data]

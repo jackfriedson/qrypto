@@ -1,8 +1,18 @@
 import logging
 import time
 
+import pandas as pd
+
+from qrypto.exchanges import Timestamp
+
 
 log = logging.getLogger(__name__)
+
+
+def to_unixtime(ts: Timestamp) -> int:
+    if isinstance(ts, pd.Timestamp):
+        ts = ts.astype(int)
+    return ts
 
 
 class retry_on_status_code(object):

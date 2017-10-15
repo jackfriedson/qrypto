@@ -8,9 +8,7 @@ EXCLUDE_FIELDS = [
     'high',
     'low',
     'close',
-    'volume',
-    'quoteVolume',
-    'avg'
+    'volume'
 ]
 
 
