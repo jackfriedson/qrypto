@@ -171,6 +171,7 @@ class ClassifierStrategy(object):
                     for _ in validate_bar(range(validation_steps)):
                         price = self.data.last_price
                         state = self.data.state()
+                        print(state)
                         _, probabilities, rnn_state = classifier.predict(sess, np.expand_dims(state, 0), 1, rnn_state, training=False)
                         prediction = np.argmax(probabilities)
                         confidence = probabilities[0][prediction]

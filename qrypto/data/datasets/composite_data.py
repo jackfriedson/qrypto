@@ -9,22 +9,29 @@ from qrypto.data.datasets import QLearnDataset
 class CompositeQLearnDataset(object):
     actions = ['short', 'long']
 
-    def __init__(self, primary_dataset: str, configs: Dict[str, list]) -> None:
-        self._primary_name = primary_dataset
-        self._datasets = {
+    def __init__(self, primary_name: str, configs: Dict[str, list]) -> None:
+        self._primary_name = primary_name
+        self._primary = QLearnDataset(indicators=configs.pop(primary_name))
+        self._others = {
             name: QLearnDataset(indicators=indicators) for name, indicators in configs.items()
         }
 
     @property
-    def _primary(self):
-        return self._datasets[self._primary_name]
+    def _datasets(self):
+        result = {
+            self._primary_name: self._primary
+        }
+        result.update(self._others)
+        return result
 
     def start_training(self, start_step: int = 0):
         max_step = 0
+
         for dataset in self._datasets.values():
             max_step = max(max_step, dataset.start_training(start_step))
         for dataset in self._datasets.values():
             dataset.start_training(max_step)
+
         return max_step
 
     def next(self):
@@ -47,15 +54,19 @@ class CompositeQLearnDataset(object):
         return self.last_row
 
     def step(self, idx: int):
+        for dataset in self._others.values():
+            dataset.step(idx)
         return self._primary.step(idx)
 
     def step_val(self, idx: int):
+        for dataset in self._others.values():
+            dataset.step_val(idx)
         return self._primary.step_val(idx)
 
     @property
     def all(self):
-        result = pd.Dataframe()
-        for name, dataset in self._datasets.items():
+        result = self._primary.all()
+        for name, dataset in self._others.items():
             suffix = '_' + name
             result.join(dataset.all(), rsuffix=suffix)
         return result
@@ -66,8 +77,8 @@ class CompositeQLearnDataset(object):
 
     @property
     def last_row(self):
-        result = np.array([])
-        for dataset in self._datasets.values():
+        result = self._primary.last_row
+        for dataset in self._others.values():
             result = np.append(result, dataset.last_row)
         return result
 
