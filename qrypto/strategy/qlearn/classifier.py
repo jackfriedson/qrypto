@@ -71,7 +71,7 @@ class ClassifierStrategy(object):
         new_data = self.exchange.get_ohlc(self.base_currency, self.quote_currency, interval=self.ohlc_interval)
         self.data.update(new_data)
 
-    def _initialize_training_data(self):
+    def _initialize_training_data(self, start, end):
         exchange_train = Backtest(self.exchange, self.base_currency, self.quote_currency,
                                   start=start, end=end, interval=self.ohlc_interval)
         self.data.init_data(exchange_train.all(), self.base_currency)
@@ -95,7 +95,7 @@ class ClassifierStrategy(object):
               **kwargs):
         # TODO: save training params to file for later reference
 
-        self._initialize_training_data()
+        self._initialize_training_data(start, end)
         n_inputs = self.data.n_state_factors
         n_outputs = 2
         random = np.random.RandomState(random_seed)
