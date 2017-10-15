@@ -24,7 +24,7 @@ class QLearnDataset(OHLCDataset):
 
         super(QLearnDataset, self).__init__(*args, **kwargs)
 
-    def start_training(self, start_step: int = 0):
+    def set_to(self, start_step: int = 0):
         self.train_counter = start_step
         self._init_positions()
         self._init_orders()
@@ -36,9 +36,6 @@ class QLearnDataset(OHLCDataset):
 
     def next(self):
         self.train_counter += 1
-
-    def stop_training(self):
-        self.train_counter = None
 
     @property
     def all(self):

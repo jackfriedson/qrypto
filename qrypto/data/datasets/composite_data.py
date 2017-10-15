@@ -24,23 +24,19 @@ class CompositeQLearnDataset(object):
         result.update(self._others)
         return result
 
-    def start_training(self, start_step: int = 0):
+    def set_to(self, start_step: int = 0):
         max_step = 0
 
         for dataset in self._datasets.values():
-            max_step = max(max_step, dataset.start_training(start_step))
+            max_step = max(max_step, dataset.set_to(start_step))
         for dataset in self._datasets.values():
-            dataset.start_training(max_step)
+            dataset.set_to(max_step)
 
         return max_step
 
     def next(self):
         for dataset in self._datasets.values():
             dataset.next()
-
-    def stop_training(self):
-        for dataset in self._datasets.values():
-            dataset.stop_training()
 
     @property
     def n_state_factors(self):
