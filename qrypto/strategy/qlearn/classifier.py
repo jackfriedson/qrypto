@@ -53,14 +53,15 @@ class ClassifierStrategy(object):
         configs = {
             base_currency: [
                 BasicIndicator('rsi', {'timeperiod': 10}),
-                # BasicIndicator('ppo'),
-                # BasicIndicator('mom', {'timeperiod': 12}),
-                # BasicIndicator('mom', {'timeperiod': 36}),
+                BasicIndicator('ppo'),
+                BasicIndicator('mom', {'timeperiod': 12}),
+                BasicIndicator('obv')
                 # BasicIndicator('stochrsi'),
                 # BasicIndicator('rocp'),
                 # BasicIndicator('natr'),
             ],
             'BTC': [
+                BasicIndicator('rsi', {'timeperiod': 10})
                 BasicIndicator('mom', {'timeperiod': 6})
             ]
         }
