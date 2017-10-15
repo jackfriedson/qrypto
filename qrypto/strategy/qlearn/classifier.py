@@ -53,12 +53,12 @@ class ClassifierStrategy(object):
         configs = {
             base_currency: [
                 BasicIndicator('rsi', {'timeperiod': 10}),
-                # BasicIndicator('ppo'),
-                # BasicIndicator('mom', {'timeperiod': 12}),
-                # BasicIndicator('mom', {'timeperiod': 36}),
-                # BasicIndicator('stochrsi'),
-                # BasicIndicator('rocp'),
-                # BasicIndicator('natr'),
+                BasicIndicator('ppo'),
+                BasicIndicator('mom', {'timeperiod': 12}),
+                BasicIndicator('mom', {'timeperiod': 36}),
+                BasicIndicator('stochrsi'),
+                BasicIndicator('rocp'),
+                BasicIndicator('natr'),
             ],
             'BTC': [
                 BasicIndicator('mom')
@@ -117,7 +117,6 @@ class ClassifierStrategy(object):
             tf.set_random_seed(random_seed)
 
         cell = tf.contrib.rnn.LSTMCell(num_units=n_inputs, state_is_tuple=True, activation=tf.nn.softsign, use_peepholes=True)
-        # cell = tf.contrib.rnn.DropoutWrapper(cell, output_keep_prob=0.9)
         cell = tf.contrib.rnn.MultiRNNCell([cell] * rnn_layers, state_is_tuple=True)
         classifier = RNNClassifier('rnn_classifier', cell, n_inputs, n_outputs, summaries_dir=summaries_dir, **kwargs)
 
