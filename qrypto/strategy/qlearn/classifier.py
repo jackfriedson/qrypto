@@ -71,6 +71,15 @@ class ClassifierStrategy(object):
         new_data = self.exchange.get_ohlc(self.base_currency, self.quote_currency, interval=self.ohlc_interval)
         self.data.update(new_data)
 
+    def _initialize_training_data(self):
+        exchange_train = Backtest(self.exchange, self.base_currency, self.quote_currency,
+                                  start=start, end=end, interval=self.ohlc_interval)
+        self.data.init_data(exchange_train.all(), self.base_currency)
+
+        btc_data = Backtest(self.exchange, 'BTC', self.quote_currency, start=start, end=end,
+                            interval=self.ohlc_interval).all()
+        self.data.init_data(btc_data, 'BTC')
+
     def train(self,
               start: str,
               end: str,
@@ -83,23 +92,13 @@ class ClassifierStrategy(object):
               rnn_layers: int = 1,
               trace_length: int = 16,
               random_seed: int = None,
-              load_model: str = None,
               **kwargs):
+        # TODO: save training params to file for later reference
 
-        # Initialize training data
-        exchange_train = Backtest(self.exchange, self.base_currency, self.quote_currency,
-                                  start=start, end=end, interval=self.ohlc_interval)
-        self.data.init_data(exchange_train.all(), self.base_currency)
-
-        btc_data = Backtest(self.exchange, 'BTC', self.quote_currency, start=start, end=end,
-                            interval=self.ohlc_interval).all()
-        self.data.init_data(btc_data, 'BTC')
-
+        self._initialize_training_data()
         n_inputs = self.data.n_state_factors
         n_outputs = 2
         random = np.random.RandomState(random_seed)
-
-        # TODO: save training params to file for later reference
 
         total_steps = len(exchange_train.date_range)
         nan_buffer = self.data.start_training()
@@ -186,12 +185,7 @@ class ClassifierStrategy(object):
                         predictions.append(prediction == label)
 
                     # Compute outperformance of market return
-                    market_return = (self.data.last_price / start_price) - 1.
-                    position_value = start_price
-                    for return_val in returns:
-                        position_value *= 1 + return_val
-                    algorithm_return = (position_value / start_price) - 1.
-                    outperformance = algorithm_return - market_return
+                    market_return, outperformance = self._calculate_performance(epoch_info['validate']['returns'], start_price)
                     print('Market return: {:.2f}%'.format(100 * market_return))
                     print('Outperformance: {:+.2f}%'.format(100 * outperformance))
 
@@ -214,6 +208,15 @@ class ClassifierStrategy(object):
 
                 # After all repeats, move to the next timeframe
                 initial_step += validation_steps
+
+    def _calculate_performance(self, returns, start_price):
+        market_return = (self.data.last_price / start_price) - 1.
+        position_value = start_price
+        for return_val in returns:
+            position_value *= 1 + return_val
+        algorithm_return = (position_value / start_price) - 1.
+        outperformance = algorithm_return - market_return
+        return market_return, outperformance
 
     def run(self):
         pass
