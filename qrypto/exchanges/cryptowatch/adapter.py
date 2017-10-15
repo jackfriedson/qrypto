@@ -3,7 +3,8 @@ from typing import List, Optional
 import cryptowatch as cw
 import pandas as pd
 
-from qrypto.exchanges import BaseAPIAdapter, OHLC, OrderBook, Timestamp, Trade
+from qrypto.exchanges import BaseAPIAdapter
+from qrypto.types import OHLC, OrderBook, Timestamp, Trade
 
 
 class CryptowatchAPIAdapter(BaseAPIAdapter):

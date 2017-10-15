@@ -5,13 +5,13 @@ import pandas as pd
 from poloniex import PoloniexAPI
 
 from qrypto.exchanges import BaseAPIAdapter, PrivateExchangeMixin, utils
-from qrypto.types import MaybeOrder, OHLC, OrderBook, OrderInfo, Timestamp, Trade
+from qrypto.types import MaybeOrder, OHLC, OrderBook, Timestamp, Trade
 
 
 class PoloniexAPIAdapter(BaseAPIAdapter, PrivateExchangeMixin):
 
     def __init__(self, key_path: str) -> None:
-        key, secret = utils.read_key_from(path_to_key)
+        key, secret = utils.read_key_from(key_path)
         self.api = PoloniexAPI(key, secret)
         self.last = {}
 
@@ -95,7 +95,7 @@ class PoloniexAPIAdapter(BaseAPIAdapter, PrivateExchangeMixin):
                     buy_sell: str,
                     price: float,
                     volume: float,
-                    quote_currency: str = DEFAULT_QUOTE_CURRENCY,
+                    quote_currency: str = 'USDT',
                     wait_for_fill: bool = False) -> MaybeOrder:
         pair = self.currency_pair(base_currency, quote_currency)
         order_fn = self.api.buy if buy_sell == 'buy' else self.api.sell
@@ -141,3 +141,6 @@ class PoloniexAPIAdapter(BaseAPIAdapter, PrivateExchangeMixin):
             open_orders = self.api.returnOpenOrders(currency_pair)
             target_orders = filter(lambda order: order['orderNumber'] == order_id, open_orders)
             filled = not target_orders
+
+    def cancel_order(self, order_id: str) -> bool:
+        raise NotImplementedError('TODO')

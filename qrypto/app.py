@@ -32,8 +32,7 @@ def configure_logging():
 
 
 @click.group(chain=True)
-@click.option('--exchange', type=click.Choice(['kraken', 'poloniex', 'cryptowatch']),
-              default='poloniex')
+@click.option('--exchange', type=click.Choice(['kraken', 'poloniex', 'cryptowatch']), default='poloniex')
 @click.pass_context
 def cli(ctx, exchange):
     configure_logging()

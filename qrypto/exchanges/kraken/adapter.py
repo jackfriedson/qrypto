@@ -5,7 +5,7 @@ from typing import Dict, List, Optional
 import pandas as pd
 
 from qrypto.exchanges import APIException, BaseAPIAdapter, PrivateExchangeMixin, utils
-from qrypto.types import MaybeOrder, OHLC, OrderBook, OrderInfo, Timestamp, Trade
+from qrypto.types import MaybeOrder, OHLC, OrderBook, Timestamp, Trade
 
 from .api import KrakenAPI
 

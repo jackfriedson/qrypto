@@ -4,7 +4,7 @@ from typing import Tuple
 
 import pandas as pd
 
-from qrypto.exchanges import Timestamp
+from qrypto.types import Timestamp
 
 
 log = logging.getLogger(__name__)
