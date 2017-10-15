@@ -61,7 +61,7 @@ class ClassifierStrategy(object):
                 # BasicIndicator('natr'),
             ],
             'BTC': [
-                BasicIndicator('rsi', {'timeperiod': 10})
+                BasicIndicator('rsi', {'timeperiod': 10}),
                 BasicIndicator('mom', {'timeperiod': 6})
             ]
         }
