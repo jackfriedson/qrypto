@@ -61,7 +61,7 @@ class ClassifierStrategy(object):
                 # BasicIndicator('natr'),
             ],
             'BTC': [
-                BasicIndicator('mom')
+                BasicIndicator('mom', {'timeperiod': 6})
             ]
         }
         self.data = CompositeQLearnDataset(base_currency, configs)
