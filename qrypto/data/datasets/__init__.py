@@ -1,2 +1,3 @@
-from qrypto.data.datasets.ohlc import OHLCDataset
-from qrypto.data.datasets.qlearn_data import QLearnDataset
+from .ohlc import OHLCDataset
+from .qlearn_data import QLearnDataset
+from .composite_data import CompositeQLearnDataset

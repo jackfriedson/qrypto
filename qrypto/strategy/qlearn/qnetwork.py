@@ -185,7 +185,7 @@ class QNetworkStrategy(object):
                     returns = []
                     confidences = []
                     val_losses = []
-                    start_price = self.data.last
+                    start_price = self.data.last_price
 
                     rnn_state = (np.zeros([1, n_inputs]), np.zeros([1, n_inputs]))
 
@@ -210,7 +210,7 @@ class QNetworkStrategy(object):
                         val_losses.append(loss)
 
                     # Compute outperformance of market return
-                    market_return = (self.data.last / start_price) - 1.
+                    market_return = (self.data.last_price / start_price) - 1.
                     position_value = start_price
                     for return_val in returns:
                         position_value *= 1 + return_val

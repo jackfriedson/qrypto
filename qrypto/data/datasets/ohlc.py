@@ -1,5 +1,5 @@
 import io
-from typing import List, Union
+from typing import List, Optional, Union
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -13,7 +13,7 @@ matplotlib.style.use('ggplot')
 
 class OHLCDataset(object):
 
-    def __init__(self, data: List[dict] = None, indicators: List = None):
+    def __init__(self, data: List[dict] = None, indicators: Optional[List] = None):
         self._data = None
         self._indicators = indicators or []
         self._init_positions()
@@ -49,7 +49,7 @@ class OHLCDataset(object):
             indicator.update(self._data)
 
     def add_position(self, long_short: str):
-        price = self.last
+        price = self.last_price
         if long_short == 'long':
             self._longs[self.time] = price
         elif long_short == 'short':
@@ -109,7 +109,7 @@ class OHLCDataset(object):
         return result
 
     @property
-    def last(self):
+    def last_price(self):
         return self._data.iloc[-1]['close']
 
     @property

@@ -59,7 +59,7 @@ class BaseStrategy(object):
     def open_position(self) -> None:
         log.info('Opening position...')
         # TODO: use last ask instead of 0.1%
-        limit_price = self.data.last * 1.001
+        limit_price = self.data.last_price * 1.001
         order_info = self.exchange.limit_order(self.base_currency, 'buy', limit_price, self.unit,
                                                quote_currency=self.quote_currency)
         self.data.add_order('buy', order_info)
@@ -70,7 +70,7 @@ class BaseStrategy(object):
     def close_position(self) -> None:
         log.info('Closing position...')
         # TODO: use last bid instead of 0.1%
-        limit_price = self.data.last * 0.999
+        limit_price = self.data.last_price * 0.999
         order_info = self.exchange.limit_order(self.base_currency, 'sell', limit_price, self.unit,
                                                quote_currency=self.quote_currency)
         self.data.add_order('sell', order_info)

@@ -47,12 +47,12 @@ class TakeProfitMomentumStrategy(BaseStrategy):
         new_data = self.exchange.get_ohlc(self.base_currency, self.quote_currency,
                                           interval=self.ohlc_interval)
         self.data.update(new_data)
-        log.info('{}; {:.2f}'.format(self.data.last, self.data.macd[-1]),
-                 extra={'price': self.data.last, 'macd': self.data.macd[-1]})
+        log.info('{}; {:.2f}'.format(self.data.last_price, self.data.macd[-1]),
+                 extra={'price': self.data.last_price, 'macd': self.data.macd[-1]})
 
     def should_open(self) -> bool:
         return self.data.macd[-1] >= self.macd_threshold
 
     def should_close(self) -> bool:
-        return self.data.last >= self.take_profit(self.position['open']) \
-               or self.data.last <= self.stop_loss(self.position['open'])
+        return self.data.last_price >= self.take_profit(self.position['open']) \
+               or self.data.last_price <= self.stop_loss(self.position['open'])

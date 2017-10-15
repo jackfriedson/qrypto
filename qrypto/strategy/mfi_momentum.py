@@ -36,7 +36,7 @@ class MFIMomentumStrategy(BaseStrategy):
         new_data = self.exchange.get_ohlc(self.base_currency, self.quote_currency,
                                           interval=self.ohlc_interval, since_last=True)
         self.data.update(new_data)
-        log.info('%.2f; %.2f; %.2f', self.data.last, self.data.mfi[-1], self.data.macd_slope())
+        log.info('%.2f; %.2f; %.2f', self.data.last_price, self.data.mfi[-1], self.data.macd_slope())
 
     def should_open(self) -> bool:
         return len(self.data.mfi) >= 2 \
@@ -47,4 +47,4 @@ class MFIMomentumStrategy(BaseStrategy):
     def should_close(self) -> bool:
         return (self.data.mfi[-2] > self.mfi_top \
                and self.data.mfi[-1] <= self.mfi_top) \
-               or self.data.last < self.stop_loss(self.position['open'])
+               or self.data.last_price < self.stop_loss(self.position['open'])

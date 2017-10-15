@@ -11,8 +11,8 @@ import progressbar
 import tensorflow as tf
 
 from qrypto.backtest import Backtest
-from qrypto.data.datasets import QLearnDataset
-from qrypto.data.indicators import BasicIndicator, DifferenceIndicator
+from qrypto.data.datasets import CompositeQLearnDataset
+from qrypto.data.indicators import BasicIndicator
 from qrypto.strategy.qlearn.experience_buffer import ExperienceBuffer
 from qrypto.strategy.qlearn.rnn_classifier import RNNClassifier
 
@@ -50,16 +50,21 @@ class ClassifierStrategy(object):
         self.timestamp = time.strftime('%Y%m%d_%H%M%S')
         self.models_dir = models_dir/self.timestamp
 
-        indicators = [
-            BasicIndicator('rsi', {'timeperiod': 10}),
-            # BasicIndicator('ppo'),
-            # BasicIndicator('mom', {'timeperiod': 12}),
-            # BasicIndicator('mom', {'timeperiod': 36}),
-            # BasicIndicator('stochrsi'),
-            # BasicIndicator('rocp'),
-            # BasicIndicator('natr'),
-        ]
-        self.data = QLearnDataset(indicators=indicators, **kwargs)
+        configs = {
+            base_currency: [
+                BasicIndicator('rsi', {'timeperiod': 10}),
+                # BasicIndicator('ppo'),
+                # BasicIndicator('mom', {'timeperiod': 12}),
+                # BasicIndicator('mom', {'timeperiod': 36}),
+                # BasicIndicator('stochrsi'),
+                # BasicIndicator('rocp'),
+                # BasicIndicator('natr'),
+            ],
+            'BTC': [
+                BasicIndicator('mom')
+            ]
+        }
+        self.data = CompositeQLearnDataset(base_currency, configs)
 
     def update(self):
         new_data = self.exchange.get_ohlc(self.base_currency, self.quote_currency, interval=self.ohlc_interval)
@@ -121,10 +126,10 @@ class ClassifierStrategy(object):
                 print('\nPopulating data...')
                 replay_memory = ExperienceBuffer(replay_memory_max_size, random)
                 for _ in range(train_steps):
-                    price = self.data.last
+                    price = self.data.last_price
                     state = self.data.state()
                     self.data.next()
-                    label = 1 if self.data.last > price else 0
+                    label = 1 if self.data.last_price > price else 0
                     replay_memory.add((state, label))
 
                 for epoch in range(n_epochs):
@@ -154,12 +159,12 @@ class ClassifierStrategy(object):
                     returns = []
                     confidences = []
                     predictions = []
-                    start_price = self.data.last
+                    start_price = self.data.last_price
 
                     rnn_state = [(np.zeros([1, n_inputs]), np.zeros([1, n_inputs]))] * rnn_layers
 
                     for _ in validate_bar(range(validation_steps)):
-                        price = self.data.last
+                        price = self.data.last_price
                         state = self.data.state()
                         _, probabilities, rnn_state = classifier.predict(sess, np.expand_dims(state, 0), 1, rnn_state, training=False)
                         prediction = np.argmax(probabilities)
@@ -171,12 +176,12 @@ class ClassifierStrategy(object):
                         else:
                             self.data.next()
 
-                        label = 1 if self.data.last > price else 0
+                        label = 1 if self.data.last_price > price else 0
                         confidences.append(confidence)
                         predictions.append(prediction == label)
 
                     # Compute outperformance of market return
-                    market_return = (self.data.last / start_price) - 1.
+                    market_return = (self.data.last_price / start_price) - 1.
                     position_value = start_price
                     for return_val in returns:
                         position_value *= 1 + return_val

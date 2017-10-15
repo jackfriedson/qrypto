@@ -61,7 +61,7 @@ class QLearnDataset(OHLCDataset):
         return result
 
     @property
-    def last(self):
+    def last_price(self):
         return self._data.iloc[self.last_idx]['close']
 
     @property
@@ -87,7 +87,7 @@ class QLearnDataset(OHLCDataset):
     @property
     def cumulative_return(self):
         if self.open_price:
-            return (self.last / self.open_price) - 1.
+            return (self.last_price / self.open_price) - 1.
         else:
             return 0.
 
@@ -117,9 +117,9 @@ class QLearnDataset(OHLCDataset):
             test_reward -= self.fee
 
             if action == 'long':
-                self.add_order('buy', {'price': self.last})
+                self.add_order('buy', {'price': self.last_price})
             elif action == 'short':
-                self.add_order('sell', {'price': self.last})
+                self.add_order('sell', {'price': self.last_price})
 
         train_reward = self.step(idx)
 
