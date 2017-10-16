@@ -28,7 +28,7 @@ class CompositeQLearnDataset(object):
         max_step = 0
 
         for dataset in self._datasets.values():
-            max_step = max(max_step, dataset.set_to(start_step))
+            max_step = max(max_step, dataset.set_to(start_step, reset_orders=reset_orders))
         for dataset in self._datasets.values():
             dataset.set_to(max_step, reset_orders=reset_orders)
 
