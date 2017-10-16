@@ -33,8 +33,8 @@ class RNNClassifier(object):
             # TODO: try adding attention to the LSTM
             attention_mechanism = tf.contrib.seq2seq.BahdanauAttention(1, self.norm_flat)
             rnn_cell = tf.contrib.seq2seq.AttentionWrapper(rnn_cell, attention_mechanism)
-            # rnn_cell = tf.contrib.rnn.DropoutWrapper(cell, output_keep_prob=dropout_keep_prob)
-            rnn_cell = tf.contrib.rnn.MultiRNNCell([cell] * rnn_layers, state_is_tuple=True)
+            # rnn_cell = tf.contrib.rnn.DropoutWrapper(rnn_cell, output_keep_prob=dropout_keep_prob)
+            rnn_cell = tf.contrib.rnn.MultiRNNCell([rnn_cell] * rnn_layers, state_is_tuple=True)
 
             self.rnn_in = rnn_cell.zero_state(batch_size, dtype=tf.float32)
             self.rnn, self.rnn_state = tf.nn.dynamic_rnn(rnn_cell, self.norm_flat, dtype=tf.float32, initial_state=self.rnn_in)
