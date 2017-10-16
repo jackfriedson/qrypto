@@ -24,13 +24,13 @@ class CompositeQLearnDataset(object):
         result.update(self._others)
         return result
 
-    def set_to(self, start_step: int = 0):
+    def set_to(self, start_step: int = 0, reset_orders: bool = True):
         max_step = 0
 
         for dataset in self._datasets.values():
             max_step = max(max_step, dataset.set_to(start_step))
         for dataset in self._datasets.values():
-            dataset.set_to(max_step)
+            dataset.set_to(max_step, reset_orders=reset_orders)
 
         return max_step
 

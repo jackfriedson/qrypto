@@ -29,10 +29,12 @@ class QLearnDataset(OHLCDataset):
     def use_train_data(self, should_use: bool):
         self._use_train_data = should_use
 
-    def set_to(self, start_step: int = 0):
+    def set_to(self, start_step: int = 0, reset_orders: bool = True):
         self.train_counter = start_step
-        self._init_positions()
-        self._init_orders()
+
+        if reset_orders:
+            self._init_positions()
+            self._init_orders()
 
         while np.any(np.isnan(self.state())):
             self.next()

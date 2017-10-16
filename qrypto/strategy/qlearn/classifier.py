@@ -2,7 +2,7 @@ import io
 import functools
 import logging
 import time
-from collections import namedtuple
+from collections import deque, namedtuple
 from pathlib import Path
 from typing import Tuple
 
@@ -104,7 +104,8 @@ class ClassifierStrategy(object):
               n_epochs: int = 1,
               validation_percent: float = 0.2,
               softmax_threshold: float = 0.5,
-              replay_memory_max_size: int = 100000,
+              max_buffer_size: int = 100000,
+              target_period: int = 1,
               batch_size: int = 8,
               rnn_layers: int = 1,
               trace_length: int = 16,
@@ -119,7 +120,9 @@ class ClassifierStrategy(object):
         self.n_outputs = 2
         self.rnn_layers = rnn_layers
         self.softmax_threshold = softmax_threshold
-        random = np.random.RandomState(random_seed)
+        self.random = np.random.RandomState(random_seed)
+        self.max_buffer_size = max_buffer_size
+        self.target_period = target_period
 
         nan_buffer = self.data.set_to()
         total_steps -= nan_buffer + 1
@@ -147,14 +150,8 @@ class ClassifierStrategy(object):
             for data_slice in range(n_slices):
                 self.data.set_to(initial_step)
 
-                print('\nPopulating data...')
-                replay_memory = ExperienceBuffer(replay_memory_max_size, random)
-                for _ in range(train_steps):
-                    price = self.data.last_price
-                    state = self.data.state()
-                    self.data.next()
-                    label = 1 if self.data.last_price > price else 0
-                    replay_memory.add((state, label))
+                print('\nPopulating training data...')
+                training_data = self._populate_training_data(train_steps)
 
                 for epoch in range(n_epochs):
                     self.data.set_to(initial_step)
@@ -169,7 +166,7 @@ class ClassifierStrategy(object):
                     # Train the network
                     for i in prog_bar(range(10 * n_batches)):
                         rnn_state = self._initial_rnn_state(batch_size)
-                        samples = replay_memory.sample(batch_size, trace_length)
+                        samples = training_data.sample(batch_size, trace_length)
                         inputs, labels = map(np.array, zip(*samples))
                         loss = classifier.update(sess, inputs, labels, trace_length, rnn_state)
                         losses.append(loss)
@@ -183,7 +180,7 @@ class ClassifierStrategy(object):
 
                     # Compute accuracy over validation set
                     print('Evaluating validation set...')
-                    self.data.set_to(initial_step + train_steps)
+                    self.data.set_to(initial_step + train_steps, reset_orders=False)
                     start_price = self.data.last_price
                     val_predictions, val_confidences, returns = self._evaluate(sess, classifier, validation_steps)
 
@@ -207,31 +204,52 @@ class ClassifierStrategy(object):
                 # After all repeats, move to the next timeframe
                 initial_step += validation_steps
 
+    def _populate_training_data(self, n_steps: int):
+        training_data = ExperienceBuffer(self.max_buffer_size, self.random)
+        working_list = deque()
+
+        for _ in range(n_steps):
+            price = self.data.last_price
+            state = self.data.state()
+            working_list.append((state, price))
+
+            self.data.next()
+
+            if len(deque) >= self.target_period:
+                state, price = deque.popleft()
+                label = 1 if self.data.last_price > price else 0
+                training_data.add((state, label))
+
+        return training_data
+
     def _initial_rnn_state(self, size: int = 1):
         return [(np.zeros([size, self.n_inputs]), np.zeros([size, self.n_inputs]))] * self.rnn_layers
 
     def _evaluate(self, session, classifier, n_steps, place_orders: bool = True):
         prog_bar = progressbar.ProgressBar(term_width=80)
         initial_rnn_state = rnn_state = self._initial_rnn_state()
+        prices = deque()
 
         returns = []
         confidences = []
         predictions = []
 
         for _ in prog_bar(range(n_steps)):
-            price = self.data.last_price
+            prices.append(self.data.last_price)
             state = self.data.state()
             _, probabilities, rnn_state = classifier.predict(session, np.expand_dims(state, 0), 1, rnn_state, training=False)
             prediction = np.argmax(probabilities)
             confidence = probabilities[0][prediction]
+            confidences.append(confidence)
 
             place_orders = place_orders and confidence >= self.softmax_threshold
             _, cum_return = self.data.validate(prediction, place_orders=place_orders)
             returns.append(cum_return)
 
-            label = 1 if self.data.last_price > price else 0
-            confidences.append(confidence)
-            predictions.append(prediction == label)
+            if len(prices) >= self.target_period:
+                price = prices.popleft()
+                label = 1 if self.data.last_price > price else 0
+                predictions.append(prediction == label)
 
         return predictions, confidences, returns
 
