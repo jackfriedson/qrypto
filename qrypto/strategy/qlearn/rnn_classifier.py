@@ -29,11 +29,11 @@ class RNNClassifier(object):
             self.norm_layer = tf.contrib.layers.batch_norm(self.inputs, scale=True, renorm=True, renorm_decay=renorm_decay, is_training=self.phase)
             self.norm_flat = tf.reshape(self.norm_layer, shape=[batch_size, self.trace_length, n_inputs])
 
-            rnn_cell = tf.contrib.rnn.LSTMCell(num_units=self.n_inputs, state_is_tuple=True, activation=tf.nn.softsign, use_peepholes=True)
+            rnn_cell = tf.contrib.rnn.LSTMCell(num_units=n_inputs, state_is_tuple=True, activation=tf.nn.softsign, use_peepholes=True)
             # TODO: try adding attention to the LSTM
             attention_mechanism = tf.contrib.seq2seq.BahdanauAttention(1, self.norm_flat)
             rnn_cell = tf.contrib.seq2seq.AttentionWrapper(rnn_cell, attention_mechanism)
-            # cell = tf.contrib.rnn.DropoutWrapper(cell, output_keep_prob=dropout_keep_prob)
+            # rnn_cell = tf.contrib.rnn.DropoutWrapper(cell, output_keep_prob=dropout_keep_prob)
             rnn_cell = tf.contrib.rnn.MultiRNNCell([cell] * rnn_layers, state_is_tuple=True)
 
             self.rnn_in = rnn_cell.zero_state(batch_size, dtype=tf.float32)
