@@ -20,8 +20,7 @@ _config_map = {
         'stop_loss': 0.0075,
     },
     'qlearn': {
-        'unit': 1,
-        # 'confidence_thresholds': (0.6, 0.6)
+        'unit': 1
     }
 }
 
