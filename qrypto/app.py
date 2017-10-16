@@ -86,6 +86,7 @@ def qlearnnet(ctx, train_start, train_end, **kwargs):
 @click.option('--dropout-keep-prob', type=float, default=1.0)
 @click.option('--trace-length', type=int, default=16)
 @click.option('--rnn-layers', type=int, default=1)
+@click.option('--attention-depth', type=int, default=1)
 @click.pass_context
 def classifier(ctx, train_start, train_end, **kwargs):
     exchange = ctx.obj.get('exchange')

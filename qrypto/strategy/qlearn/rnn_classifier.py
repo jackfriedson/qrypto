@@ -15,6 +15,7 @@ class RNNClassifier(object):
                  renorm_decay: float = 0.99,
                  dropout_keep_prob: float = 1.0,
                  rnn_layers: int = 1,
+                 attention_depth: int = 1,
                  summaries_dir: str = None):
         self.scope = scope
 
