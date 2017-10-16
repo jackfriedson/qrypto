@@ -194,7 +194,7 @@ class QNetworkStrategy(object):
                         q_values, confidence, next_rnn_state = q_estimator.predict(sess, np.expand_dims(state, 0), 1, rnn_state, training=False)
                         action = np.argmax(q_values)
                         confidence = confidence[0][action]
-                        reward, cum_return = self.data.step_val(action)
+                        reward, cum_return = self.data.validate(action)
 
                         # Calculate validation loss for summaries
                         next_state = self.data.state()

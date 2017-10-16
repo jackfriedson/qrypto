@@ -7,8 +7,6 @@ EXCLUDE_FIELDS = [
     'open',
     'high',
     'low',
-    # 'close',
-    # 'volume'
 ]
 
 
@@ -116,11 +114,11 @@ class QLearnDataset(OHLCDataset):
 
         return reward
 
-    def step_val(self, idx: int):
+    def validate(self, idx: int, place_orders: bool = True):
         action = self.actions[idx]
         test_reward = 0.
 
-        if self.position != action:
+        if place_orders and self.position != action:
             test_reward -= self.fee
 
             if action == 'long':

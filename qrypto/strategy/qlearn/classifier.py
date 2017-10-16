@@ -225,11 +225,9 @@ class ClassifierStrategy(object):
             prediction = np.argmax(probabilities)
             confidence = probabilities[0][prediction]
 
-            if place_orders and confidence >= self.softmax_threshold:
-                _, cum_return = self.data.step_val(prediction)
-                returns.append(cum_return)
-            else:
-                self.data.next()
+            place_orders = place_orders and confidence >= self.softmax_threshold
+            _, cum_return = self.data.validate(prediction, place_orders=place_orders)
+            returns.append(cum_return)
 
             label = 1 if self.data.last_price > price else 0
             confidences.append(confidence)

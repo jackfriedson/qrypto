@@ -54,10 +54,10 @@ class CompositeQLearnDataset(object):
             dataset.step(idx)
         return self._primary.step(idx)
 
-    def step_val(self, idx: int):
+    def validate(self, idx: int):
         for dataset in self._others.values():
-            dataset.step_val(idx)
-        return self._primary.step_val(idx)
+            dataset.validate(idx)
+        return self._primary.validate(idx)
 
     @property
     def all(self):
