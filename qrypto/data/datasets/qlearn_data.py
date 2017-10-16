@@ -20,9 +20,16 @@ class QLearnDataset(OHLCDataset):
         self.train_counter = None
         self.open_price = None
         self.position = 'long'
-        self.test_position = 'long'
+        self._use_train_data = True
 
         super(QLearnDataset, self).__init__(*args, **kwargs)
+
+    def init_data(self, data):
+        super(QLearnDataset, self).init_data(data)
+        self._train_data = self.all.values
+
+    def use_train_data(self, should_use: bool):
+        self._use_train_data = should_use
 
     def set_to(self, start_step: int = 0):
         self.train_counter = start_step
@@ -49,13 +56,16 @@ class QLearnDataset(OHLCDataset):
 
     @property
     def last_row(self):
-        result = self._data.iloc[self.last_idx]
-        result.drop(EXCLUDE_FIELDS, inplace=True)
-        result = result.values
-        for indicator in self._indicators:
-            row_vals = indicator.data.iloc[self.last_idx].values
-            result = np.append(result, row_vals)
-        return result
+        if self._use_train_data:
+            return self._train_data[self.last_idx]
+        else:
+            result = self._data.iloc[self.last_idx]
+            result.drop(EXCLUDE_FIELDS, inplace=True)
+            result = result.values
+            for indicator in self._indicators:
+                row_vals = indicator.data.iloc[self.last_idx].values
+                result = np.append(result, row_vals)
+            return result
 
     @property
     def last_price(self):

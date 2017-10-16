@@ -17,6 +17,7 @@ from qrypto.strategy.qlearn.experience_buffer import ExperienceBuffer
 from qrypto.strategy.qlearn.rnn_classifier import RNNClassifier
 
 
+tf.logging.set_verbosity(tf.logging.ERROR)
 log = logging.getLogger(__name__)
 
 
@@ -69,12 +70,14 @@ class ClassifierStrategy(object):
                 BasicIndicator('cci', {'timeperiod': 20}),
                 BasicIndicator('sma', {'timeperiod': 3}),
                 BasicIndicator('ema', {'timeperiod': 6}),
-                BasicIndicator('ema', {'timeperiod': 12})
+                BasicIndicator('ema', {'timeperiod': 12}),
+                BasicIndicator('mfi', {'timeperiod': 14}),
+                BasicIndicator('trix')
             ],
             'BTC': [
-                # BasicIndicator('rsi', {'timeperiod': 10}),
                 BasicIndicator('mom', {'timeperiod': 1}),
-                BasicIndicator('mom', {'timeperiod': 3})
+                BasicIndicator('mom', {'timeperiod': 6}),
+                BasicIndicator('mom', {'timeperiod': 12})
             ]
         }
         self.data = CompositeQLearnDataset(base_currency, configs)
@@ -174,7 +177,7 @@ class ClassifierStrategy(object):
                     # saver.save(sess, str(self.models_dir/'model.ckpt'))
 
                     # Compute accuracy over training set
-                    print('Evaluating test set...')
+                    print('Evaluating training set...')
                     self.data.set_to(initial_step)
                     train_predictions, train_confidences, _ = self._evaluate(sess, classifier, train_steps, place_orders=False)
 
@@ -225,7 +228,8 @@ class ClassifierStrategy(object):
             if place_orders and confidence >= self.softmax_threshold:
                 _, cum_return = self.data.step_val(prediction)
                 returns.append(cum_return)
-            self.data.next()
+            else:
+                self.data.next()
 
             label = 1 if self.data.last_price > price else 0
             confidences.append(confidence)
