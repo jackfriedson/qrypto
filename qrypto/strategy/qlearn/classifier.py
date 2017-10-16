@@ -140,6 +140,8 @@ class ClassifierStrategy(object):
             tf.set_random_seed(random_seed)
 
         cell = tf.contrib.rnn.LSTMCell(num_units=self.n_inputs, state_is_tuple=True, activation=tf.nn.softsign, use_peepholes=True)
+        # TODO: try adding attention to the LSTM
+        cell = tf.contrib.rnn.AttentionCellWrapper(cell, 1, state_is_tuple=True)
         cell = tf.contrib.rnn.MultiRNNCell([cell] * self.rnn_layers, state_is_tuple=True)
         classifier = RNNClassifier('rnn_classifier', cell, self.n_inputs, self.n_outputs, summaries_dir=summaries_dir, **kwargs)
 
