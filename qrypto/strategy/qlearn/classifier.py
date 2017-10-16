@@ -215,8 +215,8 @@ class ClassifierStrategy(object):
 
             self.data.next()
 
-            if len(deque) >= self.target_period:
-                state, price = deque.popleft()
+            if len(working_list) >= self.target_period:
+                state, price = working_list.popleft()
                 label = 1 if self.data.last_price > price else 0
                 training_data.add((state, label))
 
