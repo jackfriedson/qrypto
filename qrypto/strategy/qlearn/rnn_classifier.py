@@ -15,7 +15,6 @@ class RNNClassifier(object):
                  renorm_decay: float = 0.99,
                  dropout_keep_prob: float = 1.0,
                  rnn_layers: int = 1,
-                 attention_depth: int = 1,
                  summaries_dir: str = None):
         self.scope = scope
 
@@ -32,7 +31,6 @@ class RNNClassifier(object):
 
             rnn_cell = tf.contrib.rnn.LSTMCell(num_units=n_inputs, state_is_tuple=True, activation=tf.nn.softsign, use_peepholes=True)
             # TODO: try adding attention to the LSTM
-            rnn_cell = tf.contrib.rnn.AttentionCellWrapper(rnn_cell, attention_depth)
             # rnn_cell = tf.contrib.rnn.DropoutWrapper(rnn_cell, output_keep_prob=dropout_keep_prob)
             rnn_cell = tf.contrib.rnn.MultiRNNCell([rnn_cell] * rnn_layers, state_is_tuple=True)
 
