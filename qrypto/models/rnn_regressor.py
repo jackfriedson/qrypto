@@ -20,7 +20,7 @@ class RNNRegressor(object):
 
         with tf.variable_scope(scope):
             self.inputs = tf.placeholder(shape=[None, n_inputs], dtype=tf.float32, name='inputs')
-            self.labels = tf.placeholder(shape=[None], dtype=tf.int32, name='labels')
+            self.labels = tf.placeholder(shape=[None], dtype=tf.float32, name='labels')
             self.phase = tf.placeholder(dtype=tf.bool, name='phase')
             self.trace_length = tf.placeholder(dtype=tf.int32, name='trace_length')
 
