@@ -40,9 +40,14 @@ class BaseIndicator(object):
 
 
 class BasicIndicator(BaseIndicator):
-    def __init__(self, name: str, config: dict = None) -> None:
+    def __init__(self, name: str, timeperiod: int = None, config: dict = None) -> None:
+        config = config or {}
         self.indicator_name = name
-        super(BasicIndicator, self).__init__(config_dict=config or {})
+
+        if timeperiod:
+            config.update({'timeperiod': timeperiod})
+
+        super(BasicIndicator, self).__init__(config_dict=config)
 
     @property
     def suffix(self):

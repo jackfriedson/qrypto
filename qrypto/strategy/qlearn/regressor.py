@@ -53,31 +53,31 @@ class RegressorStrategy(object):
 
         configs = {
             base_currency: [
-                BasicIndicator('rsi', {'timeperiod': 6}),
-                BasicIndicator('rsi', {'timeperiod': 12}),
-                BasicIndicator('mom', {'timeperiod': 1}),
-                BasicIndicator('mom', {'timeperiod': 3}),
+                BasicIndicator('rsi', 6),
+                BasicIndicator('rsi', 12),
+                BasicIndicator('mom', 1),
+                BasicIndicator('mom', 3),
                 BasicIndicator('obv'),
-                BasicIndicator('adx', {'timeperiod': 14}),
-                BasicIndicator('adx', {'timeperiod': 20}),
+                BasicIndicator('adx', 14),
+                BasicIndicator('adx', 20),
                 BasicIndicator('macd'),
                 BasicIndicator('bbands'),
                 BasicIndicator('willr'),
-                BasicIndicator('atr', {'timeperiod': 14}),
-                BasicIndicator('rocr', {'timeperiod': 3}),
-                BasicIndicator('rocr', {'timeperiod': 12}),
-                BasicIndicator('cci', {'timeperiod': 12}),
-                BasicIndicator('cci', {'timeperiod': 20}),
-                BasicIndicator('sma', {'timeperiod': 3}),
-                BasicIndicator('ema', {'timeperiod': 6}),
-                BasicIndicator('ema', {'timeperiod': 12}),
-                BasicIndicator('mfi', {'timeperiod': 14}),
+                BasicIndicator('atr', 14),
+                BasicIndicator('rocr', 3),
+                BasicIndicator('rocr', 12),
+                BasicIndicator('cci', 12),
+                BasicIndicator('cci', 20),
+                BasicIndicator('sma', 3),
+                BasicIndicator('ema', 6),
+                BasicIndicator('ema', 12),
+                BasicIndicator('mfi', 14),
                 BasicIndicator('trix')
             ],
             'BTC': [
-                BasicIndicator('mom', {'timeperiod': 1}),
-                BasicIndicator('mom', {'timeperiod': 6}),
-                BasicIndicator('mom', {'timeperiod': 12})
+                BasicIndicator('mom', 1),
+                BasicIndicator('mom', 6),
+                BasicIndicator('mom', 12)
             ]
         }
         self.data = CompositeQLearnDataset(base_currency, configs)
