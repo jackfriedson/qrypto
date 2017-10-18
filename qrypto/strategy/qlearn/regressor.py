@@ -233,6 +233,7 @@ class RegressorStrategy(object):
             price = self.data.last_price
             state = self.data.state()
             prediction, rnn_state = regressor.predict(session, np.expand_dims(state, 0), 1, rnn_state, training=False)
+            prediction = prediction[0]
 
             action_idx = 1 if prediction > 0 else 0
             _, cum_return = self.data.validate(action_idx, place_orders=place_orders)
@@ -241,7 +242,7 @@ class RegressorStrategy(object):
             actual = (self.data.last_price / price) - 1.
             difference = abs(prediction - actual)
             differences.append(difference)
-            correct_direction = (prediction > 0 and actual > 0) or (prediction < 0 and actual < 0)
+            correct_direction = (prediction >= 0 and actual >= 0) or (prediction < 0 and actual < 0)
             correct_directions.append(correct_direction)
 
         return differences, correct_directions, returns
