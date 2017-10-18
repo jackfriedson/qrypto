@@ -13,8 +13,8 @@ import tensorflow as tf
 from qrypto.backtest import Backtest
 from qrypto.data.datasets import QLearnDataset
 from qrypto.data.indicators import BasicIndicator, DifferenceIndicator
+from qrypto.models.qestimator import QEstimator, ModelParametersCopier
 from qrypto.strategy.qlearn.experience_buffer import ExperienceBuffer
-from qrypto.strategy.qlearn.qestimator import QEstimator, ModelParametersCopier
 
 
 log = logging.getLogger(__name__)

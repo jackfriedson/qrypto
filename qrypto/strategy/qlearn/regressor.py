@@ -13,7 +13,7 @@ import tensorflow as tf
 from qrypto.backtest import Backtest
 from qrypto.data.datasets import CompositeQLearnDataset
 from qrypto.data.indicators import BasicIndicator
-from qrypto.models.rnn_classifier import RNNClassifier
+from qrypto.models.rnn_regressor import RNNRegressor
 from qrypto.strategy.qlearn.experience_buffer import ExperienceBuffer
 
 
@@ -32,7 +32,7 @@ models_dir = experiments_dir/'models'
 models_dir.mkdir(exist_ok=True)
 
 
-class ClassifierStrategy(object):
+class RegressorStrategy(object):
 
     def __init__(self,
                  exchange,
@@ -140,8 +140,8 @@ class ClassifierStrategy(object):
         if random_seed:
             tf.set_random_seed(random_seed)
 
-        classifier = RNNClassifier('rnn_classifier', self.n_inputs, self.n_outputs, rnn_layers=self.rnn_layers,
-                                   summaries_dir=summaries_dir, **kwargs)
+        regressor = RNNRegressor('rnn_regressor', self.n_inputs, self.n_outputs, rnn_layers=self.rnn_layers,
+                                  summaries_dir=summaries_dir, **kwargs)
 
         # saver = tf.train.Saver()
         with tf.Session() as sess:
@@ -168,21 +168,21 @@ class ClassifierStrategy(object):
                         rnn_state = self._initial_rnn_state(batch_size)
                         samples = training_data.sample(batch_size, trace_length)
                         inputs, labels = map(np.array, zip(*samples))
-                        loss = classifier.update(sess, inputs, labels, trace_length, rnn_state)
+                        loss = regressor.update(sess, inputs, labels, trace_length, rnn_state)
                         losses.append(loss)
 
                     # saver.save(sess, str(self.models_dir/'model.ckpt'))
 
-                    # Compute accuracy over training set
+                    # Compute error over training set
                     print('Evaluating training set...')
                     self.data.set_to(initial_step)
-                    train_predictions, train_confidences, _ = self._evaluate(sess, classifier, train_steps, place_orders=False)
+                    training_errors, _ = self._evaluate(sess, regressor, train_steps, place_orders=False)
 
-                    # Compute accuracy over validation set
+                    # Compute error over validation set
                     print('Evaluating validation set...')
                     self.data.set_to(initial_step + train_steps, reset_orders=False)
                     start_price = self.data.last_price
-                    val_predictions, val_confidences, returns = self._evaluate(sess, classifier, validation_steps)
+                    validation_errors, returns = self._evaluate(sess, regressor, validation_steps)
 
                     # Compute outperformance of market return
                     market_return, outperformance = self._calculate_performance(returns, start_price)
@@ -192,66 +192,54 @@ class ClassifierStrategy(object):
                     # Add Tensorboard summaries
                     epoch_summary = tf.Summary()
                     epoch_summary.value.add(simple_value=np.average(losses), tag='epoch/train/loss')
-                    epoch_summary.value.add(simple_value=np.average(train_predictions), tag='epoch/train/accuracy')
-                    epoch_summary.value.add(simple_value=np.average(train_confidences), tag='epoch/train/confidence')
-                    epoch_summary.value.add(simple_value=np.average(val_predictions), tag='epoch/validate/accuracy')
-                    epoch_summary.value.add(simple_value=np.average(val_confidences), tag='epoch/validate/confidence')
+                    epoch_summary.value.add(simple_value=np.average(train_errors), tag='epoch/train/error')
+                    epoch_summary.value.add(simple_value=np.average(validation_errors), tag='epoch/validate/error')
                     epoch_summary.value.add(simple_value=outperformance, tag='epoch/validate/outperformance')
-                    classifier.summary_writer.add_summary(epoch_summary, abs_epoch)
-                    classifier.summary_writer.add_summary(self._get_epoch_chart(abs_epoch), abs_epoch)
-                    classifier.summary_writer.flush()
+                    regressor.summary_writer.add_summary(epoch_summary, abs_epoch)
+                    regressor.summary_writer.add_summary(self._get_epoch_chart(abs_epoch), abs_epoch)
+                    regressor.summary_writer.flush()
 
                 # After all repeats, move to the next timeframe
                 initial_step += validation_steps
 
     def _populate_training_data(self, n_steps: int):
         training_data = ExperienceBuffer(self.max_buffer_size, self.random)
-        working_list = deque()
 
         for _ in range(n_steps):
             price = self.data.last_price
             state = self.data.state()
-            working_list.append((state, price))
 
             self.data.next()
 
-            if len(working_list) >= self.target_period:
-                state, price = working_list.popleft()
-                label = 1 if self.data.last_price > price else 0
-                training_data.add((state, label))
+            label = self.data.last_price / price
+            training_data.add((state, label))
 
         return training_data
 
     def _initial_rnn_state(self, size: int = 1):
         return [(np.zeros([size, self.n_inputs]), np.zeros([size, self.n_inputs]))] * self.rnn_layers
 
-    def _evaluate(self, session, classifier, n_steps, place_orders: bool = True):
+    def _evaluate(self, session, regressor, n_steps, place_orders: bool = True):
         prog_bar = progressbar.ProgressBar(term_width=80)
         initial_rnn_state = rnn_state = self._initial_rnn_state()
-        prices = deque()
 
         returns = []
-        confidences = []
-        predictions = []
+        errors = []
 
         for _ in prog_bar(range(n_steps)):
-            prices.append(self.data.last_price)
+            price = self.data.last_price
             state = self.data.state()
-            _, probabilities, rnn_state = classifier.predict(session, np.expand_dims(state, 0), 1, rnn_state, training=False)
-            prediction = np.argmax(probabilities)
-            confidence = probabilities[0][prediction]
-            confidences.append(confidence)
+            prediction, rnn_state = regressor.predict(session, np.expand_dims(state, 0), 1, rnn_state, training=False)
 
-            place_orders = place_orders and confidence >= self.softmax_threshold
-            _, cum_return = self.data.validate(prediction, place_orders=place_orders)
+            action_idx = 1 if prediction > 0 else 0
+            _, cum_return = self.data.validate(action_idx, place_orders=place_orders)
             returns.append(cum_return)
 
-            if len(prices) >= self.target_period:
-                price = prices.popleft()
-                label = 1 if self.data.last_price > price else 0
-                predictions.append(prediction == label)
+            actual = self.data.last_price / price
+            difference = abs(prediction - actual)
+            errors.append(difference)
 
-        return predictions, confidences, returns
+        return errors, returns
 
     def _calculate_performance(self, returns, start_price):
         market_return = (self.data.last_price / start_price) - 1.

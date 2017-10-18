@@ -11,8 +11,10 @@ from qrypto import settings
 from qrypto.backtest import Backtest
 from qrypto.exchanges import Kraken, Poloniex
 from qrypto.strategy import (TakeProfitMomentumStrategy, MFIMomentumStrategy, QTableStrategy, QNetworkStrategy,
-                             ClassifierStrategy)
+                             ClassifierStrategy, RegressorStrategy)
 
+
+RANDOM_SEED = 12345
 
 KRAKEN_API_KEY = os.path.expanduser('~/.kraken_api_key')
 POLONIEX_API_KEY = os.path.expanduser('~/.poloniex_api_key')
@@ -69,7 +71,7 @@ def qlearnnet(ctx, train_start, train_end, **kwargs):
     exchange = ctx.obj.get('exchange')
     config = settings.get_config('qlearn')
     strategy = QNetworkStrategy(exchange, **config)
-    strategy.train(train_start, train_end, random_seed=12345, **kwargs)
+    strategy.train(train_start, train_end, random_seed=RANDOM_SEED, **kwargs)
 
 
 @cli.command()
@@ -92,8 +94,29 @@ def classifier(ctx, train_start, train_end, **kwargs):
     exchange = ctx.obj.get('exchange')
     config = settings.get_config('qlearn')
     strategy = ClassifierStrategy(exchange, **config)
-    strategy.train(train_start, train_end, random_seed=12345, **kwargs)
+    strategy.train(train_start, train_end, random_seed=RANDOM_SEED, **kwargs)
 
+@cli.command()
+@click.option('--train-start', type=str, default='6/1/2017')
+@click.option('--train-end', type=str, default='10/1/2017')
+@click.option('--n-slices', type=int, default=10)
+@click.option('--n-epochs', type=int, default=1)
+@click.option('--validation-percent', type=float, default=0.2)
+@click.option('--softmax-threshold', type=float, default=0.5)
+@click.option('--target-period', type=int, default=1)
+@click.option('--learn-rate', type=float, default=0.005)
+@click.option('--hidden-units', type=int, default=None)
+@click.option('--batch-size', type=int, default=16)
+@click.option('--batch-repeats', type=int, default=40)
+@click.option('--dropout-keep-prob', type=float, default=1.0)
+@click.option('--trace-length', type=int, default=32)
+@click.option('--rnn-layers', type=int, default=1)
+@click.pass_context
+def regressor(ctx, train_start, train_end, **kwargs):
+    exchange = ctx.obj.get('exchange')
+    config = settings.get_config('qlearn')
+    strategy = RegressorStrategy(exchange, **config)
+    strategy.train(train_start, train_end, random_seed=RANDOM_SEED, **kwargs)
 
 @cli.command()
 @click.pass_context
