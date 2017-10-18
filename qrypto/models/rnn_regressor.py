@@ -41,7 +41,7 @@ class RNNRegressor(object):
             n_hiddens = hidden_units or (n_inputs + n_outputs) // 2
             self.hidden_layer = tf.contrib.layers.fully_connected(self.rnn, n_hiddens, activation_fn=tf.nn.tanh)
             self.output_layer = tf.contrib.layers.fully_connected(self.hidden_layer, 1, activation_fn=None)
-            self.output_layer = tf.reshape(self.output_layer, shape=tf.shape(self.inputs)[0])
+            self.output_layer = tf.reshape(self.output_layer, shape=[tf.shape(self.inputs)[0]])
 
             # TODO: try masking half of the loss
 
