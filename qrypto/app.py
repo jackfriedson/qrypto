@@ -82,10 +82,10 @@ def qlearnnet(ctx, train_start, train_end, **kwargs):
 @click.option('--target-period', type=int, default=1)
 @click.option('--learn-rate', type=float, default=0.005)
 @click.option('--hidden-units', type=int, default=None)
-@click.option('--batch-size', type=int, default=8)
-@click.option('--batch-repeats', type=int, default=10)
+@click.option('--batch-size', type=int, default=16)
+@click.option('--batch-repeats', type=int, default=40)
 @click.option('--dropout-keep-prob', type=float, default=1.0)
-@click.option('--trace-length', type=int, default=16)
+@click.option('--trace-length', type=int, default=32)
 @click.option('--rnn-layers', type=int, default=1)
 @click.pass_context
 def classifier(ctx, train_start, train_end, **kwargs):
