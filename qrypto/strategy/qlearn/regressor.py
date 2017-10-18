@@ -192,7 +192,7 @@ class RegressorStrategy(object):
                     # Add Tensorboard summaries
                     epoch_summary = tf.Summary()
                     epoch_summary.value.add(simple_value=np.average(losses), tag='epoch/train/loss')
-                    epoch_summary.value.add(simple_value=np.average(train_errors), tag='epoch/train/error')
+                    epoch_summary.value.add(simple_value=np.average(training_errors), tag='epoch/train/error')
                     epoch_summary.value.add(simple_value=np.average(validation_errors), tag='epoch/validate/error')
                     epoch_summary.value.add(simple_value=outperformance, tag='epoch/validate/outperformance')
                     regressor.summary_writer.add_summary(epoch_summary, abs_epoch)
