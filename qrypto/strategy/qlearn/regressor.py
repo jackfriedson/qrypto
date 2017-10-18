@@ -211,7 +211,7 @@ class RegressorStrategy(object):
 
             self.data.next()
 
-            label = self.data.last_price / price
+            label = (self.data.last_price / price) - 1.
             training_data.add((state, label))
 
         return training_data
@@ -235,7 +235,7 @@ class RegressorStrategy(object):
             _, cum_return = self.data.validate(action_idx, place_orders=place_orders)
             returns.append(cum_return)
 
-            actual = self.data.last_price / price
+            actual = (self.data.last_price / price) - 1.
             difference = abs(prediction - actual)
             errors.append(difference)
 
