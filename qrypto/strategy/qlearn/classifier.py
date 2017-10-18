@@ -264,7 +264,7 @@ class ClassifierStrategy(object):
 
     def _get_epoch_chart(self, epoch):
         buf = io.BytesIO()
-        self.data.plot(orders=False, save_to=buf)
+        self.data.plot(save_to=buf)
         buf.seek(0)
         image = tf.image.decode_png(buf.getvalue(), channels=4)
         image = tf.expand_dims(image, 0)
