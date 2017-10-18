@@ -176,13 +176,13 @@ class RegressorStrategy(object):
                     # Compute error over training set
                     print('Evaluating training set...')
                     self.data.set_to(initial_step)
-                    training_errors, _ = self._evaluate(sess, regressor, train_steps, place_orders=False)
+                    train_error, train_accuracy, _ = self._evaluate(sess, regressor, train_steps, place_orders=False)
 
                     # Compute error over validation set
                     print('Evaluating validation set...')
                     self.data.set_to(initial_step + train_steps, reset_orders=False)
                     start_price = self.data.last_price
-                    validation_errors, returns = self._evaluate(sess, regressor, validation_steps)
+                    val_error, val_accuracy, returns = self._evaluate(sess, regressor, validation_steps)
 
                     # Compute outperformance of market return
                     market_return, outperformance = self._calculate_performance(returns, start_price)
@@ -192,8 +192,10 @@ class RegressorStrategy(object):
                     # Add Tensorboard summaries
                     epoch_summary = tf.Summary()
                     epoch_summary.value.add(simple_value=np.average(losses), tag='epoch/train/loss')
-                    epoch_summary.value.add(simple_value=np.average(training_errors), tag='epoch/train/error')
-                    epoch_summary.value.add(simple_value=np.average(validation_errors), tag='epoch/validate/error')
+                    epoch_summary.value.add(simple_value=np.average(train_error), tag='epoch/train/error')
+                    epoch_summary.value.add(simple_value=np.average(train_accuracy), tag='epoch/train/accuracy')
+                    epoch_summary.value.add(simple_value=np.average(val_error), tag='epoch/validate/error')
+                    epoch_summary.value.add(simple_value=np.average(val_accuracy), tag='epoch/validate/accuracy')
                     epoch_summary.value.add(simple_value=outperformance, tag='epoch/validate/outperformance')
                     regressor.summary_writer.add_summary(epoch_summary, abs_epoch)
                     regressor.summary_writer.add_summary(self._get_epoch_chart(abs_epoch), abs_epoch)
@@ -224,7 +226,8 @@ class RegressorStrategy(object):
         initial_rnn_state = rnn_state = self._initial_rnn_state()
 
         returns = []
-        errors = []
+        differences = []
+        correct_directions = []
 
         for _ in prog_bar(range(n_steps)):
             price = self.data.last_price
@@ -237,9 +240,11 @@ class RegressorStrategy(object):
 
             actual = (self.data.last_price / price) - 1.
             difference = abs(prediction - actual)
-            errors.append(difference)
+            differences.append(difference)
+            correct_direction = (prediction > 0 and actual > 0) or (prediction < 0 and actual < 0)
+            correct_directions.append(correct_direction)
 
-        return errors, returns
+        return differences, correct_directions, returns
 
     def _calculate_performance(self, returns, start_price):
         market_return = (self.data.last_price / start_price) - 1.
