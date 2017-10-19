@@ -44,8 +44,14 @@ class RNNRegressor(object):
             self.output_layer = tf.reshape(self.output_layer, shape=[tf.shape(self.inputs)[0]])
 
             # TODO: try masking half of the loss
+            self.maskA = tf.zeros([batch_size, self.trace_length // 2])
+            self.maskB = tf.ones([batch_size, self.trace_length // 2])
+            self.mask = tf.concat([self.maskA, self.maskB], 1)
+            self.mask = tf.reshape(self.mask, [-1])
 
-            self.loss = tf.losses.mean_squared_error(labels=self.labels, predictions=self.output_layer)
+            self.loss = tf.squared_difference(self.labels, self.output_layer)
+            self.loss = tf.reduce_mean(self.loss * self.mask)
+
             self.optimizer = tf.train.AdamOptimizer(learn_rate)
 
             update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
