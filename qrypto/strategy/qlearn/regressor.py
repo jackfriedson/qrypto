@@ -72,7 +72,11 @@ class RegressorStrategy(object):
                 BasicIndicator('ema', 6),
                 BasicIndicator('ema', 12),
                 BasicIndicator('mfi', 14),
-                BasicIndicator('trix')
+                BasicIndicator('trix'),
+                BasicIndicator('stoch'),
+                BasicIndicator('stochrsi'),
+                BasicIndicator('ad'),
+                BasicIndicator('adosc')
             ],
             'BTC': [
                 BasicIndicator('mom', 1),
