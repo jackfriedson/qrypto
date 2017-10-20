@@ -103,22 +103,19 @@ class RegressorStrategy(object):
         new_data = self.exchange.get_ohlc(self.base_currency, self.quote_currency, interval=self.ohlc_interval)
         self.data.update(new_data)
 
-    def _initialize_training_data(self, start, end):
+    def _initialize_training_data(self, start, end, additional_currencies: List[str] = None):
+        additional_currencies = additional_currencies or []
+
+        # Initialize core currency data
         exchange_train = Backtest(self.exchange, self.base_currency, self.quote_currency,
-                                  start=start, end=end, interval=self.ohlc_interval)
-        self.data.init_data(exchange_train.all(), self.base_currency)
+                                  start=start, end=end, interval=self.ohlc_interval).all()
+        self.data.init_data(exchange_train, self.base_currency)
 
-        btc_data = Backtest(self.exchange, 'BTC', self.quote_currency, start=start, end=end,
+        # Initialize additional currency data
+        for currency in additional_currencies:
+            currency_data = Backtest(self.exchange, currency, self.quote_currency, start=start, end=end,
                             interval=self.ohlc_interval).all()
-        self.data.init_data(btc_data, 'BTC')
-
-        ltc_data = Backtest(self.exchange, 'LTC', self.quote_currency, start=start, end=end,
-                            interval=self.ohlc_interval).all()
-        self.data.init_data(ltc_data, 'LTC')
-
-        etc_data = Backtest(self.exchange, 'ETC', self.quote_currency, start=start, end=end,
-                            interval=self.ohlc_interval).all()
-        self.data.init_data(etc_data, 'ETC')
+            self.data.init_data(currency_data, currency)
 
         return len(exchange_train.date_range)
 
@@ -139,7 +136,7 @@ class RegressorStrategy(object):
               **kwargs):
         # TODO: save training params to file for later reference
 
-        total_steps = self._initialize_training_data(start, end)
+        total_steps = self._initialize_training_data(start, end, ['BTC', 'LTC', 'ETC'])
 
         # TODO: move these to init
         self.n_inputs = self.data.n_state_factors
