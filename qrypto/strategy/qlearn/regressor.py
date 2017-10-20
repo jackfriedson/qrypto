@@ -4,7 +4,7 @@ import logging
 import time
 from collections import deque, namedtuple
 from pathlib import Path
-from typing import Tuple
+from typing import List, Tuple
 
 import numpy as np
 import progressbar
