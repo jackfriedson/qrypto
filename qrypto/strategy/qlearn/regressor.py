@@ -108,7 +108,7 @@ class RegressorStrategy(object):
 
         # Initialize core currency data
         exchange_train = Backtest(self.exchange, self.base_currency, self.quote_currency,
-                                  start=start, end=end, interval=self.ohlc_interval).all()
+                                  start=start, end=end, interval=self.ohlc_interval)
         self.data.init_data(exchange_train, self.base_currency)
 
         # Initialize additional currency data
