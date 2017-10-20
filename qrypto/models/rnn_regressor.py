@@ -30,7 +30,8 @@ class RNNRegressor(object):
             self.norm_flat = tf.reshape(self.norm_layer, shape=[batch_size, self.trace_length, n_inputs])
 
             rnn_cell = tf.contrib.rnn.LSTMCell(num_units=n_inputs, state_is_tuple=True, activation=tf.nn.softsign, use_peepholes=True)
-            rnn_cell = tf.contrib.rnn.DropoutWrapper(rnn_cell, output_keep_prob=dropout_keep_prob)
+            if dropout_keep_prob < 1:
+                rnn_cell = tf.contrib.rnn.DropoutWrapper(rnn_cell, output_keep_prob=dropout_keep_prob)
             # TODO: try adding attention to the LSTM
             rnn_cell = tf.contrib.rnn.MultiRNNCell([rnn_cell] * rnn_layers, state_is_tuple=True)
 

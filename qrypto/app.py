@@ -102,7 +102,7 @@ def classifier(ctx, train_start, train_end, **kwargs):
 @click.option('--n-slices', type=int, default=20)
 @click.option('--n-epochs', type=int, default=1)
 @click.option('--validation-percent', type=float, default=0.05)
-@click.option('--softmax-threshold', type=float, default=0.5)
+@click.option('--prediction-threshold', type=float, default=0.)
 @click.option('--target-period', type=int, default=1)
 @click.option('--learn-rate', type=float, default=0.005)
 @click.option('--hidden-units', type=int, default=None)

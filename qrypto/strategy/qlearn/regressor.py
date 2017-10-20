@@ -110,7 +110,7 @@ class RegressorStrategy(object):
               n_slices: int = 10,
               n_epochs: int = 1,
               validation_percent: float = 0.2,
-              softmax_threshold: float = 0.5,
+              prediction_threshold: float = 0.,
               max_buffer_size: int = 100000,
               target_period: int = 1,
               batch_size: int = 8,
@@ -127,7 +127,7 @@ class RegressorStrategy(object):
         self.n_inputs = self.data.n_state_factors
         self.n_outputs = 2
         self.rnn_layers = rnn_layers
-        self.softmax_threshold = softmax_threshold
+        self.prediction_threshold = prediction_threshold
         self.random = np.random.RandomState(random_seed)
         self.max_buffer_size = max_buffer_size
         self.target_period = target_period
@@ -243,6 +243,7 @@ class RegressorStrategy(object):
             prediction = prediction[0]
 
             action_idx = 1 if prediction > 0 else 0
+            place_orders = place_orders and prediction > self.prediction_threshold
             _, cum_return = self.data.validate(action_idx, place_orders=place_orders)
             returns.append(cum_return)
 
