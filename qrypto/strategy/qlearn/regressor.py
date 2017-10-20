@@ -243,7 +243,7 @@ class RegressorStrategy(object):
             prediction = prediction[0]
 
             action_idx = 1 if prediction > 0 else 0
-            place_orders = place_orders and prediction > self.prediction_threshold
+            place_orders = place_orders and abs(prediction) > self.prediction_threshold
             _, cum_return = self.data.validate(action_idx, place_orders=place_orders)
             returns.append(cum_return)
 
