@@ -112,6 +112,14 @@ class RegressorStrategy(object):
                             interval=self.ohlc_interval).all()
         self.data.init_data(btc_data, 'BTC')
 
+        ltc_data = Backtest(self.exchange, 'LTC', self.quote_currency, start=start, end=end,
+                            interval=self.ohlc_interval).all()
+        self.data.init_data(ltc_data, 'LTC')
+
+        etc_data = Backtest(self.exchange, 'ETC', self.quote_currency, start=start, end=end,
+                            interval=self.ohlc_interval).all()
+        self.data.init_data(etc_data, 'ETC')
+
         return len(exchange_train.date_range)
 
     def train(self,
