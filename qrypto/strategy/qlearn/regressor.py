@@ -86,6 +86,16 @@ class RegressorStrategy(object):
                 BasicIndicator('mom', 6),
                 BasicIndicator('mom', 12)
             ]
+            'LTC': [
+                BasicIndicator('mom', 1),
+                BasicIndicator('mom', 6),
+                BasicIndicator('mom', 12)
+            ]
+            'ETC': [
+                BasicIndicator('mom', 1),
+                BasicIndicator('mom', 6),
+                BasicIndicator('mom', 12)
+            ]
         }
         self.data = CompositeQLearnDataset(base_currency, configs)
 
