@@ -55,18 +55,20 @@ class OHLCDataset(object):
         for indicator in self._indicators:
             indicator.update(self._data)
 
-    def add_position(self, long_short: str):
-        price = self.last_price
+    def add_position(self, long_short: str, time = None, price = None):
+        price = price or self.last_price
+        time = time or self.time
         if long_short == 'long':
-            self._longs[self.time] = price
+            self._longs[time] = price
         elif long_short == 'short':
-            self._shorts[self.time] = price
+            self._shorts[time] = price
 
-    def add_order(self, buy_sell: str, order_info: dict):
+    def add_order(self, buy_sell: str, order_info: dict, time = None):
+        time = time or self.time
         if buy_sell == 'buy':
-            self._orders.loc[self.time, 'buy'] = order_info['price']
+            self._orders.loc[time, 'buy'] = order_info['price']
         elif buy_sell == 'sell':
-            self._orders.loc[self.time, 'sell'] = order_info['price']
+            self._orders.loc[time, 'sell'] = order_info['price']
 
     def plot(self,
              data_column: str = 'close',

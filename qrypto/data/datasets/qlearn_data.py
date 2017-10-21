@@ -49,7 +49,7 @@ class QLearnDataset(object):
         self._current_timestep = start_step
 
         if reset_orders:
-            # self._ohlc_data._init_positions()
+            self._ohlc_data._init_positions()
             self._ohlc_data._init_orders()
 
     def next(self):
@@ -59,11 +59,9 @@ class QLearnDataset(object):
         self._ohlc_data.update(new_data)
 
     def step(self, idx: int):
-        """
-        """
         action = self.actions[idx]
         reward = 0.
-        self._ohlc_data.add_position(action)
+        self._ohlc_data.add_position(action, self.time, self.last_price)
 
         if self._position != action:
             reward -= self.fee
@@ -86,10 +84,10 @@ class QLearnDataset(object):
             test_reward -= self.fee
 
             if action == 'long':
-                self._ohlc_data.add_order('buy', {'price': self.last_price})
+                self._ohlc_data.add_order('buy', {'price': self.last_price}, self.time)
                 self._open_price = self.last_price
             elif action == 'short':
-                self._ohlc_data.add_order('sell', {'price': self.last_price})
+                self._ohlc_data.add_order('sell', {'price': self.last_price}, self.time)
                 self._open_price = None
 
         train_reward = self.step(idx)
@@ -120,7 +118,7 @@ class QLearnDataset(object):
         if self._is_training:
             return self._train_data[self._current_timestep]
         else:
-            result = self._ohcl_data.last_row
+            result = self._ohlc_data.last_row
             result.drop(self.exclude_fields, inplace=True)
             result = result.values
             for indicator in self._indicators:
