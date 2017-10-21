@@ -49,7 +49,7 @@ class QLearnDataset(object):
         self._current_timestep = start_step
 
         if reset_orders:
-            self._ohlc_data._init_positions()
+            # self._ohlc_data._init_positions()
             self._ohlc_data._init_orders()
 
     def next(self):
