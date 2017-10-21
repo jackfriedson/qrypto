@@ -59,7 +59,7 @@ class QNetworkStrategy(object):
             BasicIndicator('ppo'),
             # BasicIndicator('adx')
         ]
-        self.data = QLearnDataset(indicators=indicators, **kwargs)
+        self.data = QLearnDataset(indicators=indicators)
 
     def update(self):
         new_data = self.exchange.get_ohlc(self.base_currency, self.quote_currency, interval=self.ohlc_interval)

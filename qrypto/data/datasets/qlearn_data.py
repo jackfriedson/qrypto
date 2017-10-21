@@ -1,80 +1,140 @@
+from typing import List, Optional
+
 import numpy as np
+import pandas as pd
 
 from qrypto.data.datasets import OHLCDataset
+from qrypto.types import OHLC
 
 
-EXCLUDE_FIELDS = [
-    'open',
-    'high',
-    'low',
-]
-
-
-class QLearnDataset(OHLCDataset):
+class QLearnDataset(object):
+    """A dataset/environment manager for use with machine learning algorithms."""
     actions = ['short', 'long']
+    exclude_fields = [
+        'open',
+        'high',
+        'low',
+    ]
 
-    def __init__(self, *args, fee: float = 0.002, **kwargs):
+    def __init__(self, fee: float = 0.002, indicators: Optional[list] = None):
         self.fee = fee
-        self.train_counter = None
-        self.open_price = None
-        self.position = 'long'
-        self._use_train_data = True
-        self._open_order = False
 
-        super(QLearnDataset, self).__init__(*args, **kwargs)
+        self._ohlc_data = OHLCDataset(indicators=indicators)
+
+        self._current_timestep = 0
+        self._is_training = True
+        self._train_data = None
+
+        self._open_price = None
+        self._position = 'long'
 
     def init_data(self, data):
-        super(QLearnDataset, self).init_data(data)
+        self._ohlc_data.init_data(data)
         self._train_data = self.all.values
 
-    def use_train_data(self, should_use: bool):
-        self._use_train_data = should_use
+    def set_training(self, is_training: bool):
+        self._is_training = is_training
 
-    def set_to(self, start_step: int = 0, reset_orders: bool = True):
-        self.train_counter = start_step
-
-        if reset_orders:
-            self._init_positions()
-            self._init_orders()
-
+    def skip_nans(self) -> int:
+        """Increments the current timestep until none of the values are NaN. Useful
+        when using technical indicators that require at least n previous datapoints.
+        """
         while np.any(np.isnan(self.state())):
             self.next()
 
-        return self.train_counter
+        return self._current_timestep
+
+    def set_to(self, start_step, reset_orders: bool = True) -> None:
+        """Sets the current timestep to the given index."""
+        self._current_timestep = start_step
+
+        if reset_orders:
+            self._ohlc_data._init_positions()
+            self._ohlc_data._init_orders()
 
     def next(self):
-        self.train_counter += 1
+        self._current_timestep += 1
+
+    def update(self, new_data: List[OHLC]) -> None:
+        self._ohlc_data.update(new_data)
+
+    def step(self, idx: int):
+        """
+        """
+        action = self.actions[idx]
+        reward = 0.
+        self._ohlc_data.add_position(action)
+
+        if self._position != action:
+            reward -= self.fee
+
+        self._position = action
+        self.next()
+
+        if self._position == 'long':
+            reward += self.period_return
+        else:
+            reward -= self.period_return
+
+        return reward
+
+    def validate(self, idx: int, place_orders: bool = True):
+        action = self.actions[idx]
+        test_reward = 0.
+
+        if place_orders and self._position != action:
+            test_reward -= self.fee
+
+            if action == 'long':
+                self._ohlc_data.add_order('buy', {'price': self.last_price})
+                self._open_price = self.last_price
+            elif action == 'short':
+                self._ohlc_data.add_order('sell', {'price': self.last_price})
+                self._open_price = None
+
+        train_reward = self.step(idx)
+
+        if self._open_price is not None:
+            test_reward += self.period_return
+
+        return train_reward, test_reward
+
+    def plot(self, **kwargs):
+        self._ohlc_data.plot(**kwargs)
 
     @property
-    def all(self):
-        result = super(QLearnDataset, self).all
-        result.drop(EXCLUDE_FIELDS, axis=1, inplace=True)
+    def all(self) -> pd.DataFrame:
+        result = self._ohlc_data.all
+        result.drop(self.exclude_fields, axis=1, inplace=True)
         return result
 
     @property
-    def last_idx(self):
-        return self.train_counter if self.train_counter is not None else -1
+    def _last_idx(self):
+        if self._is_training:
+            return self._current_timestep
+        else:
+            return -1
 
     @property
     def last_row(self):
-        if self._use_train_data:
-            return self._train_data[self.last_idx]
+        if self._is_training:
+            return self._train_data[self._current_timestep]
         else:
-            result = self._data.iloc[self.last_idx]
-            result.drop(EXCLUDE_FIELDS, inplace=True)
+            result = self._ohcl_data.last_row
+            result.drop(self.exclude_fields, inplace=True)
             result = result.values
             for indicator in self._indicators:
-                row_vals = indicator.data.iloc[self.last_idx].values
+                row_vals = indicator.data.iloc[self._last_idx].values
                 result = np.append(result, row_vals)
             return result
 
     @property
     def last_price(self):
-        return self._data.iloc[self.last_idx]['close']
+        return self._ohlc_data._data.iloc[self._last_idx]['close']
 
     @property
     def time(self):
-        return self._data.iloc[self.last_idx].name
+        return self._ohlc_data._data.iloc[self._last_idx].name
 
     @property
     def n_state_factors(self) -> int:
@@ -90,50 +150,11 @@ class QLearnDataset(OHLCDataset):
 
     @property
     def period_return(self):
-        return (self.close[self.last_idx] / self.close[self.last_idx - 1]) - 1.
+        return (self._ohlc_data.close[self._last_idx] / self._ohlc_data.close[self._last_idx - 1]) - 1.
 
     @property
     def cumulative_return(self):
-        if self.open_price:
-            return (self.last_price / self.open_price) - 1.
+        if self._open_price:
+            return (self.last_price / self._open_price) - 1.
         else:
             return 0.
-
-    def step(self, idx: int):
-        action = self.actions[idx]
-        reward = 0.
-        self.add_position(action)
-
-        if self.position != action:
-            reward -= self.fee
-
-        self.position = action
-        self.next()
-
-        if self.position == 'long':
-            reward += self.period_return
-        else:
-            reward -= self.period_return
-
-        return reward
-
-    def validate(self, idx: int, place_orders: bool = True):
-        action = self.actions[idx]
-        test_reward = 0.
-
-        if place_orders and self.position != action:
-            test_reward -= self.fee
-
-            if action == 'long':
-                self.add_order('buy', {'price': self.last_price})
-                self._open_order = True
-            elif action == 'short':
-                self.add_order('sell', {'price': self.last_price})
-                self._open_order = False
-
-        train_reward = self.step(idx)
-
-        if self._open_order:
-            test_reward += self.period_return
-
-        return train_reward, test_reward

@@ -125,7 +125,7 @@ class ClassifierStrategy(object):
         self.max_buffer_size = max_buffer_size
         self.target_period = target_period
 
-        nan_buffer = self.data.set_to()
+        nan_buffer = self.data.skip_nans()
         total_steps -= nan_buffer + 1
         initial_step = nan_buffer
 

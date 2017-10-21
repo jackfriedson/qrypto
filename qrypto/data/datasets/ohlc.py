@@ -7,13 +7,20 @@ import numpy as np
 import pandas as pd
 from matplotlib import gridspec
 
+from qrypto.types import OHLC
+
 
 matplotlib.style.use('ggplot')
 
 
 class OHLCDataset(object):
+    """A dataset consisting of market candlestick data (open, high, low, close, and volume).
+    Includes support for technical indicators, position and order tracking, and plotting.
+    """
 
-    def __init__(self, data: List[dict] = None, indicators: Optional[List] = None):
+    def __init__(self,
+                 data: Optional[List[OHLC]] = None,
+                 indicators: Optional[List] = None):
         self._data = None
         self._indicators = indicators or []
         self._init_positions()
@@ -24,19 +31,19 @@ class OHLCDataset(object):
 
         # TODO: Implement dynamic plotting of orders while running
 
-    def init_data(self, data):
+    def init_data(self, data: List[OHLC]) -> None:
         self._data = None
         self.update(data)
 
-    def _init_positions(self):
+    def _init_positions(self) -> None:
         self._longs = {}
         self._shorts = {}
 
-    def _init_orders(self):
+    def _init_orders(self) -> None:
         self._orders = pd.DataFrame(columns=['datetime', 'buy', 'sell'])
         self._orders.set_index('datetime', inplace=True)
 
-    def update(self, incoming_data: List[dict]) -> None:
+    def update(self, incoming_data: List[OHLC]) -> None:
         if self._data is None:
             self._data = pd.DataFrame(incoming_data)
             self._data.set_index('datetime', inplace=True)
@@ -61,11 +68,14 @@ class OHLCDataset(object):
         elif buy_sell == 'sell':
             self._orders.loc[self.time, 'sell'] = order_info['price']
 
-    def plot(self, data_column: str = 'close', indicators: bool = False,
-             orders: bool = True, save_to: Union[str, io.BufferedIOBase] = None):
+    def plot(self,
+             data_column: str = 'close',
+             plot_indicators: bool = False,
+             plot_orders: bool = True,
+             save_to: Union[str, io.BufferedIOBase] = None) -> None:
         fig = plt.figure(figsize=(60, 30))
-        ratios = [3] if not indicators else [3] + ([1] * len(self._indicators))
-        n_subplots = 1 if not indicators else 1 + len(self._indicators)
+        ratios = [3] if not plot_indicators else [3] + ([1] * len(self._indicators))
+        n_subplots = 1 if not plot_indicators else 1 + len(self._indicators)
         gs = gridspec.GridSpec(n_subplots, 1, height_ratios=ratios)
 
         # Plot long and short positions
@@ -81,14 +91,14 @@ class OHLCDataset(object):
         short_df.update(pd.DataFrame.from_dict(self._shorts, orient='index'))
         short_df.plot(ax=ax0, style='r')
 
-        if orders:
+        if plot_orders:
             all_nan = self._orders.isnull().all(axis=0)
             if not all_nan['buy']:
                 ax0.plot(self._orders.index, self._orders['buy'], color='k', marker='^', fillstyle='none')
             if not all_nan['sell']:
                 ax0.plot(self._orders.index, self._orders['sell'], color='k', marker='v', fillstyle='none')
 
-        if indicators:
+        if plot_indicators:
             for i, indicator in enumerate(self._indicators, start=1):
                 ax_ind = fig.add_subplot(gs[i])
                 indicator.plot(ax_ind)

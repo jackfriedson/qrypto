@@ -25,12 +25,17 @@ class CompositeQLearnDataset(object):
         return result
 
     def set_to(self, start_step: int = 0, reset_orders: bool = True):
+        for dataset in self._datasets.values():
+            dataset.set_to(start_step, reset_orders=reset_orders)
+
+    def skip_nans(self):
         max_step = 0
 
         for dataset in self._datasets.values():
-            max_step = max(max_step, dataset.set_to(start_step, reset_orders=reset_orders))
+            max_step = max(max_step, dataset.skip_nans())
+
         for dataset in self._datasets.values():
-            dataset.set_to(max_step, reset_orders=reset_orders)
+            dataset.set_to(max_step)
 
         return max_step
 
@@ -68,8 +73,8 @@ class CompositeQLearnDataset(object):
         return result
 
     @property
-    def last_idx(self):
-        return self._primary.last_idx
+    def _last_idx(self):
+        return self._primary._last_idx
 
     @property
     def last_row(self):
