@@ -81,7 +81,7 @@ class RegressorStrategy(object):
                 BasicIndicator('ad'),
                 BasicIndicator('adosc')
             ],
-            'BTC': [
+            'ETH': [
                 BasicIndicator('mom', 1),
                 BasicIndicator('mom', 6),
                 BasicIndicator('mom', 12)
@@ -136,7 +136,7 @@ class RegressorStrategy(object):
               **kwargs):
         # TODO: save training params to file for later reference
 
-        total_steps = self._initialize_training_data(start, end, ['BTC', 'LTC', 'ETC'])
+        total_steps = self._initialize_training_data(start, end, ['ETH', 'LTC', 'ETC'])
 
         # TODO: move these to init
         self.n_inputs = self.data.n_state_factors
