@@ -41,7 +41,7 @@ class RNNRegressor(object):
             self.rnn = tf.reshape(self.rnn, shape=tf.shape(self.norm_layer))
 
             n_hiddens = hidden_units or (n_inputs + n_outputs) // 2
-            regularizer = tf.contrib.layers.l2_regularizer(regularization_strength)
+            regularizer = tf.contrib.layers.l1_regularizer(regularization_strength)
             self.hidden_layer = tf.contrib.layers.fully_connected(self.rnn, n_hiddens, activation_fn=tf.nn.tanh,
                                                                   weights_regularizer=regularizer)
             self.output_layer = tf.contrib.layers.fully_connected(self.hidden_layer, 1, activation_fn=None)
