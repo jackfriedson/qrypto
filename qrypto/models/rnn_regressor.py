@@ -31,8 +31,8 @@ class RNNRegressor(object):
             self.norm_flat = tf.reshape(self.norm_layer, shape=[batch_size, self.trace_length, n_inputs])
 
             rnn_cell = tf.contrib.rnn.LSTMCell(num_units=n_inputs, state_is_tuple=True, activation=tf.nn.softsign, use_peepholes=True)
-            if dropout_keep_prob < 1:
-                rnn_cell = tf.contrib.rnn.DropoutWrapper(rnn_cell, output_keep_prob=dropout_keep_prob)
+            # if dropout_keep_prob < 1:
+            #     rnn_cell = tf.contrib.rnn.DropoutWrapper(rnn_cell, output_keep_prob=dropout_keep_prob)
             # TODO: try adding attention to the LSTM
             rnn_cell = tf.contrib.rnn.MultiRNNCell([rnn_cell] * rnn_layers, state_is_tuple=True)
 
@@ -42,9 +42,9 @@ class RNNRegressor(object):
 
             n_hiddens = hidden_units or (n_inputs + n_outputs) // 2
             regularizer = tf.contrib.layers.l1_regularizer(regularization_strength)
-            self.hidden_layer = tf.contrib.layers.fully_connected(self.rnn, n_hiddens, activation_fn=tf.nn.tanh,
-                                                                  weights_regularizer=regularizer)
-            self.output_layer = tf.contrib.layers.fully_connected(self.hidden_layer, 1, activation_fn=None)
+            self.hidden_layer = tf.contrib.layers.fully_connected(self.rnn, n_hiddens, activation_fn=tf.nn.tanh)
+            self.dropout_layer = tf.layers.dropout(self.hidden_layer, 1-dropout_keep_prob, training=self.phase)
+            self.output_layer = tf.contrib.layers.fully_connected(self.dropout_layer, 1, activation_fn=None)
             self.output_layer = tf.reshape(self.output_layer, shape=[tf.shape(self.inputs)[0]])
 
             self.loss = tf.losses.mean_squared_error(self.labels, self.output_layer)
