@@ -7,7 +7,6 @@ from qrypto.data.datasets import QLearnDataset
 
 
 class CompositeQLearnDataset(object):
-    actions = ['short', 'long']
 
     def __init__(self, primary_name: str, configs: Dict[str, list]) -> None:
         self._primary_name = primary_name
@@ -15,6 +14,7 @@ class CompositeQLearnDataset(object):
         self._others = {
             name: QLearnDataset(indicators=indicators) for name, indicators in configs.items()
         }
+        self.actions = self._primary.actions
 
     @property
     def _datasets(self):

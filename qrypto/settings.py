@@ -1,6 +1,6 @@
 
 _base_config = {
-    'base_currency': 'ETH',
+    'base_currency': 'BTC',
     'quote_currency': 'USD',
     'unit': 0.5,
     'fee': 0.0025,
