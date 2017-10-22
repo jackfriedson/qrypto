@@ -57,7 +57,7 @@ class RegressorStrategy(object):
 
         indicators = settings.get_indicators(base_currency, addtl_currencies)
         csv_files = settings.get_csv_data(csv_dir/base_currency.lower())
-        self.data = CompositeQLearnDataset(base_currency, indicators, csv_files)
+        self.data = CompositeQLearnDataset(base_currency, ohlc_interval, indicators, csv_files)
 
     def update(self):
         new_data = self.exchange.get_ohlc(self.base_currency, self.quote_currency, interval=self.ohlc_interval)

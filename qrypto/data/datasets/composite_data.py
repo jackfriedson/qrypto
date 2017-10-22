@@ -10,12 +10,13 @@ class CompositeQLearnDataset(object):
 
     def __init__(self,
                  primary_name: str,
+                 ohlc_interval: int,
                  indicator_configs: Dict[str, list],
                  csv_configs: List[dict]) -> None:
         self._primary_name = primary_name
-        self._primary = QLearnDataset(indicators=indicator_configs.pop(primary_name), csv_configs=csv_configs)
+        self._primary = QLearnDataset(ohlc_interval, indicators=indicator_configs.pop(primary_name), csv_configs=csv_configs)
         self._others = {
-            name: QLearnDataset(indicators=indicators) for name, indicators in indicator_configs.items()
+            name: QLearnDataset(ohlc_interval, indicators=indicators) for name, indicators in indicator_configs.items()
         }
         self.actions = self._primary.actions
 

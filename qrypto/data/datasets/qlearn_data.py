@@ -16,7 +16,9 @@ class QLearnDataset(object):
         'low',
     ]
 
-    def __init__(self, fee: float = 0.002,
+    def __init__(self,
+                 ohlc_interval: int,
+                 fee: float = 0.002,
                  indicators: Optional[list] = None,
                  csv_configs: Optional[list] = None):
         self.fee = fee
@@ -24,7 +26,7 @@ class QLearnDataset(object):
         self._ohlc_data = OHLCDataset(indicators=indicators)
 
         if csv_configs is not None:
-            self._blockchain_data = BlockchainDataset(csv_configs)
+            self._blockchain_data = BlockchainDataset(ohlc_interval, csv_configs)
 
         self._current_timestep = 0
         self._is_training = True
@@ -111,8 +113,8 @@ class QLearnDataset(object):
         ohlc_data.drop(self.exclude_fields, axis=1, inplace=True)
         ohlc_start = ohlc_data.index[0]
         ohlc_end = ohlc_data.index[-1]
-        blockchain_data = self._blockchain_data.all.iloc[ohlc_start:ohlc_end]
-        blockchain_data = blockchain_data.resample(ohlc_data.index)
+        blockchain_data = self._blockchain_data.between(ohlc_start, ohlc_end)
+        result = ohlc_data.join(blockchain_data)
         return result
 
     @property
