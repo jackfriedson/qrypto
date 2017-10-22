@@ -42,7 +42,7 @@ class RNNRegressor(object):
             self.rnn, self.rnn_state = tf.nn.dynamic_rnn(rnn_cell, self.norm_flat, dtype=tf.float32, initial_state=self.rnn_in)
             self.rnn = tf.reshape(self.rnn, shape=tf.shape(self.norm_layer))
 
-            n_hiddens = hidden_units or (n_inputs + n_outputs) // 2
+            n_hiddens = hidden_units or n_inputs
             l1_reg = tf.contrib.layers.l1_regularizer(l1_reg_strength)
             self.hidden_layer = tf.contrib.layers.fully_connected(self.rnn, n_hiddens, activation_fn=tf.nn.tanh,
                                                                   weights_regularizer=l1_reg)
