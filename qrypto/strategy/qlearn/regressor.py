@@ -55,8 +55,10 @@ class RegressorStrategy(object):
         self.timestamp = time.strftime('%Y%m%d_%H%M%S')
         self.models_dir = models_dir/self.timestamp
 
+        self.csv_dir = csv_dir/base_currency.lower()
+
         indicators = settings.get_indicators(base_currency, addtl_currencies)
-        csv_data = settings.get_csv_data(csv_dir/base_currency.lower())
+        csv_data = settings.get_csv_data(self.csv_dir/'blockchain')
         self.data = CompositeQLearnDataset(base_currency, ohlc_interval, indicators, csv_data)
 
     def update(self):
@@ -79,7 +81,7 @@ class RegressorStrategy(object):
               **kwargs):
         # TODO: save training params to file for later reference
 
-        total_steps = self._initialize_training_data(start, end, addtl_currencies)
+        n_datapoints = self._initialize_training_data(start, end)
         trace_length = (trace_days * 24 * 60) // self.ohlc_interval
 
         # TODO: consider moving these to init?
@@ -91,11 +93,11 @@ class RegressorStrategy(object):
         self.max_buffer_size = max_buffer_size
 
         nan_buffer = self.data.skip_nans()
-        total_steps -= nan_buffer + 1
+        n_datapoints -= nan_buffer + 1
         initial_step = nan_buffer
 
         step_ratio = 1. / (1. + ((n_slices - 1) * validation_percent))
-        iter_steps = int(step_ratio * total_steps)
+        iter_steps = int(step_ratio * n_datapoints)
         train_steps = int(iter_steps * (1. - validation_percent))
         validation_steps = int(iter_steps * validation_percent)
 
@@ -170,21 +172,18 @@ class RegressorStrategy(object):
                 # After all repeats, move to the next timeframe
                 initial_step += validation_steps
 
-    def _initialize_training_data(self, start, end, additional_currencies: List[str] = None):
-        additional_currencies = additional_currencies or []
+    def _initialize_training_data(self, start, end):
+        base_currency_data = Backtest(self.exchange, self.base_currency, self.quote_currency,
+                                      start=start, end=end, interval=self.ohlc_interval,
+                                      save_to_csv=self.csv_dir/'market').all()
+        self.data.init_data(base_currency_data, self.base_currency)
 
-        # Initialize core currency data
-        exchange_train = Backtest(self.exchange, self.base_currency, self.quote_currency,
-                                  start=start, end=end, interval=self.ohlc_interval)
-        self.data.init_data(exchange_train.all(), self.base_currency)
-
-        # Initialize additional currency data
-        for currency in additional_currencies:
+        for currency in addtl_currencies:
             currency_data = Backtest(self.exchange, currency, self.quote_currency, start=start, end=end,
                             interval=self.ohlc_interval).all()
             self.data.init_data(currency_data, currency)
 
-        return len(exchange_train.date_range)
+        return len(base_currency_data)
 
     def _populate_training_data(self, n_steps: int):
         training_data = ExperienceBuffer(self.max_buffer_size, self.random)

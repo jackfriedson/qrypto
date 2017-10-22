@@ -8,13 +8,9 @@ from qrypto.types import OHLC
 
 
 class QLearnDataset(object):
-    """A dataset/environment manager for use with machine learning algorithms."""
+    """A dataset manager for use with machine learning algorithms."""
     actions = ['short', 'long']
-    exclude_fields = [
-        'open',
-        'high',
-        'low',
-    ]
+    exclude_fields = ['open', 'high', 'low']
 
     def __init__(self,
                  ohlc_interval: int,
@@ -23,7 +19,7 @@ class QLearnDataset(object):
                  csv_configs: Optional[Tuple[list, list]] = None):
         self.fee = fee
 
-        self._ohlc_data = OHLCDataset(indicators=indicators)
+        self._market_data = OHLCDataset(indicators=indicators)
         self._csv_data = None
 
         if csv_configs is not None:
@@ -38,7 +34,7 @@ class QLearnDataset(object):
         self._position = 'long'
 
     def init_data(self, market_data):
-        self._ohlc_data.init_data(market_data)
+        self._market_data.init_data(market_data)
         self._train_data = self.all.values
 
     def set_training(self, is_training: bool):
@@ -58,19 +54,19 @@ class QLearnDataset(object):
         self._current_timestep = start_step
 
         if reset_orders:
-            self._ohlc_data._init_positions()
-            self._ohlc_data._init_orders()
+            self._market_data._init_positions()
+            self._market_data._init_orders()
 
     def next(self):
         self._current_timestep += 1
 
     def update(self, new_data: List[OHLC]) -> None:
-        self._ohlc_data.update(new_data)
+        self._market_data.update(new_data)
 
     def step(self, idx: int):
         action = self.actions[idx]
         reward = 0.
-        self._ohlc_data.add_position(action, self.time, self.last_price)
+        self._market_data.add_position(action, self.time, self.last_price)
 
         if self._position != action:
             reward -= self.fee
@@ -93,10 +89,10 @@ class QLearnDataset(object):
             test_reward -= self.fee
 
             if action == 'long':
-                self._ohlc_data.add_order('buy', {'price': self.last_price}, self.time)
+                self._market_data.add_order('buy', {'price': self.last_price}, self.time)
                 self._open_price = self.last_price
             elif action == 'short':
-                self._ohlc_data.add_order('sell', {'price': self.last_price}, self.time)
+                self._market_data.add_order('sell', {'price': self.last_price}, self.time)
                 self._open_price = None
 
         train_reward = self.step(idx)
@@ -107,11 +103,11 @@ class QLearnDataset(object):
         return train_reward, test_reward
 
     def plot(self, **kwargs):
-        self._ohlc_data.plot(**kwargs)
+        self._market_data.plot(**kwargs)
 
     @property
     def all(self) -> pd.DataFrame:
-        result = self._ohlc_data.all
+        result = self._market_data.all
         result.drop(self.exclude_fields, axis=1, inplace=True)
         if self._csv_data:
             ohlc_start = result.index[0]
@@ -132,7 +128,7 @@ class QLearnDataset(object):
         if self._is_training:
             return self._train_data[self._current_timestep]
         else:
-            result = self._ohlc_data.last_row
+            result = self._market_data.last_row
             result.drop(self.exclude_fields, inplace=True)
             result = result.values
             for indicator in self._indicators:
@@ -142,11 +138,11 @@ class QLearnDataset(object):
 
     @property
     def last_price(self):
-        return self._ohlc_data._data.iloc[self._last_idx]['close']
+        return self._market_data._data.iloc[self._last_idx]['close']
 
     @property
     def time(self):
-        return self._ohlc_data._data.iloc[self._last_idx].name
+        return self._market_data._data.iloc[self._last_idx].name
 
     @property
     def n_state_factors(self) -> int:
@@ -162,7 +158,7 @@ class QLearnDataset(object):
 
     @property
     def period_return(self):
-        return (self._ohlc_data.close[self._last_idx] / self._ohlc_data.close[self._last_idx - 1]) - 1.
+        return (self._market_data.close[self._last_idx] / self._market_data.close[self._last_idx - 1]) - 1.
 
     @property
     def cumulative_return(self):

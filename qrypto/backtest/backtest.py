@@ -1,4 +1,6 @@
 import sys
+from pathlib import Path
+from typing import Optional
 
 import pandas as pd
 
@@ -8,8 +10,14 @@ class Backtest(object):
     backtesting.
     """
 
-    def __init__(self, exchange, base_currency: str, quote_currency: str,
-                 start: str = '1/1/2016', end: str = '1/1/2017', interval: int = 5) -> None:
+    def __init__(self,
+                 exchange,
+                 base_currency: str,
+                 quote_currency: str,
+                 start: str = '1/1/2016',
+                 end: str = '1/1/2017',
+                 interval: int = 5,
+                 save_to_csv: Optional[Path] = None):
         self.base_currency = base_currency
         self.quote_currency = quote_currency
         self.start = pd.to_datetime(start)
@@ -24,6 +32,11 @@ class Backtest(object):
                                      start=unix_start, end=unix_end)
         self._test_data = pd.DataFrame(all_data)
         self._test_data.set_index('datetime', inplace=True)
+
+        if save_to_csv:
+            filename = base_currency.lower() + '_ohlc.csv'
+            full_path = save_to_csv/filename
+            self._test_data.to_csv(full_path.resolve())
 
         self.call_count = 0
         self.open_price = None
