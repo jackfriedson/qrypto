@@ -110,11 +110,19 @@ csv_files = [
     }
 ]
 
+custom_columns = [
+    {
+        'name': 'bid_ask_difference',
+        'inputs': ['asks', 'bids'],
+        'func': lambda asks, bids: asks - bids
+    }
+]
+
 
 def get_csv_data(csv_dir):
     for csv in csv_files:
         csv['path'] = csv_dir/csv.pop('filename')
-    return csv_files
+    return csv_files, custom_columns
 
 
 def get_indicators(base, additional):

@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 import numpy as np
 import pandas as pd
@@ -20,14 +20,15 @@ class QLearnDataset(object):
                  ohlc_interval: int,
                  fee: float = 0.002,
                  indicators: Optional[list] = None,
-                 csv_configs: Optional[list] = None):
+                 csv_configs: Optional[Tuple[list, list]] = None):
         self.fee = fee
 
         self._ohlc_data = OHLCDataset(indicators=indicators)
         self._csv_data = None
 
         if csv_configs is not None:
-            self._csv_data = CSVDataset(ohlc_interval, csv_configs)
+            csv_files, custom_columns = csv_configs
+            self._csv_data = CSVDataset(ohlc_interval, csv_files, custom_columns)
 
         self._current_timestep = 0
         self._is_training = True

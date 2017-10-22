@@ -1,4 +1,4 @@
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 
 import numpy as np
 import pandas as pd
@@ -12,7 +12,7 @@ class CompositeQLearnDataset(object):
                  primary_name: str,
                  ohlc_interval: int,
                  indicator_configs: Dict[str, list],
-                 csv_configs: List[dict]) -> None:
+                 csv_configs: Tuple[list, list]) -> None:
         self._primary_name = primary_name
         self._primary = QLearnDataset(ohlc_interval, indicators=indicator_configs.pop(primary_name), csv_configs=csv_configs)
         self._others = {

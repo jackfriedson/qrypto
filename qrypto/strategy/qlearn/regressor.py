@@ -56,8 +56,8 @@ class RegressorStrategy(object):
         self.models_dir = models_dir/self.timestamp
 
         indicators = settings.get_indicators(base_currency, addtl_currencies)
-        csv_files = settings.get_csv_data(csv_dir/base_currency.lower())
-        self.data = CompositeQLearnDataset(base_currency, ohlc_interval, indicators, csv_files)
+        csv_data = settings.get_csv_data(csv_dir/base_currency.lower())
+        self.data = CompositeQLearnDataset(base_currency, ohlc_interval, indicators, csv_data)
 
     def update(self):
         new_data = self.exchange.get_ohlc(self.base_currency, self.quote_currency, interval=self.ohlc_interval)
@@ -94,10 +94,10 @@ class RegressorStrategy(object):
         total_steps -= nan_buffer + 1
         initial_step = nan_buffer
 
-        epoch_step_ratio = 1. / (1. + ((n_slices - 1) * validation_percent))
-        epoch_steps = int(epoch_step_ratio * total_steps)
-        train_steps = int(epoch_steps * (1. - validation_percent))
-        validation_steps = int(epoch_steps * validation_percent)
+        step_ratio = 1. / (1. + ((n_slices - 1) * validation_percent))
+        iter_steps = int(step_ratio * total_steps)
+        train_steps = int(iter_steps * (1. - validation_percent))
+        validation_steps = int(iter_steps * validation_percent)
 
         tf.reset_default_graph()
         global_step = tf.Variable(0, name='global_step', trainable=False)
@@ -118,11 +118,11 @@ class RegressorStrategy(object):
                 print('\nPopulating training data...')
                 training_data = self._populate_training_data(train_steps)
 
-                for epoch in range(slice_repeats):
+                for repeat in range(slice_repeats):
                     self.data.set_to(initial_step)
-                    abs_epoch = (data_slice * slice_repeats) + epoch
+                    iteration = (data_slice * slice_repeats) + repeat
 
-                    print('\nSlice {}; Epoch {}'.format(data_slice, epoch))
+                    print('\nSlice {}; Repeat {}'.format(data_slice, repeat))
                     print('Training...')
                     prog_bar = progressbar.ProgressBar(term_width=80)
                     losses = []
@@ -156,15 +156,15 @@ class RegressorStrategy(object):
                     print('Outperformance: {:+.2f}%'.format(100 * (outperformance)))
 
                     # Add Tensorboard summaries
-                    epoch_summary = tf.Summary()
-                    epoch_summary.value.add(simple_value=np.average(losses), tag='epoch/train/loss')
-                    epoch_summary.value.add(simple_value=np.average(train_error), tag='epoch/train/error')
-                    epoch_summary.value.add(simple_value=np.average(train_accuracy), tag='epoch/train/accuracy')
-                    epoch_summary.value.add(simple_value=np.average(val_error), tag='epoch/validate/error')
-                    epoch_summary.value.add(simple_value=np.average(val_accuracy), tag='epoch/validate/accuracy')
-                    epoch_summary.value.add(simple_value=algorithm_return, tag='epoch/validate/return')
-                    regressor.summary_writer.add_summary(epoch_summary, abs_epoch)
-                    regressor.summary_writer.add_summary(self._get_epoch_chart(abs_epoch), abs_epoch)
+                    iteration_summary = tf.Summary()
+                    iteration_summary.value.add(simple_value=np.average(losses), tag='epoch/train/loss')
+                    iteration_summary.value.add(simple_value=np.average(train_error), tag='epoch/train/error')
+                    iteration_summary.value.add(simple_value=np.average(train_accuracy), tag='epoch/train/accuracy')
+                    iteration_summary.value.add(simple_value=np.average(val_error), tag='epoch/validate/error')
+                    iteration_summary.value.add(simple_value=np.average(val_accuracy), tag='epoch/validate/accuracy')
+                    iteration_summary.value.add(simple_value=algorithm_return, tag='epoch/validate/return')
+                    regressor.summary_writer.add_summary(iteration_summary, iteration)
+                    regressor.summary_writer.add_summary(self._get_epoch_chart(iteration), iteration)
                     regressor.summary_writer.flush()
 
                 # After all repeats, move to the next timeframe
