@@ -87,7 +87,6 @@ class RegressorStrategy(object):
               validation_percent: float = 0.2,
               prediction_threshold: float = 0.,
               max_buffer_size: int = 100000,
-              target_period: int = 1,
               batch_size: int = 8,
               train_iters: int = 2500,
               rnn_layers: int = 1,
@@ -105,7 +104,6 @@ class RegressorStrategy(object):
         self.prediction_threshold = prediction_threshold
         self.random = np.random.RandomState(random_seed)
         self.max_buffer_size = max_buffer_size
-        self.target_period = target_period
 
         nan_buffer = self.data.skip_nans()
         total_steps -= nan_buffer + 1
