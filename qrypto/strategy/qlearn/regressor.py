@@ -67,9 +67,9 @@ class RegressorStrategy(object):
               start: str,
               end: str,
               n_slices: int = 10,
-              n_epochs: int = 1,
+              slice_repeats: int = 1,
               validation_percent: float = 0.2,
-              prediction_threshold: float = 0.,
+              minimum_gain: float = 0.,
               max_buffer_size: int = 100000,
               batch_size: int = 8,
               train_iters: int = 2500,
@@ -86,7 +86,7 @@ class RegressorStrategy(object):
         self.n_inputs = self.data.n_state_factors
         self.n_outputs = 2
         self.rnn_layers = rnn_layers
-        self.prediction_threshold = prediction_threshold
+        self.minimum_gain = minimum_gain
         self.random = np.random.RandomState(random_seed)
         self.max_buffer_size = max_buffer_size
 
@@ -118,9 +118,9 @@ class RegressorStrategy(object):
                 print('\nPopulating training data...')
                 training_data = self._populate_training_data(train_steps)
 
-                for epoch in range(n_epochs):
+                for epoch in range(slice_repeats):
                     self.data.set_to(initial_step)
-                    abs_epoch = (data_slice * n_epochs) + epoch
+                    abs_epoch = (data_slice * slice_repeats) + epoch
 
                     print('\nSlice {}; Epoch {}'.format(data_slice, epoch))
                     print('Training...')
@@ -218,7 +218,7 @@ class RegressorStrategy(object):
             prediction = prediction[0]
 
             action_idx = 1 if prediction > 0 else 0
-            place_orders = place_orders and abs(prediction) > self.prediction_threshold
+            place_orders = place_orders and self._order_strategy(prediction, self.minimum_gain)
             _, cum_return = self.data.validate(action_idx, place_orders=place_orders)
             returns.append(cum_return)
 
@@ -229,6 +229,10 @@ class RegressorStrategy(object):
             correct_directions.append(correct_direction)
 
         return differences, correct_directions, returns
+
+    @staticmethod
+    def _order_strategy(predicted_return, minimum_gain):
+        return predicted_return > minimum_gain or predicted_return < 0
 
     def _calculate_performance(self, returns, start_price):
         market_return = (self.data.last_price / start_price) - 1.

@@ -12,7 +12,7 @@ class RNNRegressor(object):
                  n_outputs: int,
                  hidden_units: int = None,
                  learn_rate: float = 0.0005,
-                 regularization_strength: float = 0.1,
+                 l1_reg_strength: float = 0.1,
                  renorm_decay: float = 0.99,
                  dropout_prob: float = 0.,
                  rnn_dropout_prob: float = 0.,
@@ -45,7 +45,7 @@ class RNNRegressor(object):
             self.rnn = tf.reshape(self.rnn, shape=tf.shape(self.norm_layer))
 
             n_hiddens = hidden_units or (n_inputs + n_outputs) // 2
-            l1_reg = tf.contrib.layers.l1_regularizer(regularization_strength)
+            l1_reg = tf.contrib.layers.l1_regularizer(l1_reg_strength)
             self.hidden_layer = tf.contrib.layers.fully_connected(self.rnn, n_hiddens, activation_fn=tf.nn.tanh,
                                                                   weights_regularizer=l1_reg)
             self.dropout_layer = tf.layers.dropout(self.hidden_layer, dropout_prob, training=self.phase)
