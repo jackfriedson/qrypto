@@ -1,11 +1,11 @@
 from qrypto.data.indicators import BasicIndicator
 
 
-_base_config = {
+base_config = {
     'base_currency': 'BTC',
     'quote_currency': 'USD',
-    'unit': 0.5,
-    'fee': 0.0025,
+    'unit': 1,
+    'fee': 0.002,
     'ohlc_interval': 120,
     'sleep_duration': 30,
 }
@@ -119,6 +119,6 @@ def get_indicators(base, additional):
 def get_config(config_name):
     if config_name not in _config_map:
         raise ValueError('{} is not a valid config name'.format(config_name))
-    result = _base_config.copy()
+    result = base_config.copy()
     result.update(_config_map[config_name])
     return result

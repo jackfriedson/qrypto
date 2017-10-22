@@ -35,8 +35,12 @@ def configure_logging():
 
 @click.group(chain=True)
 @click.option('--exchange', type=click.Choice(['kraken', 'poloniex']), default='poloniex')
+@click.option('--base-currency', type=str, default='BTC')
+@click.option('--quote-currency', type=str, default='USD')
+@click.option('--ohlc-interval', type=int, default=120)
+@click.option('--fee', type=float, default=0.002)
 @click.pass_context
-def cli(ctx, exchange):
+def cli(ctx, exchange, **kwargs):
     configure_logging()
 
     if exchange == 'kraken':
@@ -46,7 +50,13 @@ def cli(ctx, exchange):
     # elif exchange == 'cryptowatch':
     #     exchange_adapter = Cryptowatch()
 
-    ctx.obj = {'exchange': exchange_adapter}
+    config = settings.base_config
+    config.update(kwargs)
+
+    ctx.obj = {
+        'config': config,
+        'exchange': exchange_adapter,
+    }
 
 
 @cli.command()
@@ -115,7 +125,7 @@ def classifier(ctx, train_start, train_end, **kwargs):
 @click.pass_context
 def regressor(ctx, train_start, train_end, **kwargs):
     exchange = ctx.obj.get('exchange')
-    config = settings.get_config('qlearn')
+    config = ctx.obj.get('config')
     strategy = RegressorStrategy(exchange, **config)
     strategy.train(train_start, train_end, random_seed=RANDOM_SEED, **kwargs)
 

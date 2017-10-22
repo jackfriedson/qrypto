@@ -63,22 +63,6 @@ class RegressorStrategy(object):
         new_data = self.exchange.get_ohlc(self.base_currency, self.quote_currency, interval=self.ohlc_interval)
         self.data.update(new_data)
 
-    def _initialize_training_data(self, start, end, additional_currencies: List[str] = None):
-        additional_currencies = additional_currencies or []
-
-        # Initialize core currency data
-        exchange_train = Backtest(self.exchange, self.base_currency, self.quote_currency,
-                                  start=start, end=end, interval=self.ohlc_interval)
-        self.data.init_data(exchange_train.all(), self.base_currency)
-
-        # Initialize additional currency data
-        for currency in additional_currencies:
-            currency_data = Backtest(self.exchange, currency, self.quote_currency, start=start, end=end,
-                            interval=self.ohlc_interval).all()
-            self.data.init_data(currency_data, currency)
-
-        return len(exchange_train.date_range)
-
     def train(self,
               start: str,
               end: str,
@@ -165,9 +149,11 @@ class RegressorStrategy(object):
                     val_error, val_accuracy, returns = self._evaluate(sess, regressor, validation_steps)
 
                     # Compute outperformance of market return
-                    market_return, outperformance = self._calculate_performance(returns, start_price)
+                    market_return, algorithm_return = self._calculate_performance(returns, start_price)
+                    outperformance = algorithm_return - market_return
                     print('Market return: {:.2f}%'.format(100 * market_return))
-                    print('Outperformance: {:+.2f}%'.format(100 * outperformance))
+                    print('Algorithm return: {:.2f}%'.format(100 * algorithm_return))
+                    print('Outperformance: {:+.2f}%'.format(100 * (outperformance)))
 
                     # Add Tensorboard summaries
                     epoch_summary = tf.Summary()
@@ -176,13 +162,29 @@ class RegressorStrategy(object):
                     epoch_summary.value.add(simple_value=np.average(train_accuracy), tag='epoch/train/accuracy')
                     epoch_summary.value.add(simple_value=np.average(val_error), tag='epoch/validate/error')
                     epoch_summary.value.add(simple_value=np.average(val_accuracy), tag='epoch/validate/accuracy')
-                    epoch_summary.value.add(simple_value=outperformance, tag='epoch/validate/outperformance')
+                    epoch_summary.value.add(simple_value=algorithm_return, tag='epoch/validate/return')
                     regressor.summary_writer.add_summary(epoch_summary, abs_epoch)
                     regressor.summary_writer.add_summary(self._get_epoch_chart(abs_epoch), abs_epoch)
                     regressor.summary_writer.flush()
 
                 # After all repeats, move to the next timeframe
                 initial_step += validation_steps
+
+    def _initialize_training_data(self, start, end, additional_currencies: List[str] = None):
+        additional_currencies = additional_currencies or []
+
+        # Initialize core currency data
+        exchange_train = Backtest(self.exchange, self.base_currency, self.quote_currency,
+                                  start=start, end=end, interval=self.ohlc_interval)
+        self.data.init_data(exchange_train.all(), self.base_currency)
+
+        # Initialize additional currency data
+        for currency in additional_currencies:
+            currency_data = Backtest(self.exchange, currency, self.quote_currency, start=start, end=end,
+                            interval=self.ohlc_interval).all()
+            self.data.init_data(currency_data, currency)
+
+        return len(exchange_train.date_range)
 
     def _populate_training_data(self, n_steps: int):
         training_data = ExperienceBuffer(self.max_buffer_size, self.random)
@@ -234,8 +236,7 @@ class RegressorStrategy(object):
         for return_val in returns:
             position_value *= 1 + return_val
         algorithm_return = (position_value / start_price) - 1.
-        outperformance = algorithm_return - market_return
-        return market_return, outperformance
+        return market_return, algorithm_return
 
     def _get_epoch_chart(self, epoch):
         buf = io.BytesIO()
