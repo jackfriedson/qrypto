@@ -3,7 +3,7 @@ from typing import List, Optional
 import numpy as np
 import pandas as pd
 
-from qrypto.data.datasets import BlockchainDataset, OHLCDataset
+from qrypto.data.datasets import CSVDataset, OHLCDataset
 from qrypto.types import OHLC
 
 
@@ -24,9 +24,10 @@ class QLearnDataset(object):
         self.fee = fee
 
         self._ohlc_data = OHLCDataset(indicators=indicators)
+        self._csv_data = None
 
         if csv_configs is not None:
-            self._blockchain_data = BlockchainDataset(ohlc_interval, csv_configs)
+            self._csv_data = CSVDataset(ohlc_interval, csv_configs)
 
         self._current_timestep = 0
         self._is_training = True
@@ -109,12 +110,13 @@ class QLearnDataset(object):
 
     @property
     def all(self) -> pd.DataFrame:
-        ohlc_data = self._ohlc_data.all
-        ohlc_data.drop(self.exclude_fields, axis=1, inplace=True)
-        ohlc_start = ohlc_data.index[0]
-        ohlc_end = ohlc_data.index[-1]
-        blockchain_data = self._blockchain_data.between(ohlc_start, ohlc_end)
-        result = ohlc_data.join(blockchain_data)
+        result = self._ohlc_data.all
+        result.drop(self.exclude_fields, axis=1, inplace=True)
+        if self._csv_data:
+            ohlc_start = result.index[0]
+            ohlc_end = result.index[-1]
+            blockchain_data = self._csv_data.between(ohlc_start, ohlc_end)
+            result = result.join(blockchain_data)
         return result
 
     @property

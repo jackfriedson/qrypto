@@ -4,7 +4,7 @@ from pathlib import Path
 import pandas as pd
 
 
-class BlockchainDataset(object):
+class CSVDataset(object):
 
     def __init__(self, frequency: int, csv_configs: List[dict]):
         """
