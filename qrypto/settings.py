@@ -6,7 +6,7 @@ _base_config = {
     'quote_currency': 'USD',
     'unit': 0.5,
     'fee': 0.0025,
-    'ohlc_interval': 60,
+    'ohlc_interval': 120,
     'sleep_duration': 30,
 }
 
