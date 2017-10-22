@@ -89,7 +89,7 @@ class RegressorStrategy(object):
               max_buffer_size: int = 100000,
               target_period: int = 1,
               batch_size: int = 8,
-              batch_repeats: int = 10,
+              train_iters: int = 2500,
               rnn_layers: int = 1,
               trace_length: int = 16,
               random_seed: int = None,
@@ -144,9 +144,8 @@ class RegressorStrategy(object):
                     prog_bar = progressbar.ProgressBar(term_width=80)
                     losses = []
 
-                    n_batches = train_steps // batch_size // trace_length
                     # Train the network
-                    for i in prog_bar(range(batch_repeats * n_batches)):
+                    for i in prog_bar(range(train_iters)):
                         rnn_state = self._initial_rnn_state(batch_size)
                         samples = training_data.sample(batch_size, trace_length)
                         inputs, labels = map(np.array, zip(*samples))

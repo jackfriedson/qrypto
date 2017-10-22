@@ -108,7 +108,7 @@ def classifier(ctx, train_start, train_end, **kwargs):
 @click.option('--regularization-strength', type=float, default=0.1)
 @click.option('--hidden-units', type=int, default=None)
 @click.option('--batch-size', type=int, default=16)
-@click.option('--batch-repeats', type=int, default=80)
+@click.option('--train-iters', type=int, default=2500)
 @click.option('--dropout-keep-prob', type=float, default=1.0)
 @click.option('--trace-length', type=int, default=32)
 @click.option('--rnn-layers', type=int, default=2)

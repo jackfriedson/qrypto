@@ -81,6 +81,14 @@ csv_files = [
     {
         'filename': 'time_between_blocks.csv',
         'name': 'block_rate'
+    },
+    {
+        'filename': 'hash_rate.csv',
+        'name': 'hashrate'
+    },
+    {
+        'filename': 'mining_revenue.csv',
+        'name': 'revenue'
     }
 ]
 
