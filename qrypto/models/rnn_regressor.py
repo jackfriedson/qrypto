@@ -19,6 +19,8 @@ class RNNRegressor(object):
                  summaries_dir: str = None):
         self.scope = scope
 
+        # TODO: try using dense sparse dense regularization
+
         with tf.variable_scope(scope):
             self.inputs = tf.placeholder(shape=[None, n_inputs], dtype=tf.float32, name='inputs')
             self.labels = tf.placeholder(shape=[None], dtype=tf.float32, name='labels')
