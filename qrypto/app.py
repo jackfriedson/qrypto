@@ -111,7 +111,7 @@ def classifier(ctx, train_start, train_end, **kwargs):
 @click.option('--train-end', type=str, default='10/11/2017')
 @click.option('--n-slices', type=int, default=10)
 @click.option('--slice-repeats', type=int, default=1)
-@click.option('--train-iters', type=int, default=2500)
+@click.option('--train-iters', type=int, default=750)
 @click.option('--validation-percent', type=float, default=0.1)
 @click.option('--minimum-gain', type=float, default=0.)
 @click.option('--learn-rate', type=float, default=0.005)
@@ -120,7 +120,7 @@ def classifier(ctx, train_start, train_end, **kwargs):
 @click.option('--batch-size', type=int, default=16)
 @click.option('--trace-days', type=int, default=7)
 @click.option('--dropout-prob', type=float, default=0.25)
-@click.option('--rnn-dropout-prob', type=float, default=0.1)
+@click.option('--rnn-dropout-prob', type=float, default=0.25)
 @click.option('--l1-reg-strength', type=float, default=0.1)
 @click.pass_context
 def regressor(ctx, train_start, train_end, **kwargs):

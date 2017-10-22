@@ -54,7 +54,6 @@ class RegressorStrategy(object):
 
         self.timestamp = time.strftime('%Y%m%d_%H%M%S')
         self.models_dir = models_dir/self.timestamp
-
         self.csv_dir = csv_dir/base_currency.lower()
 
         indicators = settings.get_indicators(base_currency, addtl_currencies)
