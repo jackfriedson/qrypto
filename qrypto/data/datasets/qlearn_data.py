@@ -3,7 +3,7 @@ from typing import List, Optional
 import numpy as np
 import pandas as pd
 
-from qrypto.data.datasets import OHLCDataset
+from qrypto.data.datasets import CSVDataset, OHLCDataset
 from qrypto.types import OHLC
 
 
@@ -16,10 +16,18 @@ class QLearnDataset(object):
         'low',
     ]
 
-    def __init__(self, fee: float = 0.002, indicators: Optional[list] = None):
+    def __init__(self,
+                 ohlc_interval: int,
+                 fee: float = 0.002,
+                 indicators: Optional[list] = None,
+                 csv_configs: Optional[list] = None):
         self.fee = fee
 
         self._ohlc_data = OHLCDataset(indicators=indicators)
+        self._csv_data = None
+
+        if csv_configs is not None:
+            self._csv_data = CSVDataset(ohlc_interval, csv_configs)
 
         self._current_timestep = 0
         self._is_training = True
@@ -28,8 +36,8 @@ class QLearnDataset(object):
         self._open_price = None
         self._position = 'long'
 
-    def init_data(self, data):
-        self._ohlc_data.init_data(data)
+    def init_data(self, market_data):
+        self._ohlc_data.init_data(market_data)
         self._train_data = self.all.values
 
     def set_training(self, is_training: bool):
@@ -104,6 +112,11 @@ class QLearnDataset(object):
     def all(self) -> pd.DataFrame:
         result = self._ohlc_data.all
         result.drop(self.exclude_fields, axis=1, inplace=True)
+        if self._csv_data:
+            ohlc_start = result.index[0]
+            ohlc_end = result.index[-1]
+            blockchain_data = self._csv_data.between(ohlc_start, ohlc_end)
+            result = result.join(blockchain_data)
         return result
 
     @property

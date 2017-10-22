@@ -10,9 +10,9 @@ import numpy as np
 import progressbar
 import tensorflow as tf
 
+from qrypto import settings
 from qrypto.backtest import Backtest
 from qrypto.data.datasets import CompositeQLearnDataset
-from qrypto.data.indicators import BasicIndicator
 from qrypto.models.rnn_regressor import RNNRegressor
 from qrypto.strategy.qlearn.experience_buffer import ExperienceBuffer
 
@@ -30,6 +30,10 @@ summaries_dir.mkdir(exist_ok=True)
 
 models_dir = experiments_dir/'models'
 models_dir.mkdir(exist_ok=True)
+
+csv_dir = root_dir/'csv_data'
+
+addtl_currencies = ['ETH', 'LTC', 'ETC']
 
 
 class RegressorStrategy(object):
@@ -51,53 +55,9 @@ class RegressorStrategy(object):
         self.timestamp = time.strftime('%Y%m%d_%H%M%S')
         self.models_dir = models_dir/self.timestamp
 
-        configs = {
-            base_currency: [
-                BasicIndicator('rsi', 6),
-                BasicIndicator('rsi', 12),
-                BasicIndicator('mom', 1),
-                BasicIndicator('mom', 3),
-                BasicIndicator('obv'),
-                BasicIndicator('adx', 14),
-                BasicIndicator('adx', 20),
-                BasicIndicator('macd'),
-                BasicIndicator('bbands'),
-                BasicIndicator('willr'),
-                BasicIndicator('atr', 14),
-                BasicIndicator('rocr', 3),
-                BasicIndicator('rocr', 12),
-                BasicIndicator('cci', 12),
-                BasicIndicator('cci', 20),
-                BasicIndicator('sma', 3),
-                BasicIndicator('sma', 6),
-                BasicIndicator('ema', 6),
-                BasicIndicator('ema', 12),
-                BasicIndicator('ema', 26),
-                BasicIndicator('wma', 6),
-                BasicIndicator('mfi', 14),
-                BasicIndicator('trix'),
-                BasicIndicator('stoch'),
-                BasicIndicator('stochrsi'),
-                BasicIndicator('ad'),
-                BasicIndicator('adosc')
-            ],
-            'ETH': [
-                BasicIndicator('mom', 1),
-                BasicIndicator('mom', 6),
-                BasicIndicator('mom', 12)
-            ],
-            'LTC': [
-                BasicIndicator('mom', 1),
-                BasicIndicator('mom', 6),
-                BasicIndicator('mom', 12)
-            ],
-            'ETC': [
-                BasicIndicator('mom', 1),
-                BasicIndicator('mom', 6),
-                BasicIndicator('mom', 12)
-            ]
-        }
-        self.data = CompositeQLearnDataset(base_currency, configs)
+        indicators = settings.get_indicators(base_currency, addtl_currencies)
+        csv_files = settings.get_csv_data(csv_dir/base_currency.lower())
+        self.data = CompositeQLearnDataset(base_currency, ohlc_interval, indicators, csv_files)
 
     def update(self):
         new_data = self.exchange.get_ohlc(self.base_currency, self.quote_currency, interval=self.ohlc_interval)
@@ -136,7 +96,7 @@ class RegressorStrategy(object):
               **kwargs):
         # TODO: save training params to file for later reference
 
-        total_steps = self._initialize_training_data(start, end, ['ETH', 'LTC', 'ETC'])
+        total_steps = self._initialize_training_data(start, end, addtl_currencies)
 
         # TODO: move these to init
         self.n_inputs = self.data.n_state_factors
