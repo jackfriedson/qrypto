@@ -14,7 +14,8 @@ class RNNRegressor(object):
                  learn_rate: float = 0.0005,
                  regularization_strength: float = 0.1,
                  renorm_decay: float = 0.99,
-                 dropout_keep_prob: float = 1.0,
+                 dropout_prob: float = 0.,
+                 rnn_dropout_prob: float = 0.,
                  rnn_layers: int = 1,
                  summaries_dir: str = None):
         self.scope = scope
@@ -34,10 +35,9 @@ class RNNRegressor(object):
 
             # Maybe don't put all of the inputs into the RNN? Some things can be predicted and others can't
 
-            rnn_cell = tf.contrib.rnn.LSTMCell(num_units=n_inputs, state_is_tuple=True, activation=tf.nn.softsign, use_peepholes=True)
-            # if dropout_keep_prob < 1:
-            #     rnn_cell = tf.contrib.rnn.DropoutWrapper(rnn_cell, output_keep_prob=dropout_keep_prob)
             # TODO: try adding attention to the LSTM
+            rnn_cell = tf.contrib.rnn.LSTMCell(num_units=n_inputs, state_is_tuple=True, activation=tf.nn.softsign, use_peepholes=True)
+            rnn_cell = tf.contrib.rnn.DropoutWrapper(rnn_cell, output_keep_prob=1-rnn_dropout_prob)
             rnn_cell = tf.contrib.rnn.MultiRNNCell([rnn_cell] * rnn_layers, state_is_tuple=True)
 
             self.rnn_in = rnn_cell.zero_state(batch_size, dtype=tf.float32)
@@ -45,9 +45,10 @@ class RNNRegressor(object):
             self.rnn = tf.reshape(self.rnn, shape=tf.shape(self.norm_layer))
 
             n_hiddens = hidden_units or (n_inputs + n_outputs) // 2
-            # regularizer = tf.contrib.layers.l1_regularizer(regularization_strength)
-            self.hidden_layer = tf.contrib.layers.fully_connected(self.rnn, n_hiddens, activation_fn=tf.nn.tanh)
-            self.dropout_layer = tf.layers.dropout(self.hidden_layer, 1-dropout_keep_prob, training=self.phase)
+            l1_reg = tf.contrib.layers.l1_regularizer(regularization_strength)
+            self.hidden_layer = tf.contrib.layers.fully_connected(self.rnn, n_hiddens, activation_fn=tf.nn.tanh,
+                                                                  weights_regularizer=l1_reg)
+            self.dropout_layer = tf.layers.dropout(self.hidden_layer, dropout_prob, training=self.phase)
             self.output_layer = tf.contrib.layers.fully_connected(self.dropout_layer, 1, activation_fn=None)
             self.output_layer = tf.reshape(self.output_layer, shape=[tf.shape(self.inputs)[0]])
 

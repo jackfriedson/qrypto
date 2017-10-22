@@ -90,14 +90,15 @@ class RegressorStrategy(object):
               batch_size: int = 8,
               train_iters: int = 2500,
               rnn_layers: int = 1,
-              trace_length: int = 16,
+              trace_days: int = 7,
               random_seed: int = None,
               **kwargs):
         # TODO: save training params to file for later reference
 
         total_steps = self._initialize_training_data(start, end, addtl_currencies)
+        trace_length = (trace_days * 1440) // self.ohlc_interval
 
-        # TODO: move these to init
+        # TODO: consider moving these to init?
         self.n_inputs = self.data.n_state_factors
         self.n_outputs = 2
         self.rnn_layers = rnn_layers
