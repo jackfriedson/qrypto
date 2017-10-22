@@ -49,7 +49,8 @@ class RNNRegressor(object):
             self.hidden_layer = tf.contrib.layers.fully_connected(self.rnn, n_hiddens, activation_fn=tf.nn.tanh,
                                                                   weights_regularizer=l1_reg)
             self.dropout_layer = tf.layers.dropout(self.hidden_layer, dropout_prob, training=self.phase)
-            self.output_layer = tf.contrib.layers.fully_connected(self.dropout_layer, 1, activation_fn=None)
+            self.output_layer = tf.contrib.layers.fully_connected(self.dropout_layer, 1, activation_fn=None,
+                                                                  weights_regularizer=l1_reg)
             self.output_layer = tf.reshape(self.output_layer, shape=[tf.shape(self.inputs)[0]])
 
             self.loss = tf.losses.mean_squared_error(self.labels, self.output_layer)
