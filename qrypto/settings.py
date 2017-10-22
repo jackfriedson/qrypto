@@ -84,11 +84,13 @@ csv_files = [
     },
     {
         'filename': 'hash_rate.csv',
-        'name': 'hashrate'
+        'name': 'hashrate',
+        'headers': False
     },
     {
         'filename': 'mining_revenue.csv',
-        'name': 'revenue'
+        'name': 'revenue',
+        'headers': False
     }
 ]
 
