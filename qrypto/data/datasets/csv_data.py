@@ -1,4 +1,4 @@
-from typing import Callable, Optional, List
+from typing import Callable, Optional, List, Union
 from pathlib import Path
 
 import pandas as pd
@@ -23,14 +23,19 @@ class CSVDataset(object):
 
     def add_column_from_csv(self,
                             path: Path,
-                            name: str,
+                            name: Union[str, List[str]],
                             headers: bool = False,
                             date_converter: Optional[Callable] = None):
         if date_converter is None:
             date_converter = lambda x: pd.to_datetime(x)
 
         headers = 0 if headers else None
-        csv_df = pd.read_csv(path, header=headers, index_col=0, names=['datetime', name], converters={0: date_converter})
+        col_names = ['datetime']
+        if isinstance(name, str):
+            name = [name]
+        col_names.extend(name)
+
+        csv_df = pd.read_csv(path, header=headers, index_col=0, names=col_names, converters={0: date_converter})
         csv_df = csv_df.resample(self._freq).pad()
         self._add_dataframe(csv_df)
 

@@ -97,6 +97,16 @@ csv_files = [
     {
         'filename': 'transaction-fees.csv',
         'name': 'tx_fees'
+    },
+    {
+        'filename': 'bid_ask_sum.csv',
+        'name': ['asks', 'bids'],
+        'headers': True
+    },
+    {
+        'filename': 'bid_ask_spread.csv',
+        'name': 'bid_ask_spread_pct',
+        'headers': True
     }
 ]
 
