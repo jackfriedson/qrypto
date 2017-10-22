@@ -80,7 +80,7 @@ class RegressorStrategy(object):
         # TODO: save training params to file for later reference
 
         total_steps = self._initialize_training_data(start, end, addtl_currencies)
-        trace_length = (trace_days * 1440) // self.ohlc_interval
+        trace_length = (trace_days * 24 * 60) // self.ohlc_interval
 
         # TODO: consider moving these to init?
         self.n_inputs = self.data.n_state_factors
