@@ -67,30 +67,36 @@ qlearn_indicators = {
 
 csv_files = [
     {
-        'filename': 'block_size.csv',
+        'filename': 'avg-block-size.csv',
         'name': 'block_size'
     },
     {
-        'filename': 'mining_difficulty.csv',
-        'name': 'difficulty'
+        'filename': 'cost-per-transaction.csv',
+        'name': 'tx_cost'
     },
     {
-        'filename': 'number_of_transactions.csv',
-        'name': 'n_transactions'
+        'filename': 'estimated-transaction-volume-usd.csv',
+        'name': 'est_tx_vol_usd'
     },
     {
-        'filename': 'time_between_blocks.csv',
-        'name': 'block_rate'
+        'filename': 'hash-rate.csv',
+        'name': 'hash_rate'
     },
     {
-        'filename': 'hash_rate.csv',
-        'name': 'hashrate',
-        'headers': False
+        'filename': 'median-confirmation-time.csv',
+        'name': 'confirmation_time'
     },
     {
-        'filename': 'mining_revenue.csv',
-        'name': 'revenue',
-        'headers': False
+        'filename': 'miners-revenue.csv',
+        'name': 'mining_revenue'
+    },
+    {
+        'filename': 'trade-volume.csv',
+        'name': 'trade_vol'
+    },
+    {
+        'filename': 'transaction-fees.csv',
+        'name': 'tx_fees'
     }
 ]
 

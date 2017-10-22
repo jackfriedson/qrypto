@@ -24,7 +24,7 @@ class CSVDataset(object):
     def add_column_from_csv(self,
                             path: Path,
                             name: str,
-                            headers: bool = True,
+                            headers: bool = False,
                             date_converter: Optional[Callable] = None):
         if date_converter is None:
             date_converter = lambda x: pd.to_datetime(x)
