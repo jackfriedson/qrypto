@@ -42,12 +42,12 @@ class RNNRegressor(object):
             self.rnn = tf.reshape(self.rnn, shape=tf.shape(self.norm_layer))
 
             n_hiddens = hidden_units or n_inputs
-            l2_reg = tf.contrib.layers.l2_regularizer(reg_strength)
+            l1_reg = tf.contrib.layers.l1_regularizer(reg_strength)
             self.hidden_layer = tf.contrib.layers.fully_connected(self.rnn, n_hiddens, activation_fn=tf.nn.tanh,
-                                                                  weights_regularizer=l2_reg)
+                                                                  weights_regularizer=l1_reg)
             self.dropout_layer = tf.layers.dropout(self.hidden_layer, dropout_prob, training=self.phase)
             self.output_layer = tf.contrib.layers.fully_connected(self.dropout_layer, 1, activation_fn=None,
-                                                                  weights_regularizer=l2_reg)
+                                                                  weights_regularizer=l1_reg)
             self.output_layer = tf.reshape(self.output_layer, shape=[tf.shape(self.inputs)[0]])
 
             # TODO: try using multi-task learning (maybe learn volatiility as well?)

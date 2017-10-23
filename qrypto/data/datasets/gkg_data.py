@@ -22,9 +22,7 @@ class GKGDataset(object):
                     'tone': float(data[0]),
                     'positive': float(data[1]),
                     'negative': float(data[2]),
-                    'polarity': float(data[3]),
-                    'activity_ref_density': float(data[4]),
-                    'self_group_ref_density': float(data[5])
+                    'polarity': float(data[3])
                 })
 
         all_data = pd.DataFrame(data_dicts)
@@ -41,6 +39,9 @@ class GKGDataset(object):
 
         self._data = pd.DataFrame(rows)
         self._data = self._data.resample(freq).pad()
+
+    def all(self):
+        result = self._data
 
     def between(self, start, end):
         return self._data.loc[start:end]
