@@ -127,7 +127,7 @@ class RegressorStrategy(object):
                     print('\nSlice {}; Repeat {}'.format(data_slice, repeat))
                     print('Training...')
                     prog_bar = progressbar.ProgressBar(term_width=80)
-                    losses = []
+                    train_losses = []
 
                     # Train the network
                     for i in prog_bar(range(train_iters)):
@@ -135,20 +135,21 @@ class RegressorStrategy(object):
                         samples = training_data.sample(batch_size, trace_length)
                         inputs, labels = map(np.array, zip(*samples))
                         loss = regressor.update(sess, inputs, labels, trace_length, rnn_state)
-                        losses.append(loss)
+                        train_losses.append(loss)
 
                     # saver.save(sess, str(self.models_dir/'model.ckpt'))
 
                     # Compute error over training set
                     print('Evaluating training set...')
                     self.data.set_to(initial_step)
-                    train_error, train_accuracy, _ = self._evaluate(sess, regressor, train_steps, place_orders=False)
+                    train_error, train_accuracy, _, _ = self._evaluate(sess, regressor, train_steps,
+                                                                       compute_losses=False, place_orders=False)
 
                     # Compute error over validation set
                     print('Evaluating validation set...')
                     self.data.set_to(initial_step + train_steps, reset_orders=False)
                     start_price = self.data.last_price
-                    val_error, val_accuracy, returns = self._evaluate(sess, regressor, validation_steps)
+                    val_error, val_accuracy, returns, val_losses = self._evaluate(sess, regressor, validation_steps)
 
                     # Compute outperformance of market return
                     market_return, algorithm_return = self._calculate_performance(returns, start_price)
@@ -159,11 +160,12 @@ class RegressorStrategy(object):
 
                     # Add Tensorboard summaries
                     iteration_summary = tf.Summary()
-                    iteration_summary.value.add(simple_value=np.average(losses), tag='epoch/train/loss')
-                    iteration_summary.value.add(simple_value=np.average(train_error), tag='epoch/train/error')
+                    iteration_summary.value.add(simple_value=np.average(train_losses), tag='epoch/train/loss')
+                    # iteration_summary.value.add(simple_value=np.average(train_error), tag='epoch/train/error')
                     iteration_summary.value.add(simple_value=np.average(train_accuracy), tag='epoch/train/accuracy')
-                    iteration_summary.value.add(simple_value=np.average(val_error), tag='epoch/validate/error')
+                    # iteration_summary.value.add(simple_value=np.average(val_error), tag='epoch/validate/error')
                     iteration_summary.value.add(simple_value=np.average(val_accuracy), tag='epoch/validate/accuracy')
+                    iteration_summary.value.add(simple_value=np.average(val_losses), tag='epoch/validate/loss')
                     iteration_summary.value.add(simple_value=algorithm_return, tag='epoch/validate/return')
                     regressor.summary_writer.add_summary(iteration_summary, iteration)
                     regressor.summary_writer.add_summary(self._get_epoch_chart(iteration), iteration)
@@ -189,42 +191,44 @@ class RegressorStrategy(object):
         training_data = ExperienceBuffer(self.max_buffer_size, self.random)
 
         for _ in range(n_steps):
-            price = self.data.last_price
             state = self.data.state()
-
             self.data.next()
-
-            label = (self.data.last_price / price) - 1.
-            training_data.add((state, label))
+            training_data.add((state, self.data.period_return))
 
         return training_data
 
     def _initial_rnn_state(self, size: int = 1):
         return [(np.zeros([size, self.n_inputs]), np.zeros([size, self.n_inputs]))] * self.rnn_layers
 
-    def _evaluate(self, session, regressor, n_steps, place_orders: bool = True):
+    def _evaluate(self, session, regressor, n_steps, compute_losses: bool = False, place_orders: bool = True):
         prog_bar = progressbar.ProgressBar(term_width=80)
         initial_rnn_state = rnn_state = self._initial_rnn_state()
 
         returns = []
         differences = []
         correct_directions = []
+        val_losses = []
 
         for _ in prog_bar(range(n_steps)):
-            price = self.data.last_price
             state = self.data.state()
-            prediction, rnn_state = regressor.predict(session, np.expand_dims(state, 0), 1, rnn_state, training=False)
+            prediction, new_rnn_state = regressor.predict(session, np.expand_dims(state, 0), 1, rnn_state, training=False)
             prediction = prediction[0]
 
             action_idx = 1 if prediction > 0 else 0
             place_orders = place_orders and self._order_strategy(prediction, self.minimum_gain)
             _, cum_return = self.data.validate(action_idx, place_orders=place_orders)
             returns.append(cum_return)
+            actual_return = self.data.period_return
 
-            actual = (self.data.last_price / price) - 1.
-            difference = abs(prediction - actual)
+            if compute_losses:
+                loss = regressor.compute_loss(session, np.expand_dims(state, 0), actual_return, rnn_state)
+                val_losses.append(loss)
+                rnn_state = new_rnn_state
+
+
+            difference = abs(prediction - actual_return)
             differences.append(difference)
-            correct_direction = (prediction >= 0 and actual >= 0) or (prediction < 0 and actual < 0)
+            correct_direction = (prediction >= 0 and actual_return >= 0) or (prediction < 0 and actual_return < 0)
             correct_directions.append(correct_direction)
 
         return differences, correct_directions, returns

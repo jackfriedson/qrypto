@@ -40,8 +40,5 @@ class GKGDataset(object):
         self._data = pd.DataFrame(rows)
         self._data = self._data.resample(freq).pad()
 
-    def all(self):
-        result = self._data
-
     def between(self, start, end):
         return self._data.loc[start:end]
