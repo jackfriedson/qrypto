@@ -161,9 +161,7 @@ class RegressorStrategy(object):
                     # Add Tensorboard summaries
                     iteration_summary = tf.Summary()
                     iteration_summary.value.add(simple_value=np.average(train_losses), tag='epoch/train/loss')
-                    # iteration_summary.value.add(simple_value=np.average(train_error), tag='epoch/train/error')
                     iteration_summary.value.add(simple_value=np.average(train_accuracy), tag='epoch/train/accuracy')
-                    # iteration_summary.value.add(simple_value=np.average(val_error), tag='epoch/validate/error')
                     iteration_summary.value.add(simple_value=np.average(val_accuracy), tag='epoch/validate/accuracy')
                     iteration_summary.value.add(simple_value=np.average(val_losses), tag='epoch/validate/loss')
                     iteration_summary.value.add(simple_value=algorithm_return, tag='epoch/validate/return')
@@ -221,7 +219,7 @@ class RegressorStrategy(object):
             actual_return = self.data.period_return
 
             if compute_losses:
-                loss = regressor.compute_loss(session, np.expand_dims(state, 0), actual_return, rnn_state)
+                loss = regressor.compute_loss(session, state, actual_return, rnn_state)
                 val_losses.append(loss)
                 rnn_state = new_rnn_state
 
