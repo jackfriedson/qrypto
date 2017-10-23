@@ -36,6 +36,7 @@ class RNNRegressor(object):
             # TODO: try adding attention to the LSTM
             rnn_cell = tf.contrib.rnn.LSTMCell(num_units=n_inputs, state_is_tuple=True, activation=tf.nn.softsign, use_peepholes=True)
             rnn_cell = tf.contrib.rnn.DropoutWrapper(rnn_cell, output_keep_prob=1-rnn_dropout_prob)
+            rnn_cell = tf.contrib.rnn.AttentionCellWrapper(rnn_cell, 1)
             rnn_cell = tf.contrib.rnn.MultiRNNCell([rnn_cell] * rnn_layers, state_is_tuple=True)
 
             self.rnn_in = rnn_cell.zero_state(batch_size, dtype=tf.float32)
