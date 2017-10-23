@@ -1,4 +1,5 @@
 from typing import List, Optional, Tuple
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -16,7 +17,8 @@ class QLearnDataset(object):
                  ohlc_interval: int,
                  fee: float = 0.002,
                  indicators: Optional[list] = None,
-                 csv_configs: Optional[Tuple[list, list]] = None):
+                 csv_configs: Optional[Tuple[list, list]] = None,
+                 gkg_file: Optional[Path] = None):
         self.fee = fee
 
         self._market_data = OHLCDataset(indicators=indicators)
@@ -25,6 +27,9 @@ class QLearnDataset(object):
         if csv_configs is not None:
             csv_files, custom_columns = csv_configs
             self._csv_data = CSVDataset(ohlc_interval, csv_files, custom_columns)
+
+        if gkg_file is not None:
+            self._gkg_data = GKGDataset(gkg_file)
 
         self._current_timestep = 0
         self._is_training = True

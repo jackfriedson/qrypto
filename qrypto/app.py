@@ -106,6 +106,7 @@ def classifier(ctx, train_start, train_end, **kwargs):
     strategy = ClassifierStrategy(exchange, **config)
     strategy.train(train_start, train_end, random_seed=RANDOM_SEED, **kwargs)
 
+
 @cli.command()
 @click.option('--train-start', type=str, default='5/1/2017')
 @click.option('--train-end', type=str, default='10/11/2017')
@@ -117,9 +118,9 @@ def classifier(ctx, train_start, train_end, **kwargs):
 @click.option('--learn-rate', type=float, default=0.005)
 @click.option('--hidden-units', type=int, default=None)
 @click.option('--rnn-layers', type=int, default=2)
-@click.option('--batch-size', type=int, default=16)
+@click.option('--batch-size', type=int, default=32)
 @click.option('--trace-days', type=int, default=7)
-@click.option('--dropout-prob', type=float, default=0.25)
+@click.option('--dropout-prob', type=float, default=0.5)
 @click.option('--rnn-dropout-prob', type=float, default=0.25)
 @click.option('--l1-reg-strength', type=float, default=0.1)
 @click.pass_context
@@ -128,6 +129,7 @@ def regressor(ctx, train_start, train_end, **kwargs):
     config = ctx.obj.get('config')
     strategy = RegressorStrategy(exchange, **config)
     strategy.train(train_start, train_end, random_seed=RANDOM_SEED, **kwargs)
+
 
 @cli.command()
 @click.pass_context

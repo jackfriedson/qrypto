@@ -1,3 +1,4 @@
 
 # Ignore experiment files
 experiments/*
+data/*/gkg/*

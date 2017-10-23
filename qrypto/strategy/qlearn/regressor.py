@@ -31,7 +31,7 @@ summaries_dir.mkdir(exist_ok=True)
 models_dir = experiments_dir/'models'
 models_dir.mkdir(exist_ok=True)
 
-csv_dir = root_dir/'csv_data'
+data_dir = root_dir/'data'
 
 addtl_currencies = ['ETH', 'LTC', 'ETC']
 
@@ -54,11 +54,12 @@ class RegressorStrategy(object):
 
         self.timestamp = time.strftime('%Y%m%d_%H%M%S')
         self.models_dir = models_dir/self.timestamp
-        self.csv_dir = csv_dir/base_currency.lower()
+        self.data_dir = data_dir/base_currency.lower()
 
         indicators = settings.get_indicators(base_currency, addtl_currencies)
-        csv_data = settings.get_csv_data(self.csv_dir/'blockchain')
-        self.data = CompositeQLearnDataset(base_currency, ohlc_interval, indicators, csv_data)
+        csv_data = settings.get_csv_data(self.data_dir/'blockchain')
+        gkg_file = self.data_dir/'gkg'/'gkg_data.txt'
+        self.data = CompositeQLearnDataset(base_currency, ohlc_interval, indicators, csv_data, gkg_file)
 
     def update(self):
         new_data = self.exchange.get_ohlc(self.base_currency, self.quote_currency, interval=self.ohlc_interval)
@@ -174,7 +175,7 @@ class RegressorStrategy(object):
     def _initialize_training_data(self, start, end):
         base_currency_data = Backtest(self.exchange, self.base_currency, self.quote_currency,
                                       start=start, end=end, interval=self.ohlc_interval,
-                                      save_to_csv=self.csv_dir/'market').all()
+                                      save_to_csv=self.data_dir/'market').all()
         self.data.init_data(base_currency_data, self.base_currency)
 
         for currency in addtl_currencies:

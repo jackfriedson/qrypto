@@ -1,4 +1,5 @@
 from typing import Dict, List, Optional, Tuple
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -12,9 +13,11 @@ class CompositeQLearnDataset(object):
                  primary_name: str,
                  ohlc_interval: int,
                  indicator_configs: Dict[str, list],
-                 csv_configs: Tuple[list, list]) -> None:
+                 csv_configs: Tuple[list, list],
+                 gkg_file: Optional[Path] = None):
         self._primary_name = primary_name
-        self._primary = QLearnDataset(ohlc_interval, indicators=indicator_configs.pop(primary_name), csv_configs=csv_configs)
+        self._primary = QLearnDataset(ohlc_interval, indicators=indicator_configs.pop(primary_name),
+                                      csv_configs=csv_configs, gkg_file=gkg_file)
         self._others = {
             name: QLearnDataset(ohlc_interval, indicators=indicators) for name, indicators in indicator_configs.items()
         }

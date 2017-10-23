@@ -33,7 +33,6 @@ class RNNRegressor(object):
             self.norm_layer = tf.contrib.layers.batch_norm(self.inputs, scale=True, renorm=True, renorm_decay=renorm_decay, is_training=self.phase)
             self.norm_flat = tf.reshape(self.norm_layer, shape=[batch_size, self.trace_length, n_inputs])
 
-            # TODO: try adding attention to the LSTM
             rnn_cell = tf.contrib.rnn.LSTMCell(num_units=n_inputs, state_is_tuple=True, activation=tf.nn.softsign, use_peepholes=True)
             rnn_cell = tf.contrib.rnn.DropoutWrapper(rnn_cell, output_keep_prob=1-rnn_dropout_prob)
             rnn_cell = tf.contrib.rnn.MultiRNNCell([rnn_cell] * rnn_layers, state_is_tuple=True)
@@ -43,13 +42,15 @@ class RNNRegressor(object):
             self.rnn = tf.reshape(self.rnn, shape=tf.shape(self.norm_layer))
 
             n_hiddens = hidden_units or n_inputs
-            l1_reg = tf.contrib.layers.l1_regularizer(l1_reg_strength)
+            l1_reg = tf.contrib.layers.l2_regularizer(l1_reg_strength)
             self.hidden_layer = tf.contrib.layers.fully_connected(self.rnn, n_hiddens, activation_fn=tf.nn.tanh,
                                                                   weights_regularizer=l1_reg)
             self.dropout_layer = tf.layers.dropout(self.hidden_layer, dropout_prob, training=self.phase)
             self.output_layer = tf.contrib.layers.fully_connected(self.dropout_layer, 1, activation_fn=None,
                                                                   weights_regularizer=l1_reg)
             self.output_layer = tf.reshape(self.output_layer, shape=[tf.shape(self.inputs)[0]])
+
+            # TODO: try using multi-task learning (maybe learn volatiility as well?)
 
             self.loss = tf.losses.absolute_difference(self.labels, self.output_layer)
             self.optimizer = tf.train.AdamOptimizer(learn_rate)
