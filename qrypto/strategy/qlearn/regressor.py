@@ -79,12 +79,13 @@ class RegressorStrategy(object):
               trace_days: int = 7,
               random_seed: int = None,
               **kwargs):
+
         # TODO: save training params to file for later reference
+        # TODO: support validation_start date (instead of percent)
 
         n_datapoints = self._initialize_training_data(start, end)
         trace_length = (trace_days * 24 * 60) // self.ohlc_interval
 
-        # TODO: consider moving these to init?
         self.n_inputs = self.data.n_state_factors
         self.n_outputs = 2
         self.rnn_layers = rnn_layers
@@ -142,14 +143,14 @@ class RegressorStrategy(object):
                     # Compute error over training set
                     print('Evaluating training set...')
                     self.data.set_to(initial_step)
-                    train_error, train_accuracy, _, _ = self._evaluate(sess, regressor, train_steps,
+                    train_accuracy, _, _ = self._evaluate(sess, regressor, train_steps,
                                                                        compute_losses=False, place_orders=False)
 
                     # Compute error over validation set
                     print('Evaluating validation set...')
                     self.data.set_to(initial_step + train_steps, reset_orders=False)
                     start_price = self.data.last_price
-                    val_error, val_accuracy, returns, val_losses = self._evaluate(sess, regressor, validation_steps)
+                    val_accuracy, val_losses, returns = self._evaluate(sess, regressor, validation_steps)
 
                     # Compute outperformance of market return
                     market_return, algorithm_return = self._calculate_performance(returns, start_price)
@@ -203,8 +204,7 @@ class RegressorStrategy(object):
         initial_rnn_state = rnn_state = self._initial_rnn_state()
 
         returns = []
-        differences = []
-        correct_directions = []
+        accuracies = []
         val_losses = []
 
         for _ in prog_bar(range(n_steps)):
@@ -223,13 +223,10 @@ class RegressorStrategy(object):
                 val_losses.append(loss)
                 rnn_state = new_rnn_state
 
+            accuracy = (prediction >= 0 and actual_return >= 0) or (prediction < 0 and actual_return < 0)
+            accuracies.append(accuracy)
 
-            difference = abs(prediction - actual_return)
-            differences.append(difference)
-            correct_direction = (prediction >= 0 and actual_return >= 0) or (prediction < 0 and actual_return < 0)
-            correct_directions.append(correct_direction)
-
-        return differences, correct_directions, returns, val_losses
+        return accuracies, val_losses, returns
 
     @staticmethod
     def _order_strategy(predicted_return, minimum_gain):
