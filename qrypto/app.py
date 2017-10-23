@@ -119,7 +119,7 @@ def classifier(ctx, train_start, train_end, **kwargs):
 @click.option('--rnn-layers', type=int, default=2)
 @click.option('--batch-size', type=int, default=16)
 @click.option('--trace-days', type=int, default=7)
-@click.option('--dropout-prob', type=float, default=0.25)
+@click.option('--dropout-prob', type=float, default=0.5)
 @click.option('--rnn-dropout-prob', type=float, default=0.25)
 @click.option('--l1-reg-strength', type=float, default=0.1)
 @click.pass_context
