@@ -231,7 +231,7 @@ class RegressorStrategy(object):
             correct_direction = (prediction >= 0 and actual_return >= 0) or (prediction < 0 and actual_return < 0)
             correct_directions.append(correct_direction)
 
-        return differences, correct_directions, returns
+        return differences, correct_directions, returns, val_losses
 
     @staticmethod
     def _order_strategy(predicted_return, minimum_gain):
