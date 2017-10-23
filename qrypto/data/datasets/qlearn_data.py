@@ -4,7 +4,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from qrypto.data.datasets import CSVDataset, OHLCDataset
+from qrypto.data.datasets import CSVDataset, GKGDataset, OHLCDataset
 from qrypto.types import OHLC
 
 

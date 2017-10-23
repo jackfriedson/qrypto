@@ -6,7 +6,7 @@ import pandas as pd
 TONE_COL_IDX = 7
 
 
-class GKGData(object):
+class GKGDataset(object):
 
     def __init__(self, gkg_file: Path):
         data_dicts = []
