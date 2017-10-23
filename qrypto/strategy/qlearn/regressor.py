@@ -200,7 +200,7 @@ class RegressorStrategy(object):
     def _initial_rnn_state(self, size: int = 1):
         return [(np.zeros([size, self.n_inputs]), np.zeros([size, self.n_inputs]))] * self.rnn_layers
 
-    def _evaluate(self, session, regressor, n_steps, compute_losses: bool = False, place_orders: bool = True):
+    def _evaluate(self, session, regressor, n_steps, compute_losses: bool = True, place_orders: bool = True):
         prog_bar = progressbar.ProgressBar(term_width=80)
         initial_rnn_state = rnn_state = self._initial_rnn_state()
 
