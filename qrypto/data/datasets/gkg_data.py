@@ -26,5 +26,6 @@ class GKGDataset(object):
                     'self_group_ref_density': float(data[5])
                 })
 
-        self._data = pd.DataFrame(data_dicts)
+        all_data = pd.DataFrame(data_dicts)
+        unique_dates = all_data.loc[:, 'date'].unique
         # import ipdb; ipdb.set_trace()

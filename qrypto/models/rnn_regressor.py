@@ -52,7 +52,7 @@ class RNNRegressor(object):
 
             # TODO: try using multi-task learning (maybe learn volatiility as well?)
 
-            self.loss = tf.losses.absolute_difference(self.labels, self.output_layer)
+            self.loss = tf.losses.mean_squared_error(self.labels, self.output_layer)
             self.optimizer = tf.train.AdamOptimizer(learn_rate)
 
             update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
