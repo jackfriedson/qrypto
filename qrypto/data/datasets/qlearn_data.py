@@ -28,8 +28,8 @@ class QLearnDataset(object):
             csv_files, custom_columns = csv_configs
             self._csv_data = CSVDataset(ohlc_interval, csv_files, custom_columns)
 
-        if gkg_file is not None:
-            self._gkg_data = GKGDataset(gkg_file)
+        # if gkg_file is not None:
+        #     self._gkg_data = GKGDataset(gkg_file)
 
         self._current_timestep = 0
         self._is_training = True
