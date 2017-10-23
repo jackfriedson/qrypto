@@ -23,13 +23,14 @@ class QLearnDataset(object):
 
         self._market_data = OHLCDataset(indicators=indicators)
         self._csv_data = None
+        self._gkg_data = None
 
         if csv_configs is not None:
             csv_files, custom_columns = csv_configs
             self._csv_data = CSVDataset(ohlc_interval, csv_files, custom_columns)
 
-        # if gkg_file is not None:
-        #     self._gkg_data = GKGDataset(gkg_file)
+        if gkg_file is not None:
+            self._gkg_data = GKGDataset(ohlc_interval, gkg_file)
 
         self._current_timestep = 0
         self._is_training = True
@@ -114,11 +115,17 @@ class QLearnDataset(object):
     def all(self) -> pd.DataFrame:
         result = self._market_data.all
         result.drop(self.exclude_fields, axis=1, inplace=True)
+        data_start = result.index[0]
+        data_end = result.index[-1]
+
         if self._csv_data:
-            ohlc_start = result.index[0]
-            ohlc_end = result.index[-1]
-            blockchain_data = self._csv_data.between(ohlc_start, ohlc_end)
+            blockchain_data = self._csv_data.between(data_start, data_end)
             result = result.join(blockchain_data)
+
+        if self._gkg_data:
+            gkg_data = self._gkg_data.between(data_start, data_end)
+            result = result.join(gkg_data)
+
         return result
 
     @property

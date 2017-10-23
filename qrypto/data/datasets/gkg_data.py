@@ -8,7 +8,8 @@ TONE_COL_IDX = 7
 
 class GKGDataset(object):
 
-    def __init__(self, gkg_file: Path):
+    def __init__(self, freq, gkg_file: Path):
+        freq = str(freq) + 'T'
         data_dicts = []
         with gkg_file.open() as f:
             headers = f.readline().split('\t')
@@ -27,5 +28,19 @@ class GKGDataset(object):
                 })
 
         all_data = pd.DataFrame(data_dicts)
-        unique_dates = all_data.loc[:, 'date'].unique
-        # import ipdb; ipdb.set_trace()
+        unique_dates = all_data.loc[:, 'date'].unique()
+
+        rows = []
+
+        for date in unique_dates:
+            subset = all_data.loc[all_data['date'] == date]
+            subset = subset.drop('date', axis=1)
+            row = subset.agg('mean')
+            row.name = date
+            rows.append(row)
+
+        self._data = pd.DataFrame(rows)
+        self._data = self._data.resample(freq).pad()
+
+    def between(self, start, end):
+        return self._data.loc[start:end]
