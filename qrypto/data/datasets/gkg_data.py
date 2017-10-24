@@ -1,6 +1,7 @@
 from pathlib import Path
 
 import pandas as pd
+from pandas.tseries.offsets import Day
 
 
 TONE_COL_IDX = 7
@@ -18,7 +19,8 @@ class GKGDataset(object):
                 row = line.split('\t')
                 data = row[TONE_COL_IDX].split(',')
                 data_dicts.append({
-                    'date': pd.to_datetime(row[0]),
+                    # Add a day to prevent data leakage
+                    'date': pd.to_datetime(row[0]) + Day(),
                     'tone': float(data[0]),
                     'positive': float(data[1]),
                     'negative': float(data[2]),
@@ -29,7 +31,6 @@ class GKGDataset(object):
         unique_dates = all_data.loc[:, 'date'].unique()
 
         rows = []
-
         for date in unique_dates:
             subset = all_data.loc[all_data['date'] == date]
             subset = subset.drop('date', axis=1)
@@ -39,6 +40,8 @@ class GKGDataset(object):
 
         self._data = pd.DataFrame(rows)
         self._data = self._data.resample(freq).pad()
+
+        import ipdb; ipdb.set_trace()
 
     def between(self, start, end):
         return self._data.loc[start:end]
