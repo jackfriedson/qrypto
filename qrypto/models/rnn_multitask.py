@@ -66,7 +66,7 @@ class RNNMultiTaskLearner(object):
             self.direction_losses = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=self.direction_out, labels=self.direction_labels)
             self.direction_loss = tf.reduce_mean(self.direction_losses)
 
-            self.joint_loss = tf.sum(self.volatility_loss, self.direction_loss)
+            self.joint_loss = self.volatility_loss + self.direction_loss
 
             self.optimizer = tf.train.AdamOptimizer(learn_rate)
 
