@@ -55,7 +55,8 @@ qlearn_indicators = {
         BasicIndicator('stoch'),
         BasicIndicator('stochrsi'),
         BasicIndicator('ad'),
-        BasicIndicator('adosc')
+        BasicIndicator('adosc'),
+        BasicIndicator('stddev')
     ],
     'additional': [
         BasicIndicator('mom', 1),
