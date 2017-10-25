@@ -66,12 +66,13 @@ class RNNMultiTaskLearner(object):
             self.direction_losses = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=self.direction_out, labels=self.direction_labels)
             self.direction_loss = tf.reduce_mean(self.direction_losses)
 
+            self.joint_loss = tf.sum(self.volatility_loss, self.direction_loss)
+
             self.optimizer = tf.train.AdamOptimizer(learn_rate)
 
             update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
             with tf.control_dependencies(update_ops):
-                self.train_op_1 = self.optimizer.minimize(self.volatility_loss, global_step=tf.contrib.framework.get_global_step())
-                self.train_op_2 = self.optimizer.minimize(self.direction_loss, global_step=tf.contrib.framework.get_global_step())
+                self.train_op = self.optimizer.minimize(self.joint_loss, global_step=tf.contrib.framework.get_global_step())
 
             self.summaries = tf.summary.merge([
                 tf.summary.histogram('normed_inputs', self.norm_layer),
@@ -109,13 +110,12 @@ class RNNMultiTaskLearner(object):
         tensors = [
             self.summaries,
             tf.contrib.framework.get_global_step(),
-            self.train_op_1,
-            self.train_op_2,
+            self.train_op,
             self.volatility_loss,
             self.direction_loss
         ]
 
-        summaries, step, _,  _, v_loss, d_loss = sess.run(tensors, feed_dict)
+        summaries, step, _, v_loss, d_loss = sess.run(tensors, feed_dict)
 
         if self.summary_writer:
             self.summary_writer.add_summary(summaries, step)
