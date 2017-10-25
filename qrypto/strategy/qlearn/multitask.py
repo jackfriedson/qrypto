@@ -192,7 +192,10 @@ class MultitaskStrategy(object):
         for _ in range(n_steps):
             state = self.data.state()
             self.data.next()
-            training_data.add((state, self.data.period_return))
+            direction = 0 if self.data.period_return < 0 else 1
+            volatility = self.data.last_volatility
+            label = np.array([volatility, direction])
+            training_data.add((state, label))
 
         return training_data
 
