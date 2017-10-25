@@ -154,6 +154,7 @@ class QLearnDataset(object):
 
     @property
     def last_volatility(self):
+        # TODO: make this faster during training
         return self._market_data.all.iloc[self._last_idx]['stddev']
 
     @property
