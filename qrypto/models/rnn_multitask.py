@@ -27,6 +27,9 @@ class RNNMultiTaskLearner(object):
             self.phase = tf.placeholder(dtype=tf.bool, name='phase')
             self.trace_length = tf.placeholder(dtype=tf.int32, name='trace_length')
 
+            self.volatility_labels = self.labels[:,0]
+            self.direction_labels = tf.to_int32(self.labels[:,1])
+
             batch_size = tf.reshape(tf.shape(self.inputs)[0] // self.trace_length, shape=[])
 
             self.norm_layer = tf.contrib.layers.batch_norm(self.inputs, scale=True, renorm=True, renorm_decay=renorm_decay, is_training=self.phase)
@@ -52,7 +55,7 @@ class RNNMultiTaskLearner(object):
             self.volatility_out = tf.contrib.layers.fully_connected(self.volatility_hidden, 1, activation_fn=None,
                                                                     weights_regularizer=l1_reg)
             self.volatility_out = tf.reshape(self.volatility_out, shape=[tf.shape(self.inputs)[0]])
-            self.volatility_loss = tf.losses.mean_squared_error(self.volatility_out, self.labels[:,0])
+            self.volatility_loss = tf.losses.mean_squared_error(self.volatility_out, self.volatility_labels)
 
             # Task 2: Classify Direction
             self.direction_hidden = tf.contrib.layers.fully_connected(self.dropout_layer, n_hiddens // 2, activation_fn=tf.nn.tanh,
@@ -60,7 +63,7 @@ class RNNMultiTaskLearner(object):
             self.direction_out = tf.contrib.layers.fully_connected(self.dropout_layer, 2, activation_fn=tf.nn.tanh,
                                                                   weights_regularizer=l1_reg)
             self.direction_out = tf.reshape(self.direction_out, shape=[tf.shape(self.inputs)[0], 2])
-            self.direction_loss = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits=self.direction_out, labels=self.labels[:,1]))
+            self.direction_loss = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits=self.direction_out, labels=self.direction_labels))
 
             self.optimizer = tf.train.AdamOptimizer(learn_rate)
 

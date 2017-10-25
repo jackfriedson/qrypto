@@ -154,7 +154,7 @@ class QLearnDataset(object):
 
     @property
     def last_volatility(self):
-        return self._market_data._data.iloc[self._last_idx]['stddev']
+        return self._market_data.all.iloc[self._last_idx]['stddev']
 
     @property
     def time(self):

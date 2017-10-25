@@ -108,8 +108,8 @@ class MultitaskStrategy(object):
         if random_seed:
             tf.set_random_seed(random_seed)
 
-        model = RNNMultiTaskLearner('rnn_multitask', self.n_inputs, self.n_outputs,
-                                    rnn_layers=self.rnn_layers, summaries_dir=summaries_dir, **kwargs)
+        model = RNNMultiTaskLearner('rnn_multitask', self.n_inputs, rnn_layers=self.rnn_layers,
+                                    summaries_dir=summaries_dir, **kwargs)
 
         # saver = tf.train.Saver()
         with tf.Session() as sess:
@@ -233,7 +233,7 @@ class MultitaskStrategy(object):
                 val_losses.append(loss)
                 rnn_state = new_rnn_state
 
-            accuracy = (prediction >= 0 and actual_return >= 0) or (prediction < 0 and actual_return < 0)
+            accuracy = (pred_dir == 1 and actual_return >= 0) or (pred_dir == 0 and actual_return < 0)
             accuracies.append(accuracy)
 
         return accuracies, val_losses, returns
