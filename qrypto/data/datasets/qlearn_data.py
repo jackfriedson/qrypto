@@ -154,9 +154,7 @@ class QLearnDataset(object):
 
     @property
     def last_volatility(self):
-        if not self._is_training:
-            raise NotImplementedError
-        historical_data = self._train_data[:self._current_timestep]
+        return self._market_data._data.iloc[self._last_idx]['stddev']
 
     @property
     def time(self):

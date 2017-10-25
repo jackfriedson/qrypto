@@ -143,8 +143,8 @@ class MultitaskStrategy(object):
                     # Compute error over training set
                     print('Evaluating training set...')
                     self.data.set_to(initial_step)
-                    train_accuracy, _, _ = self._evaluate(sess, model, train_steps,
-                                                                       compute_losses=False, place_orders=False)
+                    train_accuracy, _, _ = self._evaluate(sess, model, train_steps, compute_losses=False,
+                                                          place_orders=False)
 
                     # Compute error over validation set
                     print('Evaluating validation set...')
@@ -159,12 +159,17 @@ class MultitaskStrategy(object):
                     print('Algorithm return: {:.2f}%'.format(100 * algorithm_return))
                     print('Outperformance: {:+.2f}%'.format(100 * (outperformance)))
 
+                    train_v_losses, train_d_losses = zip(*train_losses)
+                    val_v_losses, val_d_losses = zip(*val_losses)
+
                     # Add Tensorboard summaries
                     iteration_summary = tf.Summary()
-                    iteration_summary.value.add(simple_value=np.average(train_losses), tag='epoch/train/loss')
+                    iteration_summary.value.add(simple_value=np.average(train_v_losses), tag='epoch/train/volatility_loss')
+                    iteration_summary.value.add(simple_value=np.average(train_d_losses), tag='epoch/train/direction_loss')
                     iteration_summary.value.add(simple_value=np.average(train_accuracy), tag='epoch/train/accuracy')
                     iteration_summary.value.add(simple_value=np.average(val_accuracy), tag='epoch/validate/accuracy')
-                    iteration_summary.value.add(simple_value=np.average(val_losses), tag='epoch/validate/loss')
+                    iteration_summary.value.add(simple_value=np.average(val_v_losses), tag='epoch/validate/volatility_loss')
+                    iteration_summary.value.add(simple_value=np.average(val_d_losses), tag='epoch/validate/direction_loss')
                     iteration_summary.value.add(simple_value=algorithm_return, tag='epoch/validate/return')
                     model.summary_writer.add_summary(iteration_summary, iteration)
                     model.summary_writer.add_summary(self._get_epoch_chart(iteration), iteration)
@@ -212,17 +217,19 @@ class MultitaskStrategy(object):
 
         for _ in prog_bar(range(n_steps)):
             state = self.data.state()
-            prediction, new_rnn_state = model.predict(session, np.expand_dims(state, 0), 1, rnn_state, training=False)
-            prediction = prediction[0]
+            pred_vol, pred_dir, new_rnn_state = model.predict(session, np.expand_dims(state, 0), 1, rnn_state, training=False)
+            pred_vol = pred_vol[0]
+            pred_dir = np.argmax(pred_dir[0])
 
-            action_idx = 1 if prediction > 0 else 0
-            place_orders = place_orders and self._order_strategy(prediction, self.minimum_gain)
-            _, cum_return = self.data.validate(action_idx, place_orders=place_orders)
+            place_orders = place_orders and self._order_strategy(pred_vol, pred_dir, self.minimum_gain)
+            _, cum_return = self.data.validate(pred_dir, place_orders=place_orders)
             returns.append(cum_return)
+            actual_vol = self.data.last_volatility
             actual_return = self.data.period_return
+            label = [actual_vol, actual_return]
 
             if compute_losses:
-                loss = model.compute_loss(session, state, actual_return, rnn_state)
+                loss = model.compute_loss(session, state, label, rnn_state)
                 val_losses.append(loss)
                 rnn_state = new_rnn_state
 
@@ -232,8 +239,8 @@ class MultitaskStrategy(object):
         return accuracies, val_losses, returns
 
     @staticmethod
-    def _order_strategy(predicted_return, minimum_gain):
-        return predicted_return > minimum_gain or predicted_return < 0
+    def _order_strategy(predicted_volatility, predicted_direction, minimum_gain):
+        return True
 
     def _calculate_performance(self, returns, start_price):
         market_return = (self.data.last_price / start_price) - 1.

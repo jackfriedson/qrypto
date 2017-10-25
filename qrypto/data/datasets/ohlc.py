@@ -125,10 +125,6 @@ class OHLCDataset(object):
         return self._data.iloc[-1]['close']
 
     @property
-    def last_volatility(self):
-        return self.close.
-
-    @property
     def time(self):
         return self._data.iloc[-1].name
 
