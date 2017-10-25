@@ -77,7 +77,7 @@ class RNNMultiTaskLearner(object):
                 tf.summary.histogram('normed_inputs', self.norm_layer),
                 tf.summary.scalar('volatility_loss', self.volatility_loss),
                 tf.summary.scalar('direction_loss', self.direction_loss),
-                tf.summary.histogram('direction_loss_hist', self.direction_losses)
+                tf.summary.histogram('direction_loss_hist', self.direction_losses),
                 tf.summary.histogram('volatility_predictions', self.volatility_out),
                 tf.summary.histogram('direction_predictions', self.direction_out)
             ])
