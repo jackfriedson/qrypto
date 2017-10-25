@@ -13,7 +13,7 @@ class CompositeQLearnDataset(object):
                  primary_name: str,
                  ohlc_interval: int,
                  indicator_configs: Dict[str, list],
-                 csv_configs: Tuple[list, list],
+                 csv_configs: Optional[Tuple[list, list]] = None,
                  gkg_file: Optional[Path] = None):
         self._primary_name = primary_name
         self._primary = QLearnDataset(ohlc_interval, indicators=indicator_configs.pop(primary_name),
