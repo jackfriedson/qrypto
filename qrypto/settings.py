@@ -66,38 +66,38 @@ qlearn_indicators = {
 
 
 csv_files = [
-    # {
-    #     'filename': 'avg-block-size.csv',
-    #     'name': 'block_size'
-    # },
-    # {
-    #     'filename': 'cost-per-transaction.csv',
-    #     'name': 'tx_cost'
-    # },
-    # {
-    #     'filename': 'estimated-transaction-volume-usd.csv',
-    #     'name': 'est_tx_vol_usd'
-    # },
-    # {
-    #     'filename': 'hash-rate.csv',
-    #     'name': 'hash_rate'
-    # },
-    # {
-    #     'filename': 'median-confirmation-time.csv',
-    #     'name': 'confirmation_time'
-    # },
-    # {
-    #     'filename': 'miners-revenue.csv',
-    #     'name': 'mining_revenue'
-    # },
-    # {
-    #     'filename': 'trade-volume.csv',
-    #     'name': 'trade_vol'
-    # },
-    # {
-    #     'filename': 'transaction-fees.csv',
-    #     'name': 'tx_fees'
-    # },
+    {
+        'filename': 'avg-block-size.csv',
+        'name': 'block_size'
+    },
+    {
+        'filename': 'cost-per-transaction.csv',
+        'name': 'tx_cost'
+    },
+    {
+        'filename': 'estimated-transaction-volume-usd.csv',
+        'name': 'est_tx_vol_usd'
+    },
+    {
+        'filename': 'hash-rate.csv',
+        'name': 'hash_rate'
+    },
+    {
+        'filename': 'median-confirmation-time.csv',
+        'name': 'confirmation_time'
+    },
+    {
+        'filename': 'miners-revenue.csv',
+        'name': 'mining_revenue'
+    },
+    {
+        'filename': 'trade-volume.csv',
+        'name': 'trade_vol'
+    },
+    {
+        'filename': 'transaction-fees.csv',
+        'name': 'tx_fees'
+    },
     {
         'filename': 'bid_ask_sum.csv',
         'name': ['asks', 'bids'],
