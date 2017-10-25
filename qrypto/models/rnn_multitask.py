@@ -55,7 +55,7 @@ class RNNMultiTaskLearner(object):
             self.volatility_out = tf.contrib.layers.fully_connected(self.volatility_hidden, 1, activation_fn=None,
                                                                     weights_regularizer=l1_reg)
             self.volatility_out = tf.reshape(self.volatility_out, shape=[tf.shape(self.inputs)[0]])
-            self.volatility_loss = tf.losses.mean_squared_error(self.volatility_out, self.volatility_labels)
+            self.volatility_loss = tf.losses.absolute_difference(self.volatility_out, self.volatility_labels)
 
             # Task 2: Classify Direction
             self.direction_hidden = tf.contrib.layers.fully_connected(self.dropout_layer, n_hiddens // 2, activation_fn=tf.nn.tanh,
@@ -63,7 +63,8 @@ class RNNMultiTaskLearner(object):
             self.direction_out = tf.contrib.layers.fully_connected(self.direction_hidden, 2, activation_fn=None,
                                                                   weights_regularizer=l1_reg)
             self.direction_out = tf.reshape(self.direction_out, shape=[tf.shape(self.inputs)[0], 2])
-            self.direction_loss = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits=self.direction_out, labels=self.direction_labels))
+            self.direction_losses = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=self.direction_out, labels=self.direction_labels)
+            self.direction_loss = tf.reduce_mean(self.direction_losses)
 
             self.optimizer = tf.train.AdamOptimizer(learn_rate)
 
@@ -76,6 +77,7 @@ class RNNMultiTaskLearner(object):
                 tf.summary.histogram('normed_inputs', self.norm_layer),
                 tf.summary.scalar('volatility_loss', self.volatility_loss),
                 tf.summary.scalar('direction_loss', self.direction_loss),
+                tf.summary.histogram('direction_loss_hist', self.direction_losses)
                 tf.summary.histogram('volatility_predictions', self.volatility_out),
                 tf.summary.histogram('direction_predictions', self.direction_out)
             ])
