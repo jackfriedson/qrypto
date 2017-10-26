@@ -42,6 +42,7 @@ class QLearnDataset(object):
     def init_data(self, market_data):
         self._market_data.init_data(market_data)
         self._train_data = self.all.values
+        self._columns = list(self.all.columns)
 
     def set_training(self, is_training: bool):
         self._is_training = is_training
@@ -148,14 +149,13 @@ class QLearnDataset(object):
                 result = np.append(result, row_vals)
             return result
 
-    @property
-    def last_price(self):
-        return self._market_data._data.iloc[self._last_idx]['close']
+    def get_last(self, column):
+        idx = self._columns.index(column)
+        return self.last_row[idx]
 
     @property
-    def last_volatility(self):
-        # TODO: make this faster during training
-        return self._market_data.all.iloc[self._last_idx]['stddev']
+    def last_price(self):
+        return self.get_last('close')
 
     @property
     def time(self):

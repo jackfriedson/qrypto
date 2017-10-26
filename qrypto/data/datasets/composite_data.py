@@ -95,10 +95,9 @@ class CompositeQLearnDataset(object):
         dataset = self._datasets[name] if name else self._primary
         return dataset.last_price
 
-    @property
-    def last_volatility(self, name: Optional[str] = None):
+    def get_last(self, column: str, name: Optional[str] = None):
         dataset = self._datasets[name] if name else self._primary
-        return dataset.last_volatility
+        return dataset.get_last(column)
 
     @property
     def time(self):
