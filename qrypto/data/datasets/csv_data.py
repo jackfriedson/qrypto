@@ -2,6 +2,7 @@ from typing import Callable, Optional, List, Union
 from pathlib import Path
 
 import pandas as pd
+from pandas.tseries.offsets import Day
 
 
 class CSVDataset(object):
@@ -31,7 +32,7 @@ class CSVDataset(object):
                             headers: bool = False,
                             date_converter: Optional[Callable] = None):
         if date_converter is None:
-            date_converter = lambda x: pd.to_datetime(x)
+            date_converter = lambda x: pd.to_datetime(x) + Day()
 
         headers = 0 if headers else None
         col_names = ['datetime']
