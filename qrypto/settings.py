@@ -57,13 +57,7 @@ qlearn_indicators = {
         BasicIndicator('ad'),
         BasicIndicator('adosc'),
         BasicIndicator('stddev'),
-        BasicIndicator('beta'),
-        BasicIndicator('linearreg'),
-        BasicIndicator('linearreg_angle'),
-        BasicIndicator('linearreg_intercept'),
-        BasicIndicator('linearreg_slope'),
         BasicIndicator('tsf'),
-        BasicIndicator('var'),
     ],
     'additional': [
         BasicIndicator('mom', 1),
