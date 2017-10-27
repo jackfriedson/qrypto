@@ -197,7 +197,7 @@ class MultitaskStrategy(object):
         for _ in range(n_steps):
             state = self.data.state()
             self.data.next()
-            direction = 0 if self.data.period_return < 0 else 1
+            direction = 1 if self.data.period_return > 0 else 0
             volatility = self.data.get_last('stddev')
             label = np.array([volatility, direction])
             training_data.add((state, label))
@@ -225,15 +225,15 @@ class MultitaskStrategy(object):
             _, cum_return = self.data.validate(pred_dir, place_orders=place_orders)
             returns.append(cum_return)
             actual_vol = self.data.get_last('stddev')
-            actual_return = self.data.period_return
-            label = [actual_vol, actual_return]
+            actual_dir = 1 if self.data.period_return > 0 else 0
+            label = [actual_vol, actual_dir]
 
             if compute_losses:
                 loss = model.compute_loss(session, state, label, rnn_state)
                 val_losses.append(loss)
                 rnn_state = new_rnn_state
 
-            accuracy = (pred_dir == 1 and actual_return >= 0) or (pred_dir == 0 and actual_return < 0)
+            accuracy = (pred_dir == 1 and actual_dir >= 0) or (pred_dir == 0 and actual_dir < 0)
             accuracies.append(accuracy)
 
         return accuracies, val_losses, returns
