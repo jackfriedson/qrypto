@@ -64,8 +64,9 @@ class RNNMultiTaskLearner(object):
                                                                   weights_regularizer=l1_reg)
             self.direction_out = tf.reshape(self.direction_out, shape=[tf.shape(self.inputs)[0]])
             self.direction_loss = tf.losses.mean_squared_error(self.direction_out, self.direction_labels)
+            self.direction_loss = self.direction_loss * 10e6
 
-            self.joint_loss = self.volatility_loss + (self.direction_loss * 10e5)
+            self.joint_loss = self.volatility_loss + self.direction_loss
             self.optimizer = tf.train.AdamOptimizer(learn_rate)
 
             update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
