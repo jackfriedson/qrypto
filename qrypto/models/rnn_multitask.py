@@ -28,7 +28,7 @@ class RNNMultiTaskLearner(object):
             self.trace_length = tf.placeholder(dtype=tf.int32, name='trace_length')
 
             self.volatility_labels = self.labels[:,0]
-            self.direction_labels = tf.to_int32(self.labels[:,1])
+            self.direction_labels = self.labels[:,1]
 
             batch_size = tf.reshape(tf.shape(self.inputs)[0] // self.trace_length, shape=[])
 
@@ -57,14 +57,13 @@ class RNNMultiTaskLearner(object):
             self.volatility_out = tf.reshape(self.volatility_out, shape=[tf.shape(self.inputs)[0]])
             self.volatility_loss = tf.losses.absolute_difference(self.volatility_out, self.volatility_labels)
 
-            # Task 2: Classify Direction
+            # Task 2: Estimate Return
             self.direction_hidden = tf.contrib.layers.fully_connected(self.dropout_layer, n_hiddens // 2, activation_fn=tf.nn.tanh,
                                                                        weights_regularizer=l1_reg)
-            self.direction_out = tf.contrib.layers.fully_connected(self.direction_hidden, 2, activation_fn=None,
+            self.direction_out = tf.contrib.layers.fully_connected(self.direction_hidden, 1, activation_fn=None,
                                                                   weights_regularizer=l1_reg)
-            self.direction_out = tf.reshape(self.direction_out, shape=[tf.shape(self.inputs)[0], 2])
-            self.direction_losses = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=self.direction_out, labels=self.direction_labels)
-            self.direction_loss = tf.reduce_sum(self.direction_losses)
+            self.direction_out = tf.reshape(self.direction_out, shape=[tf.shape(self.inputs)[0]])
+            self.direction_loss = tf.losses.absolute_difference(self.direction_out, self.direction_labels)
 
             self.joint_loss = self.volatility_loss + self.direction_loss
             self.optimizer = tf.train.AdamOptimizer(learn_rate)
@@ -77,7 +76,6 @@ class RNNMultiTaskLearner(object):
                 tf.summary.histogram('normed_inputs', self.norm_layer),
                 tf.summary.scalar('volatility_loss', self.volatility_loss),
                 tf.summary.scalar('direction_loss', self.direction_loss),
-                tf.summary.histogram('direction_loss_hist', self.direction_losses),
                 tf.summary.histogram('volatility_predictions', self.volatility_out),
                 tf.summary.histogram('direction_predictions', self.direction_out)
             ])

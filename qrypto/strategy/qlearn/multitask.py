@@ -197,9 +197,9 @@ class MultitaskStrategy(object):
         for _ in range(n_steps):
             state = self.data.state()
             self.data.next()
-            direction = 0 if self.data.period_return < 0 else 1
+            period_return = self.data.period_return
             volatility = self.data.get_last('stddev')
-            label = np.array([volatility, direction])
+            label = np.array([volatility, period_return])
             training_data.add((state, label))
 
         return training_data
@@ -217,9 +217,9 @@ class MultitaskStrategy(object):
 
         for _ in prog_bar(range(n_steps)):
             state = self.data.state()
-            pred_vol, pred_dir, new_rnn_state = model.predict(session, np.expand_dims(state, 0), 1, rnn_state, training=False)
+            pred_vol, pred_ret, new_rnn_state = model.predict(session, np.expand_dims(state, 0), 1, rnn_state, training=False)
             pred_vol = pred_vol[0]
-            pred_dir = np.argmax(pred_dir[0])
+            pred_dir = 1 if pred_ret[0] > 0 else 0
 
             place_orders = place_orders and self._order_strategy(pred_vol, pred_dir, self.minimum_gain)
             _, cum_return = self.data.validate(pred_dir, place_orders=place_orders)
