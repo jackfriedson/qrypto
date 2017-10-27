@@ -50,7 +50,7 @@ class RNNMultiTaskLearner(object):
             self.dropout_layer = tf.layers.dropout(self.hidden_layer, dropout_prob, training=self.phase)
 
             # Task 1: Estimate Volatility
-            self.volatility_hidden = tf.contrib.layers.fully_connected(self.dropout_layer, n_hiddens // 2, activation_fn=tf.nn.tanh,
+            self.volatility_hidden = tf.contrib.layers.fully_connected(self.dropout_layer, n_hiddens, activation_fn=tf.nn.tanh,
                                                                        weights_regularizer=l1_reg)
             self.volatility_out = tf.contrib.layers.fully_connected(self.volatility_hidden, 1, activation_fn=None,
                                                                     weights_regularizer=l1_reg)
@@ -58,7 +58,7 @@ class RNNMultiTaskLearner(object):
             self.volatility_loss = tf.losses.absolute_difference(self.volatility_out, self.volatility_labels)
 
             # Task 2: Classify Direction
-            self.direction_hidden = tf.contrib.layers.fully_connected(self.dropout_layer, n_hiddens // 2, activation_fn=tf.nn.tanh,
+            self.direction_hidden = tf.contrib.layers.fully_connected(self.dropout_layer, n_hiddens, activation_fn=tf.nn.tanh,
                                                                        weights_regularizer=l1_reg)
             self.direction_out = tf.contrib.layers.fully_connected(self.direction_hidden, 2, activation_fn=None,
                                                                   weights_regularizer=l1_reg)
