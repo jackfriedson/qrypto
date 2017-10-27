@@ -233,7 +233,7 @@ class MultitaskStrategy(object):
                 val_losses.append(loss)
                 rnn_state = new_rnn_state
 
-            accuracy = (pred_dir == 1 and actual_dir >= 0) or (pred_dir == 0 and actual_dir < 0)
+            accuracy = (pred_dir == actual_dir)
             accuracies.append(accuracy)
 
         return accuracies, val_losses, returns
