@@ -175,7 +175,7 @@ class QLearnDataset(object):
 
     @property
     def period_return(self):
-        return 100 * ((self._market_data.close[self._last_idx] / self._market_data.close[self._last_idx - 1]) - 1.)
+        return (self._market_data.close[self._last_idx] / self._market_data.close[self._last_idx - 1]) - 1.
 
     @property
     def cumulative_return(self):

@@ -55,7 +55,7 @@ class RNNMultiTaskLearner(object):
             self.volatility_out = tf.contrib.layers.fully_connected(self.volatility_hidden, 1, activation_fn=None,
                                                                     weights_regularizer=l1_reg)
             self.volatility_out = tf.reshape(self.volatility_out, shape=[tf.shape(self.inputs)[0]])
-            self.volatility_loss = tf.losses.absolute_difference(self.volatility_out, self.volatility_labels)
+            self.volatility_loss = tf.losses.mean_squared_error(self.volatility_out, self.volatility_labels)
 
             # Task 2: Estimate Return
             self.direction_hidden = tf.contrib.layers.fully_connected(self.dropout_layer, n_hiddens // 2, activation_fn=tf.nn.tanh,
