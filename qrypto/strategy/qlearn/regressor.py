@@ -5,6 +5,7 @@ from qrypto.strategy import LearnStrategy
 
 
 class RegressorStrategy(LearnStrategy):
+    tasks = ['return']
 
     def __init__(self, *args, **kwargs):
         super(RegressorStrategy, self).__init__(RNNRegressor, 'rnn_regressor', *args, **kwargs)

@@ -156,7 +156,7 @@ class LearnStrategy(object):
                 epoch_summary = tf.Summary()
                 for phase, phase_losses in zip(('train', 'validate'), (train_losses, val_losses)):
                     for i, losses in enumerate(phase_losses):
-                        tag_name = 'epoch/{}/task_{}_loss'.format(phase, i)
+                        tag_name = 'epoch/{}/{}_loss'.format(phase, self.tasks[i])
                         epoch_summary.value.add(simple_value=np.average(losses), tag=tag_name)
                 epoch_summary.value.add(simple_value=np.average(train_accuracy), tag='epoch/train/accuracy')
                 epoch_summary.value.add(simple_value=np.average(val_accuracy), tag='epoch/validate/accuracy')

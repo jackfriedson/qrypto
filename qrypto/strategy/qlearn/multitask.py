@@ -5,6 +5,7 @@ from qrypto.strategy import LearnStrategy
 
 
 class MultitaskStrategy(LearnStrategy):
+    tasks = ['volatility', 'direction']
 
     def __init__(self, *args, **kwargs):
         super(MultitaskStrategy, self).__init__(RNNMultiTaskLearner, 'rnn_multitask', *args, **kwargs)
