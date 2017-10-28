@@ -15,6 +15,7 @@ class RNNClassifier(object):
                  rnn_layers: int = 1,
                  dropout_prob: float = 0.,
                  rnn_dropout_prob: float = 0.,
+                 reg_strength: float = 0.,
                  summaries_dir: str = None):
         self.scope = scope
         self.n_inputs = n_inputs

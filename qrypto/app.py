@@ -60,6 +60,7 @@ def cli(ctx, exchange, **kwargs):
 
 
 @cli.command()
+@click.argument('model-type', type=click.Choice(['classifier', 'regressor', 'multitask']))
 @click.option('--train-start', type=str, default='5/1/2017')
 @click.option('--train-end', type=str, default='10/11/2017')
 @click.option('--epochs', type=int, default=20)
@@ -74,51 +75,17 @@ def cli(ctx, exchange, **kwargs):
 @click.option('--rnn-dropout-prob', type=float, default=0.)
 @click.option('--reg-strength', type=float, default=0.)
 @click.pass_context
-def multitask(ctx, train_start, train_end, **kwargs):
+def learn(ctx, model_type, train_start, train_end, **kwargs):
     exchange = ctx.obj.get('exchange')
     config = ctx.obj.get('config')
-    strategy = MultitaskStrategy(exchange, **config)
-    strategy.train(train_start, train_end, random_seed=RANDOM_SEED, **kwargs)
 
+    if model_type == 'classifier':
+        strategy = ClassifierStrategy(exchange, **config)
+    elif model_type == 'regressor':
+        strategy = RegressorStrategy(exchange, **config)
+    elif model_type == 'multitask':
+        strategy = MultitaskStrategy(exchange, **config)
 
-@cli.command()
-@click.option('--train-start', type=str, default='5/1/2017')
-@click.option('--train-end', type=str, default='10/11/2017')
-@click.option('--epochs', type=int, default=20)
-@click.option('--n-batches', type=int, default=500)
-@click.option('--validation-percent', type=float, default=0.1)
-@click.option('--learn-rate', type=float, default=0.005)
-@click.option('--hidden-units', type=int, default=None)
-@click.option('--rnn-layers', type=int, default=2)
-@click.option('--batch-size', type=int, default=32)
-@click.option('--trace-days', type=int, default=7)
-@click.option('--dropout-prob', type=float, default=0.)
-@click.option('--rnn-dropout-prob', type=float, default=0.)
-@click.option('--reg-strength', type=float, default=0.)
-@click.pass_context
-def regressor(ctx, train_start, train_end, **kwargs):
-    exchange = ctx.obj.get('exchange')
-    config = ctx.obj.get('config')
-    strategy = RegressorStrategy(exchange, **config)
-    strategy.train(train_start, train_end, random_seed=RANDOM_SEED, **kwargs)
-
-
-@cli.command()
-@click.option('--train-start', type=str, default='5/1/2017')
-@click.option('--train-end', type=str, default='10/11/2017')
-@click.option('--epochs', type=int, default=20)
-@click.option('--n-batches', type=int, default=500)
-@click.option('--validation-percent', type=float, default=0.1)
-@click.option('--learn-rate', type=float, default=0.005)
-@click.option('--hidden-units', type=int, default=None)
-@click.option('--rnn-layers', type=int, default=2)
-@click.option('--batch-size', type=int, default=32)
-@click.option('--trace-days', type=int, default=7)
-@click.pass_context
-def classifier(ctx, train_start, train_end, **kwargs):
-    exchange = ctx.obj.get('exchange')
-    config = settings.get_config('qlearn')
-    strategy = ClassifierStrategy(exchange, **config)
     strategy.train(train_start, train_end, random_seed=RANDOM_SEED, **kwargs)
 
 
