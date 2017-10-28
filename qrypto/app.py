@@ -11,7 +11,7 @@ from qrypto import settings
 from qrypto.backtest import Backtest
 from qrypto.exchanges import Kraken, Poloniex
 from qrypto.strategy import (TakeProfitMomentumStrategy, MFIMomentumStrategy, QTableStrategy, QNetworkStrategy,
-                             ClassifierStrategy, RegressorStrategy, MultitaskStrategy, LearnStrategy)
+                             ClassifierStrategy, RegressorStrategy, MultitaskStrategy)
 
 
 RANDOM_SEED = 12345
@@ -65,7 +65,7 @@ def cli(ctx, exchange, **kwargs):
 @click.option('--train-end', type=str, default='10/11/2017')
 @click.option('--epochs', type=int, default=20)
 @click.option('--n-batches', type=int, default=500)
-@click.option('--validation-percent', type=float, default=0.1)
+@click.option('--validation-percent', type=float, default=0.2)
 @click.option('--learn-rate', type=float, default=0.005)
 @click.option('--hidden-units', type=int, default=None)
 @click.option('--rnn-layers', type=int, default=2)
