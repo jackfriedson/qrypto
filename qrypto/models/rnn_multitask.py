@@ -57,7 +57,7 @@ class RNNMultiTaskLearner(object):
             self.volatility_out = tf.contrib.layers.fully_connected(self.volatility_hidden, 1, activation_fn=None,
                                                                     weights_regularizer=l1_reg)
             self.volatility_out = tf.reshape(self.volatility_out, shape=[tf.shape(self.inputs)[0]])
-            self.volatility_loss = tf.losses.absolute_difference(self.volatility_out, self.volatility_labels)
+            self.volatility_loss = tf.losses.absolute_difference(self.volatility_labels, self.volatility_out)
 
             # Task 2: Classify Direction
             self.direction_hidden = tf.contrib.layers.fully_connected(self.dropout_layer, n_hiddens, activation_fn=tf.nn.tanh,
@@ -65,7 +65,7 @@ class RNNMultiTaskLearner(object):
             self.direction_out = tf.contrib.layers.fully_connected(self.direction_hidden, 2, activation_fn=None,
                                                                   weights_regularizer=l1_reg)
             self.direction_out = tf.reshape(self.direction_out, shape=[tf.shape(self.inputs)[0], 2])
-            self.direction_losses = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=self.direction_out, labels=self.direction_labels)
+            self.direction_losses = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=self.direction_labels, logits=self.direction_out)
             self.direction_loss = tf.reduce_sum(self.direction_losses)
 
             self.joint_loss = self.volatility_loss + self.direction_loss
