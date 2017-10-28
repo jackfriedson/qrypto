@@ -20,6 +20,7 @@ class RNNMultiTaskLearner(object):
         self.n_inputs = n_inputs
         self.rnn_layers = rnn_layers
         self.scope = scope
+        n_hiddens = hidden_units or n_inputs
 
         # TODO: try using dense sparse dense regularization
 
@@ -45,25 +46,20 @@ class RNNMultiTaskLearner(object):
             self.rnn, self.rnn_state = tf.nn.dynamic_rnn(rnn_cell, self.norm_flat, dtype=tf.float32, initial_state=self.rnn_in)
             self.rnn = tf.reshape(self.rnn, shape=tf.shape(self.norm_layer))
 
-            n_hiddens = hidden_units or n_inputs
             l1_reg = tf.contrib.layers.l1_regularizer(reg_strength)
-            self.hidden_layer = tf.contrib.layers.fully_connected(self.rnn, n_hiddens, activation_fn=tf.nn.tanh,
-                                                                  weights_regularizer=l1_reg)
-            self.dropout_layer = tf.layers.dropout(self.hidden_layer, dropout_prob, training=self.phase)
+            self.hidden_layer = tf.contrib.layers.fully_connected(self.rnn, n_hiddens, activation_fn=tf.nn.tanh, weights_regularizer=l1_reg)
 
             # Task 1: Estimate Volatility
-            self.volatility_hidden = tf.contrib.layers.fully_connected(self.dropout_layer, n_hiddens, activation_fn=tf.nn.tanh,
-                                                                       weights_regularizer=l1_reg)
-            self.volatility_out = tf.contrib.layers.fully_connected(self.volatility_hidden, 1, activation_fn=None,
-                                                                    weights_regularizer=l1_reg)
+            self.volatility_hidden = tf.contrib.layers.fully_connected(self.hidden_layer, n_hiddens, activation_fn=tf.nn.tanh, weights_regularizer=l1_reg)
+            self.volatility_dropout = tf.layers.dropout(self.volatility_hidden, dropout_prob, training=self.phase)
+            self.volatility_out = tf.contrib.layers.fully_connected(self.volatility_dropout, 1, activation_fn=None, weights_regularizer=l1_reg)
             self.volatility_out = tf.reshape(self.volatility_out, shape=[tf.shape(self.inputs)[0]])
             self.volatility_loss = tf.losses.absolute_difference(self.volatility_labels, self.volatility_out)
 
             # Task 2: Classify Direction
-            self.direction_hidden = tf.contrib.layers.fully_connected(self.dropout_layer, n_hiddens, activation_fn=tf.nn.tanh,
-                                                                       weights_regularizer=l1_reg)
-            self.direction_out = tf.contrib.layers.fully_connected(self.direction_hidden, 2, activation_fn=None,
-                                                                  weights_regularizer=l1_reg)
+            self.direction_hidden = tf.contrib.layers.fully_connected(self.hidden_layer, n_hiddens, activation_fn=tf.nn.tanh, weights_regularizer=l1_reg)
+            self.direction_dropout = tf.layers.dropout(self.direction_hidden, dropout_prob, training=self.phase)
+            self.direction_out = tf.contrib.layers.fully_connected(self.direction_dropout, 2, activation_fn=None, weights_regularizer=l1_reg)
             self.direction_out = tf.reshape(self.direction_out, shape=[tf.shape(self.inputs)[0], 2])
             self.direction_losses = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=self.direction_labels, logits=self.direction_out)
             self.direction_loss = tf.reduce_sum(self.direction_losses)
