@@ -17,6 +17,8 @@ class RNNMultiTaskLearner(object):
                  rnn_dropout_prob: float = 0.,
                  rnn_layers: int = 1,
                  summaries_dir: str = None):
+        self.n_inputs = n_inputs
+        self.rnn_layers = rnn_layers
         self.scope = scope
 
         # TODO: try using dense sparse dense regularization
@@ -95,7 +97,8 @@ class RNNMultiTaskLearner(object):
             self.trace_length: trace_length,
             self.rnn_in: rnn_state
         }
-        return sess.run([self.volatility_out, self.direction_out, self.rnn_state], feed_dict)
+        v_out, d_out, rnn = sess.run([self.volatility_out, self.direction_out, self.rnn_state], feed_dict)
+        return (v_out, d_out), rnn
 
     def update(self, sess, state, labels, trace_length, rnn_state):
         feed_dict = {
@@ -119,7 +122,7 @@ class RNNMultiTaskLearner(object):
         if self.summary_writer:
             self.summary_writer.add_summary(summaries, step)
 
-        return v_loss, d_loss
+        return (v_loss, d_loss)
 
     def compute_loss(self, sess, state, label, rnn_state):
         feed_dict = {
@@ -129,4 +132,8 @@ class RNNMultiTaskLearner(object):
             self.trace_length: 1,
             self.rnn_in: rnn_state
         }
-        return sess.run([self.volatility_loss, self.direction_loss], feed_dict)
+        v_loss, d_loss = sess.run([self.volatility_loss, self.direction_loss], feed_dict)
+        return (v_loss, d_loss)
+
+    def initial_rnn_state(self, size: int = 1):
+        return [(np.zeros([size, self.n_inputs]), np.zeros([size, self.n_inputs]))] * self.rnn_layers

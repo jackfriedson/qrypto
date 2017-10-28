@@ -123,6 +123,9 @@ custom_columns = [
 ]
 
 
+addtl_currencies = ['ETH', 'LTC', 'ETC']
+
+
 def get_csv_data(csv_dir):
     for csv in csv_files:
         csv['path'] = csv_dir/csv.pop('filename')

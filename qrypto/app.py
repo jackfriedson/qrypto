@@ -11,7 +11,7 @@ from qrypto import settings
 from qrypto.backtest import Backtest
 from qrypto.exchanges import Kraken, Poloniex
 from qrypto.strategy import (TakeProfitMomentumStrategy, MFIMomentumStrategy, QTableStrategy, QNetworkStrategy,
-                             ClassifierStrategy, RegressorStrategy, MultitaskStrategy)
+                             ClassifierStrategy, RegressorStrategy, MultitaskStrategy, LearnStrategy)
 
 
 RANDOM_SEED = 12345
@@ -60,50 +60,24 @@ def cli(ctx, exchange, **kwargs):
 
 
 @cli.command()
-@click.pass_context
-def qlearn(ctx):
-    exchange = ctx.obj.get('exchange')
-    config = settings.get_config('qlearn')
-    strategy = QTableStrategy(exchange, **config)
-    strategy.train()
-
-
-@cli.command()
-@click.option('--train-start', type=str, default='6/1/2017')
-@click.option('--train-end', type=str, default='10/1/2017')
-@click.option('--n-slices', type=int, default=10)
-@click.option('--n-epochs', type=int, default=1)
-@click.option('--validation-percent', type=float, default=0.2)
-@click.option('--learn-rate', type=float, default=0.001)
-@click.option('--gamma', type=float, default=0.9)
-@click.pass_context
-def qlearnnet(ctx, train_start, train_end, **kwargs):
-    exchange = ctx.obj.get('exchange')
-    config = settings.get_config('qlearn')
-    strategy = QNetworkStrategy(exchange, **config)
-    strategy.train(train_start, train_end, random_seed=RANDOM_SEED, **kwargs)
-
-
-@cli.command()
-@click.option('--train-start', type=str, default='6/1/2017')
+@click.option('--train-start', type=str, default='5/1/2017')
 @click.option('--train-end', type=str, default='10/11/2017')
-@click.option('--n-slices', type=int, default=20)
-@click.option('--n-epochs', type=int, default=1)
-@click.option('--validation-percent', type=float, default=0.05)
-@click.option('--softmax-threshold', type=float, default=0.5)
-@click.option('--target-period', type=int, default=1)
+@click.option('--epochs', type=int, default=20)
+@click.option('--n-batches', type=int, default=500)
+@click.option('--validation-percent', type=float, default=0.1)
 @click.option('--learn-rate', type=float, default=0.005)
 @click.option('--hidden-units', type=int, default=None)
-@click.option('--batch-size', type=int, default=16)
-@click.option('--batch-repeats', type=int, default=40)
-@click.option('--dropout-keep-prob', type=float, default=1.0)
-@click.option('--trace-length', type=int, default=32)
-@click.option('--rnn-layers', type=int, default=1)
+@click.option('--rnn-layers', type=int, default=2)
+@click.option('--batch-size', type=int, default=32)
+@click.option('--trace-days', type=int, default=7)
+@click.option('--dropout-prob', type=float, default=0.)
+@click.option('--rnn-dropout-prob', type=float, default=0.)
+@click.option('--reg-strength', type=float, default=0.)
 @click.pass_context
-def classifier(ctx, train_start, train_end, **kwargs):
+def multitask(ctx, train_start, train_end, **kwargs):
     exchange = ctx.obj.get('exchange')
-    config = settings.get_config('qlearn')
-    strategy = ClassifierStrategy(exchange, **config)
+    config = ctx.obj.get('config')
+    strategy = MultitaskStrategy(exchange, **config)
     strategy.train(train_start, train_end, random_seed=RANDOM_SEED, **kwargs)
 
 
@@ -132,27 +106,51 @@ def regressor(ctx, train_start, train_end, **kwargs):
 
 
 @cli.command()
-@click.option('--train-start', type=str, default='5/1/2017')
+@click.option('--train-start', type=str, default='6/1/2017')
 @click.option('--train-end', type=str, default='10/11/2017')
-@click.option('--n-slices', type=int, default=10)
-@click.option('--slice-repeats', type=int, default=1)
-@click.option('--train-iters', type=int, default=750)
-@click.option('--validation-percent', type=float, default=0.1)
-@click.option('--minimum-gain', type=float, default=0.)
+@click.option('--n-slices', type=int, default=20)
+@click.option('--n-epochs', type=int, default=1)
+@click.option('--validation-percent', type=float, default=0.05)
+@click.option('--softmax-threshold', type=float, default=0.5)
+@click.option('--target-period', type=int, default=1)
 @click.option('--learn-rate', type=float, default=0.005)
 @click.option('--hidden-units', type=int, default=None)
-@click.option('--rnn-layers', type=int, default=2)
-@click.option('--batch-size', type=int, default=32)
-@click.option('--trace-days', type=int, default=7)
-@click.option('--dropout-prob', type=float, default=0.5)
-@click.option('--rnn-dropout-prob', type=float, default=0.25)
-@click.option('--reg-strength', type=float, default=0.1)
+@click.option('--batch-size', type=int, default=16)
+@click.option('--batch-repeats', type=int, default=40)
+@click.option('--dropout-keep-prob', type=float, default=1.0)
+@click.option('--trace-length', type=int, default=32)
+@click.option('--rnn-layers', type=int, default=1)
 @click.pass_context
-def multitask(ctx, train_start, train_end, **kwargs):
+def classifier(ctx, train_start, train_end, **kwargs):
     exchange = ctx.obj.get('exchange')
-    config = ctx.obj.get('config')
-    strategy = MultitaskStrategy(exchange, **config)
+    config = settings.get_config('qlearn')
+    strategy = ClassifierStrategy(exchange, **config)
     strategy.train(train_start, train_end, random_seed=RANDOM_SEED, **kwargs)
+
+
+@cli.command()
+@click.option('--train-start', type=str, default='6/1/2017')
+@click.option('--train-end', type=str, default='10/1/2017')
+@click.option('--n-slices', type=int, default=10)
+@click.option('--n-epochs', type=int, default=1)
+@click.option('--validation-percent', type=float, default=0.2)
+@click.option('--learn-rate', type=float, default=0.001)
+@click.option('--gamma', type=float, default=0.9)
+@click.pass_context
+def qlearnnet(ctx, train_start, train_end, **kwargs):
+    exchange = ctx.obj.get('exchange')
+    config = settings.get_config('qlearn')
+    strategy = QNetworkStrategy(exchange, **config)
+    strategy.train(train_start, train_end, random_seed=RANDOM_SEED, **kwargs)
+
+
+@cli.command()
+@click.pass_context
+def qlearn(ctx):
+    exchange = ctx.obj.get('exchange')
+    config = settings.get_config('qlearn')
+    strategy = QTableStrategy(exchange, **config)
+    strategy.train()
 
 
 @cli.command()
