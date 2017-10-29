@@ -84,6 +84,10 @@ class CompositeQLearnDataset(object):
         return self._primary._last_idx
 
     @property
+    def n_examples(self):
+        return self._primary.n_examples
+
+    @property
     def last_row(self):
         result = self._primary.last_row
         for dataset in self._others.values():

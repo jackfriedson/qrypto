@@ -91,7 +91,8 @@ class LearnStrategy(object):
         # TODO: save training params to file for later reference
         # TODO: support validation_start date (instead of percent)
 
-        n_examples = self._initialize_training_data(start, end)
+        self._initialize_training_data(start, end)
+        n_examples = self.data.n_examples
         trace_length = (trace_days * 24 * 60) // self.ohlc_interval
 
         self.n_inputs = self.data.n_state_factors
@@ -176,8 +177,6 @@ class LearnStrategy(object):
             currency_data = Backtest(self.exchange, currency, self.quote_currency, start=start, end=end,
                                      interval=MIN_OHLC_INTERVAL).all()
             self.data.init_data(currency_data, currency)
-
-        return len(base_currency_data)
 
     def _populate_training_data(self, n_steps: int):
         training_data = ExperienceBuffer(MAX_BUFFER_SIZE, self.random)

@@ -154,6 +154,10 @@ class QLearnDataset(object):
         return self.last_row[idx]
 
     @property
+    def n_examples(self):
+        return len(self._market_data._data)
+
+    @property
     def last_price(self):
         return self.get_last('close')
 
