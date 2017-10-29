@@ -3,6 +3,8 @@ import time
 import numpy as np
 import tensorflow as tf
 
+from qrypto.models.utils import reduce_std
+
 
 class RNNMultiTaskLearner(object):
 
@@ -21,6 +23,9 @@ class RNNMultiTaskLearner(object):
         self.n_inputs = n_inputs
         self.n_hiddens = hidden_units or n_inputs
         self.rnn_layers = rnn_layers
+
+        self.vol_outputs = np.array([])
+        self.vol_variance = None
 
         # TODO: try using dense sparse dense regularization
 
@@ -110,10 +115,13 @@ class RNNMultiTaskLearner(object):
             tf.contrib.framework.get_global_step(),
             self.train_op,
             self.volatility_loss,
-            self.direction_loss
+            self.direction_loss,
+            self.volatility_out
         ]
 
-        summaries, step, _, v_loss, d_loss = sess.run(tensors, feed_dict)
+        summaries, step, _, v_loss, d_loss, v_out = sess.run(tensors, feed_dict)
+
+        np.append(self.vol_outputs, v_out)
 
         if self.summary_writer:
             self.summary_writer.add_summary(summaries, step)
@@ -133,3 +141,6 @@ class RNNMultiTaskLearner(object):
 
     def initial_rnn_state(self, size: int = 1):
         return [(np.zeros([size, self.n_inputs]), np.zeros([size, self.n_inputs]))] * self.rnn_layers
+
+    def update_loss_fn(self):
+        self.vol_variance = self.vol_outputs.var
