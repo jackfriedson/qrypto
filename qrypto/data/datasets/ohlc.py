@@ -34,7 +34,7 @@ class OHLCDataset(object):
         # TODO: Implement dynamic plotting of orders while running
 
     def init_data(self, data: List[OHLC]) -> None:
-        self._data = pd.DataFrame(incoming_data)
+        self._data = pd.DataFrame(data)
         self._data.set_index('datetime', inplace=True)
 
         for indicator in self._indicators:
