@@ -139,7 +139,7 @@ class RNNMultiTaskLearner(object):
 
         # Update loss parameters
         np.append(self.vol_outputs, v_out)
-        self.loss_params[0].assign(self.vol_outputs.var)
+        self.loss_params[0].assign(self.vol_outputs.var())
 
         if self.summary_writer:
             self.summary_writer.add_summary(summaries, step)
