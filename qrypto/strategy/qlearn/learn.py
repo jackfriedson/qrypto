@@ -57,9 +57,9 @@ class LearnStrategy(object):
 
         self.addtl_currencies = settings.addtl_currencies
         indicators = settings.get_indicators(base_currency, self.addtl_currencies)
-        csv_data = settings.get_csv_data(self.data_dir/'blockchain')
+        # csv_data = settings.get_csv_data(self.data_dir/'blockchain')
         gkg_file = self.data_dir/'gkg'/'gkg_data.txt'
-        self.data = CompositeQLearnDataset(base_currency, ohlc_interval, indicators, csv_configs=csv_data, gkg_file=gkg_file)
+        self.data = CompositeQLearnDataset(base_currency, ohlc_interval, indicators, gkg_file=gkg_file)
 
     def update(self):
         new_data = self.exchange.get_ohlc(self.base_currency, self.quote_currency, interval=self.ohlc_interval)
