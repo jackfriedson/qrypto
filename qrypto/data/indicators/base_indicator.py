@@ -51,4 +51,4 @@ class BasicIndicator(BaseIndicator):
 
     @property
     def suffix(self):
-        return '_' + ','.join([str(v) for k, v in self.config.items()])
+        return '_' + ','.join([str(v) for v in self.config.values()])
