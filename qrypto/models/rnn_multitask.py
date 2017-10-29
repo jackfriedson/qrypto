@@ -99,7 +99,7 @@ class RNNMultiTaskLearner(object):
     def _uncertainty_loss(self, loss_ops, inital_values=INITIAL_LOSS_PARAMS):
         scaled_losses = []
 
-        for i, loss in enumerate(loss_ops)
+        for i, loss in enumerate(loss_ops):
             loss_param = tf.Variable(inital_values[i], dtype=tf.float32, trainable=False, name='loss_param_{}'.format(i))
             self.loss_params[i] = loss_param
             scaled_loss_fn = ((1 / ((2 * loss_param) + EPSILON)) * loss) + tf.log(loss_param)
