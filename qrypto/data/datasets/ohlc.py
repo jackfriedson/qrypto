@@ -20,9 +20,11 @@ class OHLCDataset(object):
 
     def __init__(self,
                  data: Optional[List[OHLC]] = None,
-                 indicators: Optional[List] = None):
+                 indicators: Optional[List] = None,
+                 interval: Optional[int] = None):
         self._data = None
         self._indicators = indicators or []
+        self._interval = interval
         self._init_positions()
         self._init_orders()
 
@@ -32,8 +34,11 @@ class OHLCDataset(object):
         # TODO: Implement dynamic plotting of orders while running
 
     def init_data(self, data: List[OHLC]) -> None:
-        self._data = None
-        self.update(data)
+        self._data = pd.DataFrame(incoming_data)
+        self._data.set_index('datetime', inplace=True)
+
+        for indicator in self._indicators:
+            indicator.update(self._data)
 
     def _init_positions(self) -> None:
         self._longs = {}
@@ -44,13 +49,9 @@ class OHLCDataset(object):
         self._orders.set_index('datetime', inplace=True)
 
     def update(self, incoming_data: List[OHLC]) -> None:
-        if self._data is None:
-            self._data = pd.DataFrame(incoming_data)
-            self._data.set_index('datetime', inplace=True)
-        else:
-            for entry in incoming_data:
-                datetime = entry.pop('datetime')
-                self._data.loc[datetime] = entry
+        for entry in incoming_data:
+            datetime = entry.pop('datetime')
+            self._data.loc[datetime] = entry
 
         for indicator in self._indicators:
             indicator.update(self._data)
