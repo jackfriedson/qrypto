@@ -60,7 +60,8 @@ def cli(ctx, exchange, **kwargs):
 
 
 @cli.command()
-@click.argument('model-type', type=click.Choice(['classifier', 'regressor', 'multitask']))
+@click.option('--model-type', type=click.Choice(['classifier', 'regressor', 'multitask']),
+              default='multitask')
 @click.option('--train-start', type=str, default='5/1/2017')
 @click.option('--train-end', type=str, default='10/11/2017')
 @click.option('--epochs', type=int, default=20)
