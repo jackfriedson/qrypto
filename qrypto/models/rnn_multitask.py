@@ -64,7 +64,7 @@ class RNNMultiTaskLearner(object):
             # Task 2: Classify Direction
             direction_hidden = tf.contrib.layers.fully_connected(hidden_layer, self.n_hiddens, activation_fn=tf.nn.tanh, weights_regularizer=l1_reg)
             direction_dropout = tf.layers.dropout(direction_hidden, dropout_prob, training=self.phase)
-            self.direction_out = tf.contrib.layers.fully_connected(direction_dropout, 2, activation_fn=tf.nn.tanh, weights_regularizer=l1_reg)
+            self.direction_out = tf.contrib.layers.fully_connected(direction_dropout, 2, activation_fn=None, weights_regularizer=l1_reg)
             self.direction_out = tf.reshape(self.direction_out, shape=[tf.shape(self.inputs)[0], 2])
             direction_losses = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=direction_labels, logits=self.direction_out)
             self.direction_loss = tf.reduce_mean(direction_losses)
