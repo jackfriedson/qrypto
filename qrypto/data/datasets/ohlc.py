@@ -22,23 +22,38 @@ class OHLCDataset(object):
                  data: Optional[List[OHLC]] = None,
                  indicators: Optional[List] = None,
                  interval: Optional[int] = None):
-        self._data = None
         self._indicators = indicators or []
         self._interval = interval
         self._init_positions()
         self._init_orders()
 
+        self._data = None
         if data is not None:
             self.init_data(data)
 
         # TODO: Implement dynamic plotting of orders while running
 
     def init_data(self, data: List[OHLC]) -> None:
-        self._data = pd.DataFrame(data)
-        self._data.set_index('datetime', inplace=True)
+        self._full_data = pd.DataFrame(data)
+        self._full_data.set_index('datetime', inplace=True)
+        self._data = self._aggregated_data()
 
         for indicator in self._indicators:
             indicator.update(self._data)
+
+    def _aggregated_data(self):
+        if not self._interval:
+            return self._full_data
+
+        resampled_data = self._full_data.resample(str(self._interval) + 'T')
+        agg_funcs = {
+            'open': lambda x: x[0],
+            'high': np.max,
+            'low': np.min,
+            'close': lambda x: x[-1],
+            'volume': np.sum,
+        }
+        return resampled_data.agg(agg_funcs)
 
     def _init_positions(self) -> None:
         self._longs = {}
@@ -51,7 +66,9 @@ class OHLCDataset(object):
     def update(self, incoming_data: List[OHLC]) -> None:
         for entry in incoming_data:
             datetime = entry.pop('datetime')
-            self._data.loc[datetime] = entry
+            self._full_data.loc[datetime] = entry
+
+        self._data = self._aggregated_data()
 
         for indicator in self._indicators:
             indicator.update(self._data)

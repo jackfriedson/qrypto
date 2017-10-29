@@ -30,6 +30,7 @@ summaries_dir.mkdir(exist_ok=True)
 data_dir = root_dir/'data'
 
 
+MIN_OHLC_INTERVAL = 5
 MAX_BUFFER_SIZE = 100000
 
 
@@ -167,13 +168,13 @@ class LearnStrategy(object):
 
     def _initialize_training_data(self, start, end):
         base_currency_data = Backtest(self.exchange, self.base_currency, self.quote_currency,
-                                      start=start, end=end, interval=self.ohlc_interval,
+                                      start=start, end=end, interval=MIN_OHLC_INTERVAL,
                                       save_to_csv=self.data_dir/'market').all()
         self.data.init_data(base_currency_data, self.base_currency)
 
         for currency in self.addtl_currencies:
             currency_data = Backtest(self.exchange, currency, self.quote_currency, start=start, end=end,
-                            interval=self.ohlc_interval).all()
+                                     interval=MIN_OHLC_INTERVAL).all()
             self.data.init_data(currency_data, currency)
 
         return len(base_currency_data)

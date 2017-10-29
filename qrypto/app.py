@@ -37,7 +37,7 @@ def configure_logging():
 @click.option('--exchange', type=click.Choice(['kraken', 'poloniex']), default='poloniex')
 @click.option('--base-currency', type=str, default='BTC')
 @click.option('--quote-currency', type=str, default='USD')
-@click.option('--ohlc-interval', type=int, default=120)
+@click.option('--ohlc-interval', type=int, default=60)
 @click.option('--fee', type=float, default=0.002)
 @click.pass_context
 def cli(ctx, exchange, **kwargs):

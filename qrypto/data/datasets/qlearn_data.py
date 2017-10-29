@@ -21,7 +21,7 @@ class QLearnDataset(object):
                  gkg_file: Optional[Path] = None):
         self.fee = fee
 
-        self._market_data = OHLCDataset(indicators=indicators)
+        self._market_data = OHLCDataset(interval=ohlc_interval, indicators=indicators)
         self._csv_data = None
         self._gkg_data = None
 
