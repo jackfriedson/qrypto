@@ -138,7 +138,7 @@ class RNNMultiTaskLearner(object):
         summaries, step, _, v_loss, d_loss, v_out = sess.run(tensors, feed_dict)
 
         # Update loss parameters
-        np.append(self.vol_outputs, v_out)
+        self.vol_outputs = np.append(self.vol_outputs, v_out)
         self.loss_params[0].assign(self.vol_outputs.var())
 
         if self.summary_writer:
