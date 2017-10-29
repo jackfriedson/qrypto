@@ -6,6 +6,10 @@ import tensorflow as tf
 from qrypto.models.utils import reduce_std
 
 
+EPSILON = 10e-6
+INITIAL_LOSS_PARAMS = [2., 2.]
+
+
 class RNNMultiTaskLearner(object):
 
     def __init__(self,
@@ -18,6 +22,7 @@ class RNNMultiTaskLearner(object):
                  dropout_prob: float = 0.,
                  rnn_dropout_prob: float = 0.,
                  rnn_layers: int = 1,
+                 initial_vol_sigma: float = 2,
                  summaries_dir: str = None):
         self.scope = scope
         self.n_inputs = n_inputs
@@ -25,7 +30,7 @@ class RNNMultiTaskLearner(object):
         self.rnn_layers = rnn_layers
 
         self.vol_outputs = np.array([])
-        self.vol_variance = None
+        self.loss_params = {}
 
         # TODO: try using dense sparse dense regularization
 
@@ -69,7 +74,7 @@ class RNNMultiTaskLearner(object):
             direction_losses = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=direction_labels, logits=self.direction_out)
             self.direction_loss = tf.reduce_mean(direction_losses)
 
-            self.joint_loss = self.volatility_loss + (self.direction_loss * 10e2)
+            self.joint_loss = self._uncertainty_loss([self.volatility_loss, self.direction_loss])
             optimizer = tf.train.AdamOptimizer(learn_rate)
 
             update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
@@ -91,10 +96,21 @@ class RNNMultiTaskLearner(object):
                 summary_dir.mkdir(exist_ok=True)
                 self.summary_writer = tf.summary.FileWriter(str(summary_dir))
 
-    def predict(self, sess, state, trace_length, rnn_state, training: bool = True):
+    def _uncertainty_loss(self, loss_ops, inital_values=INITIAL_LOSS_PARAMS):
+        scaled_losses = []
+
+        for i, loss in enumerate(loss_ops)
+            loss_param = tf.Variable(inital_values[i], dtype=tf.float32, trainable=False, name='loss_param_{}'.format(i))
+            self.loss_params[i] = loss_param
+            scaled_loss_fn = ((1 / ((2 * loss_param) + EPSILON)) * loss) + tf.log(loss_param)
+            scaled_losses.append(scaled_loss_fn)
+
+        return tf.reduce_sum(scaled_losses)
+
+    def predict(self, sess, state, trace_length, rnn_state):
         feed_dict = {
             self.inputs: state,
-            self.phase: training,
+            self.phase: False,
             self.trace_length: trace_length,
             self.rnn_in: rnn_state
         }
@@ -121,7 +137,9 @@ class RNNMultiTaskLearner(object):
 
         summaries, step, _, v_loss, d_loss, v_out = sess.run(tensors, feed_dict)
 
+        # Update loss parameters
         np.append(self.vol_outputs, v_out)
+        self.loss_params[0].assign(self.vol_outputs.var)
 
         if self.summary_writer:
             self.summary_writer.add_summary(summaries, step)
@@ -141,6 +159,3 @@ class RNNMultiTaskLearner(object):
 
     def initial_rnn_state(self, size: int = 1):
         return [(np.zeros([size, self.n_inputs]), np.zeros([size, self.n_inputs]))] * self.rnn_layers
-
-    def update_loss_fn(self):
-        self.vol_variance = self.vol_outputs.var

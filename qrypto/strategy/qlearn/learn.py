@@ -199,7 +199,7 @@ class LearnStrategy(object):
 
         for _ in prog_bar(range(n_steps)):
             state = self.data.state()
-            prediction, new_rnn_state = self.model.predict(session, np.expand_dims(state, 0), 1, rnn_state, training=False)
+            prediction, new_rnn_state = self.model.predict(session, np.expand_dims(state, 0), 1, rnn_state)
             action_idx = self._order_strategy(prediction)
 
             _, cum_return = self.data.validate(action_idx, place_orders=place_orders)
