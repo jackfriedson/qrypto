@@ -68,6 +68,7 @@ class OHLCDataset(object):
             datetime = entry.pop('datetime')
             self._full_data.loc[datetime] = entry
 
+        # TODO: only re-aggregate data that's changed (not the whole dataset)
         self._data = self._aggregated_data()
 
         for indicator in self._indicators:
