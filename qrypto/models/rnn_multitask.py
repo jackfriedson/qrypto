@@ -106,7 +106,7 @@ class RNNMultiTaskLearner(object):
                 tf.summary.histogram('volatility_predictions', self.volatility_out),
                 # tf.summary.histogram('direction_predictions', self.direction_out),
             ]
-            self.summaries.extend([tf.summary.scalar('loss_param_{}'.format(i), param) for i, param in self.loss_params])
+            self.summaries.extend([tf.summary.scalar('loss_param_{}'.format(i), param) for i, param in self.loss_params.items()])
             self.summaries = tf.summary.merge(self.summaries)
 
             self.summary_writer = None
