@@ -28,18 +28,19 @@ class RNNMultiTaskLearner(object):
         self.n_inputs = n_inputs
         self.n_hiddens = hidden_units or n_inputs
         self.rnn_layers = rnn_layers
+        self.n_tasks = 2
 
         # TODO: try using dense sparse dense regularization
 
         with tf.variable_scope(scope):
             self.inputs = tf.placeholder(shape=[None, n_inputs], dtype=tf.float32, name='inputs')
-            self.labels = tf.placeholder(shape=[None, 3], dtype=tf.float32, name='labels')
+            self.labels = tf.placeholder(shape=[None, self.n_tasks], dtype=tf.float32, name='labels')
             self.phase = tf.placeholder(dtype=tf.bool, name='phase')
             self.trace_length = tf.placeholder(dtype=tf.int32, name='trace_length')
 
             volatility_labels = self.labels[:,0]
-            direction_labels = tf.to_int32(self.labels[:,1])
-            return_labels = self.labels[:,2]
+            # direction_labels = tf.to_int32(self.labels[:,1])
+            return_labels = self.labels[:,1]
 
             batch_size = tf.reshape(tf.shape(self.inputs)[0] // self.trace_length, shape=[])
 
@@ -64,30 +65,30 @@ class RNNMultiTaskLearner(object):
             self.volatility_out = tf.reshape(self.volatility_out, shape=[tf.shape(self.inputs)[0]])
             self.volatility_loss = tf.losses.absolute_difference(volatility_labels, self.volatility_out)
 
-            hidden_2 = tf.contrib.layers.fully_connected(hidden_layer, self.n_hiddens, activation_fn=tf.nn.tanh, weights_regularizer=l1_reg)
+            # hidden_2 = tf.contrib.layers.fully_connected(hidden_layer, self.n_hiddens, activation_fn=tf.nn.tanh, weights_regularizer=l1_reg)
 
             # Task 2: Classify Direction
-            direction_hidden = tf.contrib.layers.fully_connected(hidden_2, self.n_hiddens, activation_fn=tf.nn.tanh, weights_regularizer=l1_reg)
-            direction_dropout = tf.layers.dropout(direction_hidden, dropout_prob, training=self.phase)
-            self.direction_out = tf.contrib.layers.fully_connected(direction_dropout, 2, activation_fn=None, weights_regularizer=l1_reg)
-            self.direction_out = tf.reshape(self.direction_out, shape=[tf.shape(self.inputs)[0], 2])
-            direction_losses = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=direction_labels, logits=self.direction_out)
-            self.direction_loss = tf.reduce_mean(direction_losses)
+            # direction_hidden = tf.contrib.layers.fully_connected(hidden_2, self.n_hiddens, activation_fn=tf.nn.tanh, weights_regularizer=l1_reg)
+            # direction_dropout = tf.layers.dropout(direction_hidden, dropout_prob, training=self.phase)
+            # self.direction_out = tf.contrib.layers.fully_connected(direction_dropout, 2, activation_fn=None, weights_regularizer=l1_reg)
+            # self.direction_out = tf.reshape(self.direction_out, shape=[tf.shape(self.inputs)[0], 2])
+            # direction_losses = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=direction_labels, logits=self.direction_out)
+            # self.direction_loss = tf.reduce_mean(direction_losses)
 
             # TODO: add aleatoric uncertainty task
 
             # Task 3: Estimate Return
-            return_hidden = tf.contrib.layers.fully_connected(hidden_2, self.n_hiddens, activation_fn=tf.nn.tanh, weights_regularizer=l1_reg)
+            return_hidden = tf.contrib.layers.fully_connected(hidden_layer, self.n_hiddens, activation_fn=tf.nn.tanh, weights_regularizer=l1_reg)
             return_dropout = tf.layers.dropout(return_hidden, dropout_prob, training=self.phase)
             self.return_out = tf.contrib.layers.fully_connected(return_dropout, 1, activation_fn=None, weights_regularizer=l1_reg)
             self.return_out = tf.reshape(self.return_out, shape=[tf.shape(self.inputs)[0]])
             self.return_loss = tf.losses.absolute_difference(return_labels, self.return_out)
 
-            self.joint_loss = self._uncertainty_loss([self.volatility_loss, self.direction_loss, self.return_loss])
-            optimizer = tf.train.AdamOptimizer(learn_rate)
+            self.outputs = [self.volatility_out, self.return_out]
+            self.losses = [self.volatility_loss, self.return_loss]
 
-            self.outputs = [self.volatility_out, self.direction_out, self.return_out]
-            self.losses = [self.volatility_loss, self.direction_loss, self.return_loss]
+            self.joint_loss = self._uncertainty_loss(self.losses)
+            optimizer = tf.train.AdamOptimizer(learn_rate)
 
             update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
             with tf.control_dependencies(update_ops):
@@ -96,12 +97,12 @@ class RNNMultiTaskLearner(object):
             self.summaries = tf.summary.merge([
                 tf.summary.histogram('normed_inputs', norm_layer),
                 tf.summary.scalar('volatility_loss', self.volatility_loss),
-                tf.summary.scalar('direction_loss', self.direction_loss),
+                # tf.summary.scalar('direction_loss', self.direction_loss),
                 tf.summary.scalar('return_loss', self.return_loss),
                 tf.summary.scalar('joint_loss', self.joint_loss),
-                tf.summary.histogram('direction_loss_hist', direction_losses),
+                # tf.summary.histogram('direction_loss_hist', direction_losses),
                 tf.summary.histogram('volatility_predictions', self.volatility_out),
-                tf.summary.histogram('direction_predictions', self.direction_out)
+                # tf.summary.histogram('direction_predictions', self.direction_out)
             ])
 
             self.summary_writer = None

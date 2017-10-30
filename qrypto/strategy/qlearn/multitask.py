@@ -12,10 +12,9 @@ class MultitaskStrategy(LearnStrategy):
 
     @staticmethod
     def _create_label(data):
-        direction = 1 if data.period_return > 0 else 0
         volatility = data.get_last('stddev')
-        return np.array([volatility, direction, data.period_return])
+        return np.array([volatility, data.period_return])
 
     @staticmethod
     def _order_strategy(output, is_label: bool = False):
-        return 1 if output[2] > 0 else 0
+        return 1 if output[1] > 0 else 0
