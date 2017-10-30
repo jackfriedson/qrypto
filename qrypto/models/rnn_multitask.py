@@ -38,7 +38,7 @@ class RNNMultiTaskLearner(object):
         self.n_hiddens = hidden_units or n_inputs
         self.rnn_layers = rnn_layers
 
-        self.outputs = {}
+        self.output_hist = {}
         self.loss_params = {}
 
         # TODO: try using dense sparse dense regularization
@@ -95,6 +95,9 @@ class RNNMultiTaskLearner(object):
             self.joint_loss = self._uncertainty_loss([self.volatility_loss, self.direction_loss, self.return_loss])
             optimizer = tf.train.AdamOptimizer(learn_rate)
 
+            self.outputs = [self.volatility_out, self.direction_out, self.return_out]
+            self.losses = [self.volatility_loss, self.direction_loss, self.return_loss]
+
             update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
             with tf.control_dependencies(update_ops):
                 self.train_op = optimizer.minimize(self.joint_loss, global_step=tf.contrib.framework.get_global_step())
@@ -134,8 +137,7 @@ class RNNMultiTaskLearner(object):
             self.trace_length: trace_length,
             self.rnn_in: rnn_state
         }
-        v_out, d_out, r_out, rnn = sess.run([self.volatility_out, self.direction_out, self.return_out, self.rnn_state], feed_dict)
-        return (v_out, d_out, r_out), rnn
+        return sess.run([self.outputs, self.rnn_state], feed_dict)
 
     def update(self, sess, state, labels, trace_length, rnn_state):
         feed_dict = {
@@ -150,22 +152,18 @@ class RNNMultiTaskLearner(object):
             self.summaries,
             tf.contrib.framework.get_global_step(),
             self.train_op,
-            self.volatility_loss,
-            self.direction_loss,
-            self.return_loss,
-            self.volatility_out,
-            self.softmax_dir_out,
-            self.return_out
+            self.losses,
+            self.outputs
         ]
 
-        summaries, step, _, v_loss, d_loss, r_loss, v_out, sm_d_out, r_out = sess.run(tensors, feed_dict)
+        summaries, step, _, losses, outputs = sess.run(tensors, feed_dict)
 
-        self._update_loss_parameters([v_out, sm_d_out, r_out])
+        self._update_loss_parameters(outputs)
 
         if self.summary_writer:
             self.summary_writer.add_summary(summaries, step)
 
-        return (v_loss, d_loss, r_loss)
+        return losses
 
     def compute_loss(self, sess, state, label, rnn_state):
         feed_dict = {
@@ -175,17 +173,16 @@ class RNNMultiTaskLearner(object):
             self.trace_length: 1,
             self.rnn_in: rnn_state
         }
-        v_loss, d_loss, r_loss = sess.run([self.volatility_loss, self.direction_loss, self.return_loss], feed_dict)
-        return (v_loss, d_loss, r_loss)
+        return sess.run([self.losses], feed_dict)
 
     def _update_loss_parameters(self, outs):
         for i, out in enumerate(outs):
-            if i in self.outputs:
-                self.outputs[i].extend(out)
+            if i in self.output_hist:
+                self.output_hist[i].extend(out)
             else:
-                self.outputs[i] = deque(out, maxlen=MAX_DEQUE_LENGTH)
+                self.output_hist[i] = deque(out, maxlen=MAX_DEQUE_LENGTH)
 
-            new_loss_param = loss_param_fns[i](np.array(self.outputs[i]))
+            new_loss_param = loss_param_fns[i](np.array(self.output_hist[i]))
             self.loss_params[i].assign(new_loss_param)
 
     def initial_rnn_state(self, size: int = 1):
