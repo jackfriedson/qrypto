@@ -1,5 +1,5 @@
 import time
-from collections import defaultdict
+from collections import deque
 
 import numpy as np
 import tensorflow as tf
@@ -9,7 +9,14 @@ from qrypto.models.utils import reduce_std
 
 
 EPSILON = 10e-6
-INITIAL_LOSS_PARAMS = [2., 2.]
+INITIAL_LOSS_PARAMS = [1., 1.]
+MAX_DEQUE_LENGTH = 100000
+
+
+loss_param_fns = {
+    0: lambda x: x.var(),
+    1: lambda x: entropy(x.mean(axis=0))
+}
 
 
 class RNNMultiTaskLearner(object):
@@ -141,19 +148,7 @@ class RNNMultiTaskLearner(object):
 
         summaries, step, _, v_loss, d_loss, v_out, sm_d_out = sess.run(tensors, feed_dict)
 
-        # Update loss parameters
-        if 0 in self.outputs:
-            self.outputs[0] = np.append(self.outputs[0], v_out)
-        else:
-            self.outputs[0] = v_out
-        if 1 in self.outputs:
-            self.outputs[1] = np.append(self.outputs[1], sm_d_out)
-        else:
-            self.outputs[1] = sm_d_out
-
-        self.loss_params[0].assign(self.outputs[0].var())
-        avg_probs = self.outputs[1].mean(axis=0)
-        self.loss_params[1].assign(entropy(avg_probs))
+        self._update_loss_parameters([v_out, sm_d_out])
 
         if self.summary_writer:
             self.summary_writer.add_summary(summaries, step)
@@ -170,6 +165,16 @@ class RNNMultiTaskLearner(object):
         }
         v_loss, d_loss = sess.run([self.volatility_loss, self.direction_loss], feed_dict)
         return (v_loss, d_loss)
+
+    def _update_loss_parameters(self, outs):
+        for i, out in enumerate(outs):
+            if i in self.outputs:
+                self.outputs[i].extend(out)
+            else:
+                self.outputs[i] = deque(out, maxlen=MAX_DEQUE_LENGTH)
+
+            new_loss_param = loss_param_fns[i](np.array(self.outputs[i]))
+            self.loss_params[i].assign(new_loss_param)
 
     def initial_rnn_state(self, size: int = 1):
         return [(np.zeros([size, self.n_inputs]), np.zeros([size, self.n_inputs]))] * self.rnn_layers
