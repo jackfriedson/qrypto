@@ -10,7 +10,7 @@ from qrypto.models.utils import reduce_std
 
 EPSILON = 10e-6
 INITIAL_LOSS_PARAMS = [1., 1., 1.]
-MAX_DEQUE_LENGTH = 100000
+MAX_DEQUE_LENGTH = 50000
 
 
 loss_param_fns = {
@@ -74,7 +74,7 @@ class RNNMultiTaskLearner(object):
             volatility_dropout = tf.layers.dropout(volatility_hidden, dropout_prob, training=self.phase)
             self.volatility_out = tf.contrib.layers.fully_connected(volatility_dropout, 1, activation_fn=None, weights_regularizer=l1_reg)
             self.volatility_out = tf.reshape(self.volatility_out, shape=[tf.shape(self.inputs)[0]])
-            self.volatility_loss = tf.losses.mean_squared_error(volatility_labels, self.volatility_out)
+            self.volatility_loss = tf.losses.absolute_difference(volatility_labels, self.volatility_out)
 
             # Task 2: Classify Direction
             direction_hidden = tf.contrib.layers.fully_connected(hidden_layer, self.n_hiddens, activation_fn=tf.nn.tanh, weights_regularizer=l1_reg)
@@ -83,14 +83,13 @@ class RNNMultiTaskLearner(object):
             self.direction_out = tf.reshape(self.direction_out, shape=[tf.shape(self.inputs)[0], 2])
             direction_losses = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=direction_labels, logits=self.direction_out)
             self.direction_loss = tf.reduce_mean(direction_losses)
-            self.softmax_dir_out = tf.nn.softmax(self.direction_out)
 
             # Task 3: Estimate Return
             return_hidden = tf.contrib.layers.fully_connected(hidden_layer, self.n_hiddens, activation_fn=tf.nn.tanh, weights_regularizer=l1_reg)
             return_dropout = tf.layers.dropout(return_hidden, dropout_prob, training=self.phase)
             self.return_out = tf.contrib.layers.fully_connected(return_dropout, 1, activation_fn=None, weights_regularizer=l1_reg)
             self.return_out = tf.reshape(self.return_out, shape=[tf.shape(self.inputs)[0]])
-            self.return_loss = tf.losses.mean_squared_error(return_labels, self.return_out)
+            self.return_loss = tf.losses.absolute_difference(return_labels, self.return_out)
 
             self.joint_loss = self._uncertainty_loss([self.volatility_loss, self.direction_loss, self.return_loss])
             optimizer = tf.train.AdamOptimizer(learn_rate)
