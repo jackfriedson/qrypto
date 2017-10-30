@@ -30,6 +30,8 @@ class RNNMultiTaskLearner(object):
         self.rnn_layers = rnn_layers
         self.n_tasks = 2
 
+        self.loss_params = {}
+
         # TODO: try using dense sparse dense regularization
 
         with tf.variable_scope(scope):
@@ -94,7 +96,7 @@ class RNNMultiTaskLearner(object):
             with tf.control_dependencies(update_ops):
                 self.train_op = optimizer.minimize(self.joint_loss, global_step=tf.contrib.framework.get_global_step())
 
-            self.summaries = tf.summary.merge([
+            self.summaries = [
                 tf.summary.histogram('normed_inputs', norm_layer),
                 tf.summary.scalar('volatility_loss', self.volatility_loss),
                 # tf.summary.scalar('direction_loss', self.direction_loss),
@@ -102,8 +104,10 @@ class RNNMultiTaskLearner(object):
                 tf.summary.scalar('joint_loss', self.joint_loss),
                 # tf.summary.histogram('direction_loss_hist', direction_losses),
                 tf.summary.histogram('volatility_predictions', self.volatility_out),
-                # tf.summary.histogram('direction_predictions', self.direction_out)
-            ])
+                # tf.summary.histogram('direction_predictions', self.direction_out),
+            ]
+            self.summaries.extend([tf.summary.scalar('loss_param_{}'.format(i), param) for i, param in self.loss_params])
+            self.summaries = tf.summary.merge(self.summaries)
 
             self.summary_writer = None
             if summaries_dir:
@@ -116,6 +120,7 @@ class RNNMultiTaskLearner(object):
 
         for i, loss in enumerate(loss_ops):
             loss_param = tf.Variable(inital_values[i], dtype=tf.float32, trainable=True, name='loss_param_{}'.format(i))
+            self.loss_params[i] = loss_param
             scaled_loss_fn = ((1 / (2 * tf.square(loss_param))) * loss) + tf.log(tf.square(loss_param))
             scaled_losses.append(scaled_loss_fn)
 
