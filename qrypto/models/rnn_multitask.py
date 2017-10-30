@@ -9,7 +9,7 @@ from qrypto.models.utils import reduce_std
 
 
 EPSILON = 10e-6
-INITIAL_LOSS_PARAMS = [1., 1., 1.]
+INITIAL_LOSS_PARAMS = [.5, .5, .5]
 MAX_DEQUE_LENGTH = 25000
 
 
@@ -125,7 +125,7 @@ class RNNMultiTaskLearner(object):
         for i, loss in enumerate(loss_ops):
             loss_param = tf.Variable(inital_values[i], dtype=tf.float32, trainable=True, name='loss_param_{}'.format(i))
             # self.loss_params[i] = loss_param
-            scaled_loss_fn = ((1 / (2 * loss_param)) * loss) + tf.log(loss_param)
+            scaled_loss_fn = ((1 / (2 * tf.square(loss_param))) * loss) + tf.log(tf.square(loss_param))
             scaled_losses.append(scaled_loss_fn)
 
         return tf.reduce_sum(scaled_losses)
