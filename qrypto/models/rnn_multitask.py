@@ -1,7 +1,9 @@
 import time
+from collections import defaultdict
 
 import numpy as np
 import tensorflow as tf
+from scipy.stats import entropy
 
 from qrypto.models.utils import reduce_std
 
@@ -22,14 +24,13 @@ class RNNMultiTaskLearner(object):
                  dropout_prob: float = 0.,
                  rnn_dropout_prob: float = 0.,
                  rnn_layers: int = 1,
-                 initial_vol_sigma: float = 2,
                  summaries_dir: str = None):
         self.scope = scope
         self.n_inputs = n_inputs
         self.n_hiddens = hidden_units or n_inputs
         self.rnn_layers = rnn_layers
 
-        self.vol_outputs = np.array([])
+        self.outputs = {}
         self.loss_params = {}
 
         # TODO: try using dense sparse dense regularization
@@ -73,6 +74,7 @@ class RNNMultiTaskLearner(object):
             self.direction_out = tf.reshape(self.direction_out, shape=[tf.shape(self.inputs)[0], 2])
             direction_losses = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=direction_labels, logits=self.direction_out)
             self.direction_loss = tf.reduce_mean(direction_losses)
+            self.softmax_dir_out = tf.nn.softmax(self.direction_out)
 
             self.joint_loss = self._uncertainty_loss([self.volatility_loss, self.direction_loss])
             optimizer = tf.train.AdamOptimizer(learn_rate)
@@ -85,6 +87,7 @@ class RNNMultiTaskLearner(object):
                 tf.summary.histogram('normed_inputs', norm_layer),
                 tf.summary.scalar('volatility_loss', self.volatility_loss),
                 tf.summary.scalar('direction_loss', self.direction_loss),
+                tf.summary.scalar('joint_loss', self.joint_loss),
                 tf.summary.histogram('direction_loss_hist', direction_losses),
                 tf.summary.histogram('volatility_predictions', self.volatility_out),
                 tf.summary.histogram('direction_predictions', self.direction_out)
@@ -132,14 +135,25 @@ class RNNMultiTaskLearner(object):
             self.train_op,
             self.volatility_loss,
             self.direction_loss,
-            self.volatility_out
+            self.volatility_out,
+            self.softmax_dir_out
         ]
 
-        summaries, step, _, v_loss, d_loss, v_out = sess.run(tensors, feed_dict)
+        summaries, step, _, v_loss, d_loss, v_out, sm_d_out = sess.run(tensors, feed_dict)
 
         # Update loss parameters
-        self.vol_outputs = np.append(self.vol_outputs, v_out)
-        self.loss_params[0].assign(self.vol_outputs.var())
+        if 0 in self.outputs:
+            self.outputs[0] = np.append(self.outputs[0], v_out)
+        else:
+            self.outputs[0] = v_out
+        if 1 in self.outputs:
+            self.outputs[1] = np.append(self.outputs[1], sm_d_out)
+        else:
+            self.outputs[1] = sm_d_out
+
+        self.loss_params[0].assign(self.outputs[0].var())
+        avg_probs = self.outputs[1].mean(axis=0)
+        self.loss_params[1].assign(entropy(avg_probs))
 
         if self.summary_writer:
             self.summary_writer.add_summary(summaries, step)
