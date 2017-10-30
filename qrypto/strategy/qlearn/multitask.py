@@ -5,7 +5,7 @@ from qrypto.strategy import LearnStrategy
 
 
 class MultitaskStrategy(LearnStrategy):
-    tasks = ['volatility', 'direction']
+    tasks = ['volatility', 'direction', 'return']
 
     def __init__(self, *args, **kwargs):
         super(MultitaskStrategy, self).__init__(RNNMultiTaskLearner, 'rnn_multitask', *args, **kwargs)
@@ -14,7 +14,7 @@ class MultitaskStrategy(LearnStrategy):
     def _create_label(data):
         direction = 1 if data.period_return > 0 else 0
         volatility = data.get_last('stddev')
-        return np.array([volatility, direction])
+        return np.array([volatility, direction, data.period_return])
 
     @staticmethod
     def _order_strategy(output, is_label: bool = False):

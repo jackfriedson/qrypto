@@ -9,13 +9,14 @@ from qrypto.models.utils import reduce_std
 
 
 EPSILON = 10e-6
-INITIAL_LOSS_PARAMS = [1., 1.]
+INITIAL_LOSS_PARAMS = [1., 1., 1.]
 MAX_DEQUE_LENGTH = 100000
 
 
 loss_param_fns = {
     0: lambda x: x.var(),
-    1: lambda x: entropy(x.mean(axis=0))
+    1: lambda x: entropy(x.mean(axis=0)),
+    2: lambda x: x.var()
 }
 
 
@@ -44,12 +45,13 @@ class RNNMultiTaskLearner(object):
 
         with tf.variable_scope(scope):
             self.inputs = tf.placeholder(shape=[None, n_inputs], dtype=tf.float32, name='inputs')
-            self.labels = tf.placeholder(shape=[None, 2], dtype=tf.float32, name='labels')
+            self.labels = tf.placeholder(shape=[None, 3], dtype=tf.float32, name='labels')
             self.phase = tf.placeholder(dtype=tf.bool, name='phase')
             self.trace_length = tf.placeholder(dtype=tf.int32, name='trace_length')
 
             volatility_labels = self.labels[:,0]
             direction_labels = tf.to_int32(self.labels[:,1])
+            return_labels = self.labels[:,2]
 
             batch_size = tf.reshape(tf.shape(self.inputs)[0] // self.trace_length, shape=[])
 
@@ -83,7 +85,14 @@ class RNNMultiTaskLearner(object):
             self.direction_loss = tf.reduce_mean(direction_losses)
             self.softmax_dir_out = tf.nn.softmax(self.direction_out)
 
-            self.joint_loss = self._uncertainty_loss([self.volatility_loss, self.direction_loss])
+            # Task 3: Estimate Return
+            return_hidden = tf.contrib.layers.fully_connected(hidden_layer, self.n_hiddens, activation_fn=tf.nn.tanh, weights_regularizer=l1_reg)
+            return_dropout = tf.layers.dropout(return_hidden, dropout_prob, training=self.phase)
+            self.return_out = tf.contrib.layers.fully_connected(return_dropout, 1, activation_fn=None, weights_regularizer=l1_reg)
+            self.return_out = tf.reshape(self.return_out, shape=[tf.shape(self.inputs)[0]])
+            self.return_loss = tf.losses.mean_squared_error(return_labels, self.return_out)
+
+            self.joint_loss = self._uncertainty_loss([self.volatility_loss, self.direction_loss, self.return_loss])
             optimizer = tf.train.AdamOptimizer(learn_rate)
 
             update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
@@ -94,6 +103,7 @@ class RNNMultiTaskLearner(object):
                 tf.summary.histogram('normed_inputs', norm_layer),
                 tf.summary.scalar('volatility_loss', self.volatility_loss),
                 tf.summary.scalar('direction_loss', self.direction_loss),
+                tf.summary.scalar('return_loss', self.return_loss),
                 tf.summary.scalar('joint_loss', self.joint_loss),
                 tf.summary.histogram('direction_loss_hist', direction_losses),
                 tf.summary.histogram('volatility_predictions', self.volatility_out),
@@ -124,8 +134,8 @@ class RNNMultiTaskLearner(object):
             self.trace_length: trace_length,
             self.rnn_in: rnn_state
         }
-        v_out, d_out, rnn = sess.run([self.volatility_out, self.direction_out, self.rnn_state], feed_dict)
-        return (v_out, d_out), rnn
+        v_out, d_out, r_out, rnn = sess.run([self.volatility_out, self.direction_out, self.return_out, self.rnn_state], feed_dict)
+        return (v_out, d_out, r_out), rnn
 
     def update(self, sess, state, labels, trace_length, rnn_state):
         feed_dict = {
@@ -142,18 +152,20 @@ class RNNMultiTaskLearner(object):
             self.train_op,
             self.volatility_loss,
             self.direction_loss,
+            self.return_loss,
             self.volatility_out,
-            self.softmax_dir_out
+            self.softmax_dir_out,
+            self.return_out
         ]
 
-        summaries, step, _, v_loss, d_loss, v_out, sm_d_out = sess.run(tensors, feed_dict)
+        summaries, step, _, v_loss, d_loss, r_loss, v_out, sm_d_out, r_out = sess.run(tensors, feed_dict)
 
-        self._update_loss_parameters([v_out, sm_d_out])
+        self._update_loss_parameters([v_out, sm_d_out, r_out])
 
         if self.summary_writer:
             self.summary_writer.add_summary(summaries, step)
 
-        return (v_loss, d_loss)
+        return (v_loss, d_loss, r_loss)
 
     def compute_loss(self, sess, state, label, rnn_state):
         feed_dict = {
@@ -163,8 +175,8 @@ class RNNMultiTaskLearner(object):
             self.trace_length: 1,
             self.rnn_in: rnn_state
         }
-        v_loss, d_loss = sess.run([self.volatility_loss, self.direction_loss], feed_dict)
-        return (v_loss, d_loss)
+        v_loss, d_loss, r_loss = sess.run([self.volatility_loss, self.direction_loss, self.return_loss], feed_dict)
+        return (v_loss, d_loss, r_loss)
 
     def _update_loss_parameters(self, outs):
         for i, out in enumerate(outs):
