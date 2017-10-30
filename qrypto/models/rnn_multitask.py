@@ -10,7 +10,7 @@ from qrypto.models.utils import reduce_std
 
 EPSILON = 10e-6
 INITIAL_LOSS_PARAMS = [1., 1., 1.]
-MAX_DEQUE_LENGTH = 50000
+MAX_DEQUE_LENGTH = 25000
 
 
 loss_param_fns = {
@@ -38,6 +38,7 @@ class RNNMultiTaskLearner(object):
         self.n_hiddens = hidden_units or n_inputs
         self.rnn_layers = rnn_layers
 
+        # TODO: use moving variance instead of recomputing every time
         self.output_hist = {}
         self.loss_params = {}
 
@@ -122,9 +123,9 @@ class RNNMultiTaskLearner(object):
         scaled_losses = []
 
         for i, loss in enumerate(loss_ops):
-            loss_param = tf.Variable(inital_values[i], dtype=tf.float32, trainable=False, name='loss_param_{}'.format(i))
-            self.loss_params[i] = loss_param
-            scaled_loss_fn = ((1 / ((2 * loss_param) + EPSILON)) * loss) + tf.log(loss_param)
+            loss_param = tf.Variable(inital_values[i], dtype=tf.float32, trainable=True, name='loss_param_{}'.format(i))
+            # self.loss_params[i] = loss_param
+            scaled_loss_fn = ((1 / (2 * loss_param)) * loss) + tf.log(loss_param)
             scaled_losses.append(scaled_loss_fn)
 
         return tf.reduce_sum(scaled_losses)
@@ -156,8 +157,7 @@ class RNNMultiTaskLearner(object):
         ]
 
         summaries, step, _, losses, outputs = sess.run(tensors, feed_dict)
-
-        self._update_loss_parameters(outputs)
+        # self._update_loss_parameters(outputs)
 
         if self.summary_writer:
             self.summary_writer.add_summary(summaries, step)
