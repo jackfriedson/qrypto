@@ -8,16 +8,7 @@ from scipy.stats import entropy
 from qrypto.models.utils import reduce_std
 
 
-EPSILON = 10e-6
 INITIAL_LOSS_PARAMS = [.5, .5, .5]
-MAX_DEQUE_LENGTH = 25000
-
-
-loss_param_fns = {
-    0: lambda x: x.var(),
-    1: lambda x: entropy(x.mean(axis=0)),
-    2: lambda x: x.var()
-}
 
 
 class RNNMultiTaskLearner(object):
@@ -37,10 +28,6 @@ class RNNMultiTaskLearner(object):
         self.n_inputs = n_inputs
         self.n_hiddens = hidden_units or n_inputs
         self.rnn_layers = rnn_layers
-
-        # TODO: use moving variance instead of recomputing every time
-        self.output_hist = {}
-        self.loss_params = {}
 
         # TODO: try using dense sparse dense regularization
 
@@ -71,14 +58,16 @@ class RNNMultiTaskLearner(object):
             hidden_layer = tf.contrib.layers.fully_connected(rnn, self.n_hiddens, activation_fn=tf.nn.tanh)
 
             # Task 1: Estimate Volatility
-            volatility_hidden = tf.contrib.layers.fully_connected(hidden_layer, self.n_hiddens, activation_fn=tf.nn.tanh, weights_regularizer=l1_reg)
+            volatility_hidden = tf.contrib.layers.fully_connected(hidden_layer, self.n_hiddens // 2, activation_fn=tf.nn.tanh, weights_regularizer=l1_reg)
             volatility_dropout = tf.layers.dropout(volatility_hidden, dropout_prob, training=self.phase)
             self.volatility_out = tf.contrib.layers.fully_connected(volatility_dropout, 1, activation_fn=None, weights_regularizer=l1_reg)
             self.volatility_out = tf.reshape(self.volatility_out, shape=[tf.shape(self.inputs)[0]])
             self.volatility_loss = tf.losses.absolute_difference(volatility_labels, self.volatility_out)
 
+            hidden_2 = tf.contrib.layers.fully_connected(hidden_layer, self.n_hiddens // 2, activation_fn=tf.nn.tanh, weights_regularizer=l1_reg)
+
             # Task 2: Classify Direction
-            direction_hidden = tf.contrib.layers.fully_connected(hidden_layer, self.n_hiddens, activation_fn=tf.nn.tanh, weights_regularizer=l1_reg)
+            direction_hidden = tf.contrib.layers.fully_connected(hidden_2, self.n_hiddens // 2, activation_fn=tf.nn.tanh, weights_regularizer=l1_reg)
             direction_dropout = tf.layers.dropout(direction_hidden, dropout_prob, training=self.phase)
             self.direction_out = tf.contrib.layers.fully_connected(direction_dropout, 2, activation_fn=None, weights_regularizer=l1_reg)
             self.direction_out = tf.reshape(self.direction_out, shape=[tf.shape(self.inputs)[0], 2])
@@ -86,7 +75,7 @@ class RNNMultiTaskLearner(object):
             self.direction_loss = tf.reduce_mean(direction_losses)
 
             # Task 3: Estimate Return
-            return_hidden = tf.contrib.layers.fully_connected(hidden_layer, self.n_hiddens, activation_fn=tf.nn.tanh, weights_regularizer=l1_reg)
+            return_hidden = tf.contrib.layers.fully_connected(hidden_2, self.n_hiddens // 2, activation_fn=tf.nn.tanh, weights_regularizer=l1_reg)
             return_dropout = tf.layers.dropout(return_hidden, dropout_prob, training=self.phase)
             self.return_out = tf.contrib.layers.fully_connected(return_dropout, 1, activation_fn=None, weights_regularizer=l1_reg)
             self.return_out = tf.reshape(self.return_out, shape=[tf.shape(self.inputs)[0]])
@@ -124,7 +113,6 @@ class RNNMultiTaskLearner(object):
 
         for i, loss in enumerate(loss_ops):
             loss_param = tf.Variable(inital_values[i], dtype=tf.float32, trainable=True, name='loss_param_{}'.format(i))
-            # self.loss_params[i] = loss_param
             scaled_loss_fn = ((1 / (2 * tf.square(loss_param))) * loss) + tf.log(tf.square(loss_param))
             scaled_losses.append(scaled_loss_fn)
 
@@ -157,7 +145,6 @@ class RNNMultiTaskLearner(object):
         ]
 
         summaries, step, _, losses, outputs = sess.run(tensors, feed_dict)
-        # self._update_loss_parameters(outputs)
 
         if self.summary_writer:
             self.summary_writer.add_summary(summaries, step)
@@ -172,17 +159,7 @@ class RNNMultiTaskLearner(object):
             self.trace_length: 1,
             self.rnn_in: rnn_state
         }
-        return sess.run([self.losses], feed_dict)
-
-    def _update_loss_parameters(self, outs):
-        for i, out in enumerate(outs):
-            if i in self.output_hist:
-                self.output_hist[i].extend(out)
-            else:
-                self.output_hist[i] = deque(out, maxlen=MAX_DEQUE_LENGTH)
-
-            new_loss_param = loss_param_fns[i](np.array(self.output_hist[i]))
-            self.loss_params[i].assign(new_loss_param)
+        return sess.run(self.losses, feed_dict)
 
     def initial_rnn_state(self, size: int = 1):
         return [(np.zeros([size, self.n_inputs]), np.zeros([size, self.n_inputs]))] * self.rnn_layers
