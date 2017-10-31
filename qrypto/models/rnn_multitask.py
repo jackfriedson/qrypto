@@ -57,7 +57,7 @@ class RNNMultiTaskLearner(object):
             rnn = tf.reshape(rnn, shape=tf.shape(norm_layer))
 
             l1_reg = tf.contrib.layers.l1_regularizer(reg_strength)
-            hidden_1 = tf.contrib.layers.fully_connected(rnn, self.n_hiddens * 2, activation_fn=tf.nn.tanh)
+            hidden_1 = tf.contrib.layers.fully_connected(rnn, self.n_hiddens, activation_fn=tf.nn.tanh)
             dropout_1 = tf.layers.dropout(hidden_1, dropout_prob, training=self.phase)
 
             # Task 1: Estimate Volatility
@@ -67,7 +67,7 @@ class RNNMultiTaskLearner(object):
             # self.volatility_out = tf.reshape(self.volatility_out, shape=[tf.shape(self.inputs)[0]])
             # self.volatility_loss = tf.losses.absolute_difference(volatility_labels, self.volatility_out)
 
-            hidden_2 = tf.contrib.layers.fully_connected(dropout_1, self.n_hiddens * 2, activation_fn=tf.nn.tanh, weights_regularizer=l1_reg)
+            hidden_2 = tf.contrib.layers.fully_connected(dropout_1, self.n_hiddens, activation_fn=tf.nn.tanh, weights_regularizer=l1_reg)
             dropout_2 = tf.layers.dropout(hidden_2, dropout_prob, training=self.phase)
 
             # Task 2: Classify Direction
