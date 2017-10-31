@@ -85,7 +85,7 @@ class RNNMultiTaskLearner(object):
             return_dropout = tf.layers.dropout(return_hidden, dropout_prob, training=self.phase)
             self.return_out = tf.contrib.layers.fully_connected(return_dropout, 1, activation_fn=None, weights_regularizer=l1_reg)
             self.return_out = tf.reshape(self.return_out, shape=[tf.shape(self.inputs)[0]])
-            self.return_loss = tf.losses.mean_squared_error(return_labels, self.return_out)
+            self.return_loss = tf.losses.absolute_difference(return_labels, self.return_out)
 
             self.joint_loss = self._uncertainty_loss([self.direction_loss, self.return_loss])
             optimizer = tf.train.AdamOptimizer(learn_rate)
