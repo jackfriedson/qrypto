@@ -57,7 +57,8 @@ class RNNMultiTaskLearner(object):
             rnn = tf.reshape(rnn, shape=tf.shape(norm_layer))
 
             l1_reg = tf.contrib.layers.l1_regularizer(reg_strength)
-            hidden_layer = tf.contrib.layers.fully_connected(rnn, self.n_hiddens, activation_fn=tf.nn.tanh)
+            hidden_1 = tf.contrib.layers.fully_connected(rnn, self.n_hiddens, activation_fn=tf.nn.tanh)
+            dropout_1 = tf.layers.dropout(hidden_1, dropout_prob, training=self.phase)
 
             # Task 1: Estimate Volatility
             # volatility_hidden = tf.contrib.layers.fully_connected(hidden_layer, self.n_hiddens, activation_fn=tf.nn.tanh, weights_regularizer=l1_reg)
@@ -66,10 +67,11 @@ class RNNMultiTaskLearner(object):
             # self.volatility_out = tf.reshape(self.volatility_out, shape=[tf.shape(self.inputs)[0]])
             # self.volatility_loss = tf.losses.absolute_difference(volatility_labels, self.volatility_out)
 
-            hidden_2 = tf.contrib.layers.fully_connected(hidden_layer, self.n_hiddens, activation_fn=tf.nn.tanh, weights_regularizer=l1_reg)
+            hidden_2 = tf.contrib.layers.fully_connected(dropout_1, self.n_hiddens, activation_fn=tf.nn.tanh, weights_regularizer=l1_reg)
+            dropout_2 = tf.layers.dropout(hidden_2, dropout_prob, training=self.phase)
 
             # Task 2: Classify Direction
-            direction_hidden = tf.contrib.layers.fully_connected(hidden_2, self.n_hiddens, activation_fn=tf.nn.tanh, weights_regularizer=l1_reg)
+            direction_hidden = tf.contrib.layers.fully_connected(dropout_2, self.n_hiddens, activation_fn=tf.nn.tanh, weights_regularizer=l1_reg)
             direction_dropout = tf.layers.dropout(direction_hidden, dropout_prob, training=self.phase)
             self.direction_out = tf.contrib.layers.fully_connected(direction_dropout, 2, activation_fn=None, weights_regularizer=l1_reg)
             self.direction_out = tf.reshape(self.direction_out, shape=[tf.shape(self.inputs)[0], 2])
@@ -79,7 +81,7 @@ class RNNMultiTaskLearner(object):
             # TODO: add aleatoric uncertainty task
 
             # Task 3: Estimate Return
-            return_hidden = tf.contrib.layers.fully_connected(hidden_2, self.n_hiddens, activation_fn=tf.nn.tanh, weights_regularizer=l1_reg)
+            return_hidden = tf.contrib.layers.fully_connected(dropout_2, self.n_hiddens, activation_fn=tf.nn.tanh, weights_regularizer=l1_reg)
             return_dropout = tf.layers.dropout(return_hidden, dropout_prob, training=self.phase)
             self.return_out = tf.contrib.layers.fully_connected(return_dropout, 1, activation_fn=None, weights_regularizer=l1_reg)
             self.return_out = tf.reshape(self.return_out, shape=[tf.shape(self.inputs)[0]])
