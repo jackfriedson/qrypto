@@ -18,4 +18,4 @@ class MultitaskStrategy(LearnStrategy):
 
     @staticmethod
     def _order_strategy(output, is_label: bool = False):
-        return 1 if output[1] > 0 else 0
+        return output[0] if is_label else np.argmax(output[0][0])
