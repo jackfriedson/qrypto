@@ -3,6 +3,7 @@ asn1crypto==0.22.0
 attrs==17.2.0
 autobahn==17.8.1
 Automat==0.6.0
+bintrees==2.0.7
 bleach==1.5.0
 certifi==2017.7.27.1
 cffi==1.10.0
@@ -11,6 +12,7 @@ click==6.7
 configobj==5.0.6
 constantly==15.1.0
 cryptography==2.0.3
+-e git+git@github.com:astew/cryptowatch-python.git@98bb7d5d38ab92fd7fcb9320d4507e880b151e0d#egg=cryptowatch
 cycler==0.10.0
 decorator==4.1.2
 html5lib==0.9999999
@@ -21,12 +23,15 @@ ipdb==0.10.3
 ipython==6.1.0
 ipython-genutils==0.2.0
 jedi==0.10.2
+line-profiler==2.0
 Markdown==2.6.9
 matplotlib==2.0.2
 numpy==1.13.1
+OrderBook==0.1.2
 pandas==0.20.3
 pexpect==4.2.1
 pickleshare==0.7.4
+Poloniex==0.0.1
 progressbar2==3.34.3
 prompt-toolkit==1.0.15
 protobuf==3.4.0
@@ -41,8 +46,10 @@ python-dateutil==2.6.1
 python-utils==2.2.0
 pytz==2017.2
 PyYAML==3.12
+-e git+https://github.com/jackfriedson/qrypto.git@b8d08edb74897e70d2eb4d45016810383ce3c965#egg=qrypto
 ratelimiter==1.2.0
 requests==2.18.4
+scipy==1.0.0
 service-identity==17.0.0
 simplegeneric==0.8.1
 six==1.10.0
@@ -56,5 +63,3 @@ urllib3==1.22
 wcwidth==0.1.7
 Werkzeug==0.12.2
 zope.interface==4.4.2
-
-git+https://github.com/jackfriedson/poloniex-python3.git
