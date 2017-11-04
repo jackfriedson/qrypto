@@ -77,8 +77,6 @@ class DSDStrategy(LearnStrategy):
                 prog_bar = progressbar.ProgressBar(term_width=80)
                 train_losses = []
 
-                import ipdb; ipdb.set_trace()
-
                 # Train the network
                 for i in prog_bar(range(n_batches)):
                     rnn_state = self.model.initial_rnn_state(batch_size)
