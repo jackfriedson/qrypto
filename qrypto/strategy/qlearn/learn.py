@@ -13,7 +13,6 @@ import tensorflow as tf
 from qrypto import settings
 from qrypto.backtest import Backtest
 from qrypto.data.datasets import CompositeQLearnDataset
-from qrypto.models.rnn_multitask import RNNMultiTaskLearner
 from qrypto.strategy.qlearn.experience_buffer import ExperienceBuffer
 
 

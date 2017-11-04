@@ -147,3 +147,28 @@ def get_config(config_name):
     result = base_config.copy()
     result.update(_config_map[config_name])
     return result
+
+
+no_val_indicators = ['bop', 'trange', 'ht_trendline', 'ad', 'obv', 'ht_dcperiod',
+'ht_dcphase', 'ht_phasor', 'ht_sine', 'ht_trendmode']
+
+single_val_indicators = ['adx', 'adxr', 'aroon', 'aroonosc', 'cci', 'cmo', 'dx',
+'mfi', 'minus_di', 'minus_dm', 'mom', 'plus_di', 'plus_dm', 'roc', 'rocp', 'rocr', 'rsi',
+'trix', 'willr', 'atr', 'natr', 'dema', 'ema', 'kama', 'midpoint', 'midprice', 'sma',
+'tema', 'trima', 'wma', 'beta', 'correl', 'linearreg', 'linearreg_angle', 'linearreg_intercept',
+'linearreg_slope', 'stddev', 'tsf', 'var']
+
+multi_val_indicators = ['apo', 'macd', 'ppo', 'stoch', 'stochf', 'stochrsi', 'ultosc',
+'bbands', 'mama', 'mavp', 'sar', 'sarext', 'adosc']
+
+
+def get_indicators_full():
+    indicators = [
+        BasicIndicator(name, period)
+        for name in single_val_indicators
+        for period in range(2, (7*24)+1, 3)
+    ]
+    indicators.extend([BasicIndicator(name) for name in no_val_indicators])
+    # TODO: add multi-val indicators
+    return indicators
+

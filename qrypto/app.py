@@ -11,7 +11,7 @@ from qrypto import settings
 from qrypto.backtest import Backtest
 from qrypto.exchanges import Kraken, Poloniex
 from qrypto.strategy import (TakeProfitMomentumStrategy, MFIMomentumStrategy, QTableStrategy, QNetworkStrategy,
-                             ClassifierStrategy, RegressorStrategy, MultitaskStrategy)
+                             ClassifierStrategy, RegressorStrategy, MultitaskStrategy, DSDStrategy)
 
 
 RANDOM_SEED = 12345
@@ -60,7 +60,7 @@ def cli(ctx, exchange, **kwargs):
 
 
 @cli.command()
-@click.option('--model-type', type=click.Choice(['classifier', 'regressor', 'multitask']),
+@click.option('--model-type', type=click.Choice(['classifier', 'regressor', 'multitask', 'dsd']),
               default='multitask')
 @click.option('--train-start', type=str, default='5/1/2017')
 @click.option('--train-end', type=str, default='10/11/2017')
@@ -86,6 +86,8 @@ def learn(ctx, model_type, train_start, train_end, **kwargs):
         strategy = RegressorStrategy(exchange, **config)
     elif model_type == 'multitask':
         strategy = MultitaskStrategy(exchange, **config)
+    elif model_type == 'dsd':
+        strategy = DSDStrategy(exchange, **config)
 
     strategy.train(train_start, train_end, random_seed=RANDOM_SEED, **kwargs)
 

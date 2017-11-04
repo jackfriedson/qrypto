@@ -11,7 +11,8 @@ from qrypto.types import OHLC
 class QLearnDataset(object):
     """A dataset manager for use with machine learning algorithms."""
     actions = ['short', 'long']
-    exclude_fields = ['open', 'high', 'low']
+    exclude_fields = []
+    # exclude_fields = ['open', 'high', 'low']
 
     def __init__(self,
                  ohlc_interval: int,
