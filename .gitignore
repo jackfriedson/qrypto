@@ -2,3 +2,4 @@
 # Ignore experiment files
 experiments/*
 data/*/gkg/*
+data/*/market/*
