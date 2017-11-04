@@ -86,16 +86,8 @@ class FeatureLearningModel(object):
                 summary_dir.mkdir(exist_ok=True)
                 self.summary_writer = tf.summary.FileWriter(str(summary_dir))
 
-    # def _uncertainty_loss(self, loss_ops, inital_values=INITIAL_LOSS_PARAMS):
-    #     scaled_losses = []
-
-    #     for i, loss in enumerate(loss_ops):
-    #         loss_param = tf.Variable(inital_values[i], dtype=tf.float32, trainable=True, name='loss_param_{}'.format(i))
-    #         self.loss_params[i] = loss_param
-    #         scaled_loss_fn = ((1 / (2 * tf.square(loss_param))) * loss) + tf.log(tf.square(loss_param))
-    #         scaled_losses.append(scaled_loss_fn)
-
-    #     return tf.reduce_sum(scaled_losses)
+    def prune_weights(self):
+        pass
 
     def predict(self, sess, state, trace_length, rnn_state):
         feed_dict = {

@@ -161,12 +161,13 @@ single_val_indicators = ['adx', 'adxr', 'aroon', 'aroonosc', 'cci', 'cmo', 'dx',
 multi_val_indicators = ['apo', 'macd', 'ppo', 'stoch', 'stochf', 'stochrsi', 'ultosc',
 'bbands', 'mama', 'mavp', 'sar', 'sarext', 'adosc']
 
+periods = [2, 3, 4, 5, 7, 9, 11, 13, 15, 20, 25, 30, 35, 40, 45, 50, 60, 70, 80, 90, 100, 125, 150, 175]
 
 def get_indicators_full():
     indicators = [
         BasicIndicator(name, period)
         for name in single_val_indicators
-        for period in range(2, (7*24)+1, 3)
+        for period in periods
     ]
     indicators.extend([BasicIndicator(name) for name in no_val_indicators])
     # TODO: add multi-val indicators

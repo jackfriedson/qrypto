@@ -24,6 +24,8 @@ MIN_OHLC_INTERVAL = 5
 
 
 class DSDStrategy(LearnStrategy):
+    tasks = ['return']
+
     def __init__(self, *args, **kwargs):
         super(DSDStrategy, self).__init__(FeatureLearningModel, 'dsd_learner', *args, **kwargs)
         indicators = settings.get_indicators_full()
