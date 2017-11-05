@@ -8,6 +8,9 @@ from scipy.stats import entropy
 from qrypto.models.utils import reduce_std
 
 
+EPSILON = 10e-9
+
+
 class FeatureLearningModel(object):
 
     def __init__(self,
@@ -66,7 +69,7 @@ class FeatureLearningModel(object):
                 self.output_layer = tf.contrib.layers.fully_connected(hidden_layer, 2, activation_fn=None,
                                                                       weights_regularizer=l1_regularizer)
                 self.return_out, self.variance_out = tf.split(self.output_layer, 2, axis=1)
-                self.variance_out = tf.nn.softplus(self.variance_out)
+                self.variance_out = tf.nn.relu(self.variance_out) + EPSILON
                 self.return_out = tf.reshape(self.return_out, shape=[tf.shape(self.inputs)[0]])
                 self.return_losses = tf.losses.mean_squared_error(return_labels, self.return_out, reduction='none')
                 self.return_loss = tf.reduce_mean(self.return_losses)
