@@ -50,19 +50,26 @@ class FeatureLearningModel(object):
             rnn, self.rnn_state = tf.nn.dynamic_rnn(rnn_cell, norm_flat, dtype=tf.float32, initial_state=self.rnn_in)
             rnn = tf.reshape(rnn, shape=tf.shape(norm_layer))
 
-            l1_reg = tf.contrib.layers.l1_regularizer(reg_strength)
+            l1_regularizer = tf.contrib.layers.l1_regularizer(reg_strength)
             self.mask = tf.Variable(tf.ones([rnn.shape[1], self.n_hiddens]), trainable=False)
 
             with tf.variable_scope('hidden_layer'):
-                self.hidden_weights = tf.get_variable('W', shape=[rnn.shape[1], self.n_hiddens], initializer=tf.contrib.layers.xavier_initializer())
+                self.hidden_weights = tf.get_variable('W', shape=[rnn.shape[1], self.n_hiddens],
+                                                      initializer=tf.contrib.layers.xavier_initializer(),
+                                                      regularizer=l1_regularizer)
                 masked_weights = self.hidden_weights * self.mask
-                b = tf.get_variable('b', shape=[self.n_hiddens], initializer=tf.zeros_initializer())
-                hidden_layer = tf.nn.tanh(tf.matmul(rnn, masked_weights) + b)
+                hidden_bias = tf.get_variable('b', shape=[self.n_hiddens], initializer=tf.zeros_initializer())
+                hidden_layer = tf.nn.tanh(tf.matmul(rnn, masked_weights) + hidden_bias)
                 hidden_layer = tf.layers.dropout(hidden_layer, dropout_prob, training=self.phase)
 
-            # Task 1: Estimate Return
-            self.return_out = tf.contrib.layers.fully_connected(hidden_layer, 1, activation_fn=None, weights_regularizer=l1_reg)
-            self.return_out = tf.reshape(self.return_out, shape=[tf.shape(self.inputs)[0]])
+            with tf.variable_scope('output_layer'):
+                self.output_weights = tf.get_variable('W', shape=[self.n_hiddens, 1],
+                                                      initializer=tf.contrib.layers.xavier_initializer(),
+                                                      regularizer=l1_regularizer)
+                output_bias = tf.get_variable('b', shape=[1], initializer=tf.zeros_initializer())
+                self.return_out = tf.matmul(hidden_layer, self.output_weights) + output_bias
+                self.return_out = tf.reshape(self.return_out, shape=[tf.shape(self.inputs)[0]])
+
             self.return_loss = tf.losses.absolute_difference(return_labels, self.return_out)
 
             self.joint_loss = self.return_loss
