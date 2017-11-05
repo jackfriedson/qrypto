@@ -35,7 +35,6 @@ class FeatureLearningModel(object):
             self.labels = tf.placeholder(shape=[None, 1], dtype=tf.float32, name='labels')
             self.phase = tf.placeholder(dtype=tf.bool, name='phase')
             self.trace_length = tf.placeholder(dtype=tf.int32, name='trace_length')
-
             return_labels = self.labels[:,0]
 
             batch_size = tf.reshape(tf.shape(self.inputs)[0] // self.trace_length, shape=[])
@@ -52,13 +51,17 @@ class FeatureLearningModel(object):
             rnn = tf.reshape(rnn, shape=tf.shape(norm_layer))
 
             l1_reg = tf.contrib.layers.l1_regularizer(reg_strength)
-            hidden_1 = tf.contrib.layers.fully_connected(rnn, self.n_hiddens, activation_fn=tf.nn.tanh, scope='hidden_layer')
-            dropout_1 = tf.layers.dropout(hidden_1, dropout_prob, training=self.phase)
+            self.mask = tf.Variable(tf.cast(tf.ones([rnn.shape[0], self.n_hiddens]), tf.bool), trainable=False)
+
+            with tf.variable_scope('hidden_layer'):
+                self.hidden_weights = tf.get_variable('W', shape=[rnn.shape[0], self.n_hiddens], initializer=tf.contrib.layers.xavier_initializer())
+                masked_weights = tf.boolean_mask(self.hidden_weights, self.mask)
+                b = tf.get_variable('b', shape=[self.n_hiddens], initializer=tf.zeros_initializer())
+                hidden_layer = tf.nn.tanh(tf.matmul(rnn, masked_weights) + b)
+                hidden_layer = tf.layers.dropout(hidden_layer, dropout_prob, training=self.phase)
 
             # Task 1: Estimate Return
-            return_hidden = tf.contrib.layers.fully_connected(dropout_1, self.n_hiddens, activation_fn=tf.nn.tanh, weights_regularizer=l1_reg)
-            return_dropout = tf.layers.dropout(return_hidden, dropout_prob, training=self.phase)
-            self.return_out = tf.contrib.layers.fully_connected(return_dropout, 1, activation_fn=None, weights_regularizer=l1_reg)
+            self.return_out = tf.contrib.layers.fully_connected(hidden_layer, 1, activation_fn=None, weights_regularizer=l1_reg)
             self.return_out = tf.reshape(self.return_out, shape=[tf.shape(self.inputs)[0]])
             self.return_loss = tf.losses.mean_squared_error(return_labels, self.return_out)
 
@@ -87,23 +90,13 @@ class FeatureLearningModel(object):
                 summary_dir.mkdir(exist_ok=True)
                 self.summary_writer = tf.summary.FileWriter(str(summary_dir))
 
-    @staticmethod
-    def get_tf_var(name):
-        for var in tf.global_variables():
-            if var.name.startswith(name):
-                return var
-        return None
-
     def prune_connections(self, sess, sparsity: float = 0.1):
-        weights = self.get_tf_var('{}/hidden_layer/weights'.format(self.scope))
-        weight_vals = weights.eval(sess)
+        weight_vals = self.hidden_weights.eval(sess)
         abs_weight_vals = np.abs(weight_vals)
         sorted_weights = np.sort(abs_weight_vals, axis=None)
         cutoff_idx = int(len(sorted_weights) * sparsity)
         cutoff_val = sorted_weights[cutoff_idx]
-        mask = abs_weight_vals < cutoff_val
-        weight_vals[mask] = 0.
-        weights.assign(weight_vals)
+        self.mask = abs_weight_vals < cutoff_val
 
     def predict(self, sess, state, trace_length, rnn_state):
         feed_dict = {
