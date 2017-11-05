@@ -150,16 +150,24 @@ def get_config(config_name):
 
 
 no_val_indicators = ['bop', 'trange', 'ht_trendline', 'ad', 'obv', 'ht_dcperiod',
-'ht_dcphase', 'ht_phasor', 'ht_sine', 'ht_trendmode']
+'ht_dcphase', 'ht_phasor', 'ht_sine', 'ht_trendmode', 'mama', 'sar', 'sarext']
 
 single_val_indicators = ['adx', 'adxr', 'aroon', 'aroonosc', 'cci', 'cmo', 'dx',
 'mfi', 'minus_di', 'minus_dm', 'mom', 'plus_di', 'plus_dm', 'roc', 'rocp', 'rocr', 'rsi',
 'trix', 'willr', 'atr', 'natr', 'dema', 'ema', 'kama', 'midpoint', 'midprice', 'sma',
 'tema', 'trima', 'wma', 'beta', 'correl', 'linearreg', 'linearreg_angle', 'linearreg_intercept',
-'linearreg_slope', 'stddev', 'tsf', 'var']
+'linearreg_slope', 'stddev', 'tsf', 'var', 'bbands']
 
-multi_val_indicators = ['apo', 'macd', 'ppo', 'stoch', 'stochf', 'stochrsi', 'ultosc',
-'bbands', 'mama', 'mavp', 'sar', 'sarext', 'adosc']
+multi_val_indicators = {
+    'apo': {'fastperiod': 12, 'slowperiod': 26},
+    'macd': {'fastperiod': 12, 'slowperiod': 26, 'signalperiod': 9},
+    'ppo': {'fastperiod': 12, 'slowperiod': 26},
+    'stoch': {'fastk_period': 5, 'slowk_period': 3, 'slowd_period': 3},
+    'stochf': {'fastk_period': 5, 'fastd_period': 3},
+    'stochrsi': {'timeperiod': 14, 'fastk_period': 5, 'fastd_period': 3},
+    'ultosc': {'timeperiod1': 7, 'timeperiod2': 14, 'timeperiod3': 28},
+    'adosc': {'fastperiod': 3, 'slowperiod': 10}
+}
 
 periods = [2, 3, 4, 5, 7, 9, 11, 13, 15, 20, 25, 30, 35, 40, 45, 50, 60, 70, 80, 90, 100, 125, 150, 175]
 
@@ -170,6 +178,9 @@ def get_indicators_full():
         for period in periods
     ]
     indicators.extend([BasicIndicator(name) for name in no_val_indicators])
-    # TODO: add multi-val indicators
+    for name, config in multi_val_indicators.items():
+        for i in range(1, 8):
+            scaled_config = {k: v*i for k, v in config.items()}
+            indicators.append(BasicIndicator(name, config=scaled_config))
     return indicators
 
