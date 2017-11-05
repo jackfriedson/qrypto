@@ -97,8 +97,9 @@ class FeatureLearningModel(object):
         cutoff_idx = int(len(sorted_weights) * sparsity)
         cutoff_val = sorted_weights[cutoff_idx]
         bool_mask = abs_weight_vals < cutoff_val
-        self.mask = tf.zeros(self.mask.shape)
-        self.mask[bool_mask] = 1.
+        new_mask = np.zeros(self.mask.shape)
+        new_mask[bool_mask] = 1.
+        self.mask.assign(new_mask)
 
     def predict(self, sess, state, trace_length, rnn_state):
         feed_dict = {
