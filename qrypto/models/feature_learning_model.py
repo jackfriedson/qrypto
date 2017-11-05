@@ -92,7 +92,7 @@ class FeatureLearningModel(object):
 
     def prune_connections(self, sess, sparsity: float = 0.1):
         weight_vals = self.hidden_weights.eval(sess)
-        abs_weight_vals = tf.abs(weight_vals)
+        abs_weight_vals = np.abs(weight_vals)
         sorted_weights = np.sort(abs_weight_vals, axis=None)
         cutoff_idx = int(len(sorted_weights) * sparsity)
         cutoff_val = sorted_weights[cutoff_idx]
