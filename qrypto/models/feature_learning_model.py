@@ -51,7 +51,7 @@ class FeatureLearningModel(object):
             rnn = tf.reshape(rnn, shape=tf.shape(norm_layer))
 
             l1_reg = tf.contrib.layers.l1_regularizer(reg_strength)
-            self.mask = tf.Variable(tf.ones([rnn.shape[1], self.n_hiddens]), trainable=False, dtype=tf.int32)
+            self.mask = tf.Variable(tf.ones([rnn.shape[1], self.n_hiddens]), trainable=False)
 
             with tf.variable_scope('hidden_layer'):
                 self.hidden_weights = tf.get_variable('W', shape=[rnn.shape[1], self.n_hiddens], initializer=tf.contrib.layers.xavier_initializer())
@@ -97,8 +97,8 @@ class FeatureLearningModel(object):
         cutoff_idx = int(len(sorted_weights) * sparsity)
         cutoff_val = sorted_weights[cutoff_idx]
         bool_mask = abs_weight_vals < cutoff_val
-        self.mask = tf.zeros(self.mask.shape, type=tf.int32)
-        self.mask[bool_mask] = 1
+        self.mask = tf.zeros(self.mask.shape)
+        self.mask[bool_mask] = 1.
 
     def predict(self, sess, state, trace_length, rnn_state):
         feed_dict = {
