@@ -67,10 +67,11 @@ class FeatureLearningModel(object):
                                                                       weights_regularizer=l1_regularizer)
                 self.return_out, self.variance_out = tf.split(self.output_layer, 2, axis=1)
                 self.return_out = tf.reshape(self.return_out, shape=[tf.shape(self.inputs)[0]])
-                self.return_losses = tf.mean_squared_error(return_labels, self.return_out, reduction='none')
+                self.return_losses = tf.losses.mean_squared_error(return_labels, self.return_out, reduction='none')
+                self.return_loss = tf.reduce_mean(self.return_losses)
 
-            self.joint_losses = (self.return_losses / (2. * self.variance_out)) + tf.log(self.variance_out)
-            self.joint_loss = tf.reduce_mean(self.join_losses)
+            self.joint_losses = (self.return_losses / (2. * self.variance_out**2)) + tf.log(self.variance_out**2)
+            self.joint_loss = tf.reduce_mean(self.joint_losses)
             optimizer = tf.train.AdamOptimizer(learn_rate)
 
             self.outputs = [self.return_out]
