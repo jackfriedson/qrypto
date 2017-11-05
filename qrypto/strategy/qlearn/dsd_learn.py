@@ -28,7 +28,7 @@ class DSDStrategy(LearnStrategy):
 
     def __init__(self, *args, **kwargs):
         super(DSDStrategy, self).__init__(FeatureLearningModel, 'dsd_learner', *args, **kwargs)
-        indicators = settings.get_indicators_full()
+        indicators = settings.get_indicators(self.base_currency, [])[self.base_currency]
         self.addtl_currencies = []
         self.data = QLearnDataset(self.ohlc_interval, indicators=indicators)
 
@@ -117,7 +117,7 @@ class DSDStrategy(LearnStrategy):
                 self.model.summary_writer.add_summary(self._get_epoch_chart(epoch), epoch)
                 self.model.summary_writer.flush()
 
-                self.model.prune_connections(sess)
+                # self.model.prune_connections(sess)
 
     def _initialize_training_data(self, start, end):
         base_currency_data = Backtest(self.exchange, self.base_currency, self.quote_currency,

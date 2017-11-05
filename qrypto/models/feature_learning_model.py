@@ -63,16 +63,18 @@ class FeatureLearningModel(object):
                 hidden_layer = tf.layers.dropout(hidden_layer, dropout_prob, training=self.phase)
 
             with tf.variable_scope('output_layer'):
-                self.output_weights = tf.get_variable('W', shape=[self.n_hiddens, 1],
-                                                      initializer=tf.contrib.layers.xavier_initializer(),
-                                                      regularizer=l1_regularizer)
-                output_bias = tf.get_variable('b', shape=[1], initializer=tf.zeros_initializer())
-                self.return_out = tf.matmul(hidden_layer, self.output_weights) + output_bias
+                self.return_out = tf.contrib.layers.fully_connected(hidden_layer, 1, activation_fn=None,
+                                                                      weights_regularizer=l1_regularizer)
                 self.return_out = tf.reshape(self.return_out, shape=[tf.shape(self.inputs)[0]])
+                self.return_losses = tf.abs(return_labels - self.return_out)
+                self.return_loss = tf.reduce_mean(self.return_losses)
 
-            self.return_loss = tf.losses.absolute_difference(return_labels, self.return_out)
+            with tf.variable_scope('variance_layer'):
+                self.variance_out = tf.contrib.layers.fully_connected(hidden_layer, 1, activation_fn=None,
+                                                                      weights_regularizer=l1_regularizer)
 
-            self.joint_loss = self.return_loss
+            self.joint_losses = (self.return_losses / (2 * self.variance_out)) + tf.log(self.variance_out)
+            self.joint_loss = tf.reduce_mean(self.joint_losses)
             optimizer = tf.train.AdamOptimizer(learn_rate)
 
             self.outputs = [self.return_out]
@@ -85,6 +87,9 @@ class FeatureLearningModel(object):
             self.summaries = [
                 tf.summary.histogram('normed_inputs', norm_layer),
                 tf.summary.histogram('return_predictions', self.return_out),
+                tf.summary.histogram('aleatoric_variance', self.variance_out),
+                tf.summary.histogram('return_losses', self.return_losses),
+                # tf.summary.histogram('joint_losses', self.joint_losses),
                 tf.summary.scalar('return_loss', self.return_loss),
                 tf.summary.scalar('joint_loss', self.joint_loss),
             ]
