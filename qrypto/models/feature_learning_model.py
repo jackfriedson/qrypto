@@ -74,7 +74,7 @@ class FeatureLearningModel(object):
                                                                       weights_regularizer=l1_regularizer)
 
             self.joint_losses = (self.return_losses / (2 * self.variance_out)) + tf.log(self.variance_out)
-            self.joint_loss = tf.reduce_mean(self.joint_losses)
+            self.joint_loss = self.return_loss
             optimizer = tf.train.AdamOptimizer(learn_rate)
 
             self.outputs = [self.return_out]
