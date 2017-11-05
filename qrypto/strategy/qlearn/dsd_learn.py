@@ -118,7 +118,6 @@ class DSDStrategy(LearnStrategy):
                 self.model.summary_writer.flush()
 
                 self.model.prune_connections(sess)
-                import ipdb; ipdb.set_trace()
 
     def _initialize_training_data(self, start, end):
         base_currency_data = Backtest(self.exchange, self.base_currency, self.quote_currency,
