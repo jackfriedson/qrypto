@@ -52,7 +52,7 @@ class FeatureLearningModel(object):
             rnn = tf.reshape(rnn, shape=tf.shape(norm_layer))
 
             l1_reg = tf.contrib.layers.l1_regularizer(reg_strength)
-            hidden_1 = tf.contrib.layers.fully_connected(rnn, self.n_hiddens, activation_fn=tf.nn.tanh)
+            hidden_1 = tf.contrib.layers.fully_connected(rnn, self.n_hiddens, activation_fn=tf.nn.tanh, scope='hidden_layer')
             dropout_1 = tf.layers.dropout(hidden_1, dropout_prob, training=self.phase)
 
             # Task 1: Estimate Return
@@ -87,8 +87,23 @@ class FeatureLearningModel(object):
                 summary_dir.mkdir(exist_ok=True)
                 self.summary_writer = tf.summary.FileWriter(str(summary_dir))
 
-    def prune_weights(self):
-        pass
+    @staticmethod
+    def get_tf_var(name):
+        for var in tf.global_variables():
+            if var.name.startswith(name):
+                return var
+        return None
+
+    def prune_connections(self, sess, sparsity: float = 0.1):
+        weights = self.get_tf_var('{}/hidden_layer/weights'.format(self.scope))
+        weight_vals = weights.eval(sess)
+        abs_weight_vals = np.abs(weight_vals)
+        sorted_weights = np.sort(abs_weight_vals, axis=None)
+        cutoff_idx = int(len(sorted_weights) * sparsity)
+        cutoff_val = sorted_weights[cutoff_idx]
+        mask = abs_weight_vals < cutoff_val
+        weight_vals[mask] = 0.
+        weights.assign(weight_vals)
 
     def predict(self, sess, state, trace_length, rnn_state):
         feed_dict = {

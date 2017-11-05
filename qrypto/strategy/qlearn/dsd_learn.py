@@ -117,6 +117,8 @@ class DSDStrategy(LearnStrategy):
                 self.model.summary_writer.add_summary(self._get_epoch_chart(epoch), epoch)
                 self.model.summary_writer.flush()
 
+                self.model.prune_connections(sess)
+
     def _initialize_training_data(self, start, end):
         base_currency_data = Backtest(self.exchange, self.base_currency, self.quote_currency,
                                       start=start, end=end, interval=MIN_OHLC_INTERVAL,
