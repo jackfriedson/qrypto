@@ -51,11 +51,11 @@ class FeatureLearningModel(object):
             rnn = tf.reshape(rnn, shape=tf.shape(norm_layer))
 
             l1_reg = tf.contrib.layers.l1_regularizer(reg_strength)
-            self.mask = tf.Variable(tf.cast(tf.ones([rnn.shape[1], self.n_hiddens]), tf.bool), trainable=False)
+            self.mask = tf.Variable(tf.ones([rnn.shape[1], self.n_hiddens]), trainable=False, dtype=tf.int32)
 
             with tf.variable_scope('hidden_layer'):
                 self.hidden_weights = tf.get_variable('W', shape=[rnn.shape[1], self.n_hiddens], initializer=tf.contrib.layers.xavier_initializer())
-                masked_weights = tf.boolean_mask(self.hidden_weights, self.mask)
+                masked_weights = self.hidden_weights * self.mask
                 b = tf.get_variable('b', shape=[self.n_hiddens], initializer=tf.zeros_initializer())
                 hidden_layer = tf.nn.tanh(tf.matmul(rnn, masked_weights) + b)
                 hidden_layer = tf.layers.dropout(hidden_layer, dropout_prob, training=self.phase)
@@ -92,11 +92,13 @@ class FeatureLearningModel(object):
 
     def prune_connections(self, sess, sparsity: float = 0.1):
         weight_vals = self.hidden_weights.eval(sess)
-        abs_weight_vals = np.abs(weight_vals)
+        abs_weight_vals = tf.abs(weight_vals)
         sorted_weights = np.sort(abs_weight_vals, axis=None)
         cutoff_idx = int(len(sorted_weights) * sparsity)
         cutoff_val = sorted_weights[cutoff_idx]
-        self.mask = abs_weight_vals < cutoff_val
+        bool_mask = abs_weight_vals < cutoff_val
+        self.mask = tf.zeros(self.mask.shape, type=tf.int32)
+        self.mask[bool_mask] = 1
 
     def predict(self, sess, state, trace_length, rnn_state):
         feed_dict = {
