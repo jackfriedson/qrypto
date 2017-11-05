@@ -51,10 +51,10 @@ class FeatureLearningModel(object):
             rnn = tf.reshape(rnn, shape=tf.shape(norm_layer))
 
             l1_reg = tf.contrib.layers.l1_regularizer(reg_strength)
-            self.mask = tf.Variable(tf.cast(tf.ones([rnn.shape[0], self.n_hiddens]), tf.bool), trainable=False)
+            self.mask = tf.Variable(tf.cast(tf.ones([rnn.shape[1], self.n_hiddens]), tf.bool), trainable=False)
 
             with tf.variable_scope('hidden_layer'):
-                self.hidden_weights = tf.get_variable('W', shape=[rnn.shape[0], self.n_hiddens], initializer=tf.contrib.layers.xavier_initializer())
+                self.hidden_weights = tf.get_variable('W', shape=[rnn.shape[1], self.n_hiddens], initializer=tf.contrib.layers.xavier_initializer())
                 masked_weights = tf.boolean_mask(self.hidden_weights, self.mask)
                 b = tf.get_variable('b', shape=[self.n_hiddens], initializer=tf.zeros_initializer())
                 hidden_layer = tf.nn.tanh(tf.matmul(rnn, masked_weights) + b)
