@@ -63,7 +63,7 @@ class FeatureLearningModel(object):
             # Task 1: Estimate Return
             self.return_out = tf.contrib.layers.fully_connected(hidden_layer, 1, activation_fn=None, weights_regularizer=l1_reg)
             self.return_out = tf.reshape(self.return_out, shape=[tf.shape(self.inputs)[0]])
-            self.return_loss = tf.losses.mean_squared_error(return_labels, self.return_out)
+            self.return_loss = tf.losses.absolute_difference(return_labels, self.return_out)
 
             self.joint_loss = self.return_loss
             optimizer = tf.train.AdamOptimizer(learn_rate)
