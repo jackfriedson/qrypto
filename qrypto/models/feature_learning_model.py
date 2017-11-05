@@ -74,6 +74,7 @@ class FeatureLearningModel(object):
 
             self.summaries = [
                 tf.summary.histogram('normed_inputs', norm_layer),
+                tf.summary.histogram('return_predictions', self.return_out)
                 tf.summary.scalar('return_loss', self.return_loss),
                 tf.summary.scalar('joint_loss', self.joint_loss),
             ]
