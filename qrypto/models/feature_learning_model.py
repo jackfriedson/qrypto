@@ -38,7 +38,7 @@ class FeatureLearningModel(object):
             self.labels = tf.placeholder(shape=[None, 1], dtype=tf.float32, name='labels')
             self.phase = tf.placeholder(dtype=tf.bool, name='phase')
             self.trace_length = tf.placeholder(dtype=tf.int32, name='trace_length')
-            return_labels = self.labels[:,0]
+            return_labels = self.labels
 
             batch_size = tf.reshape(tf.shape(self.inputs)[0] // self.trace_length, shape=[])
 
@@ -69,16 +69,13 @@ class FeatureLearningModel(object):
                 self.output = tf.contrib.layers.fully_connected(hidden_layer, 2, activation_fn=None,
                                                                 weights_regularizer=l1_regularizer)
                 self.return_out, self.variance_out = tf.split(self.output, 2, axis=1)
-                self.return_out = tf.reshape(self.return_out, shape=[tf.shape(self.inputs)[0]])
                 self.variance_out = tf.square(self.variance_out) + EPSILON
-                # self.variance_out = tf.reshape(self.variance_out, shape=[tf.shape(self.inputs)[0]])
 
                 self.return_losses = tf.losses.absolute_difference(return_labels, self.return_out, reduction='none')
                 self.return_loss = tf.reduce_mean(self.return_losses)
 
             self.joint_losses = (self.return_losses / (2. * self.variance_out)) + tf.log(self.variance_out)
             self.joint_loss = tf.reduce_mean(self.joint_losses)
-            # self.joint_loss = self.return_loss
             optimizer = tf.train.AdamOptimizer(learn_rate)
 
             self.outputs = [self.return_out, self.variance_out]
