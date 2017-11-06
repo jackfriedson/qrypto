@@ -132,4 +132,11 @@ class DSDStrategy(LearnStrategy):
 
     @staticmethod
     def _order_strategy(output, is_label: bool = False):
-        return 1 if output[0] > 0 else 0
+        if is_label:
+            return 1 if output[0] > 0 else 0
+
+        pred_return = output[0][0]
+        pred_variance = output[1][0]
+        if pred_variance > 1 or pred_return < 0:
+            return 0
+        return 1
