@@ -71,6 +71,7 @@ class FeatureLearningModel(object):
                 self.return_out, self.variance_out = tf.split(self.output, 2, axis=1)
                 self.return_out = tf.reshape(self.return_out, shape=[tf.shape(self.inputs)[0]])
                 self.variance_out = tf.square(self.variance_out) + EPSILON
+                self.variance_out = tf.reshape(self.variance_out, shape=[tf.shape(self.inputs)[0]])
 
                 self.return_losses = tf.losses.absolute_difference(return_labels, self.return_out, reduction='none')
                 self.return_loss = tf.reduce_mean(self.return_losses)
