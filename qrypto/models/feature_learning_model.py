@@ -41,16 +41,19 @@ class FeatureLearningModel(object):
             return_labels = self.labels[:,0]
 
             batch_size = tf.reshape(tf.shape(self.inputs)[0] // self.trace_length, shape=[])
-
             norm_layer = tf.contrib.layers.batch_norm(self.inputs, scale=True, renorm=True, renorm_decay=renorm_decay, is_training=self.phase)
             norm_flat = tf.reshape(norm_layer, shape=[batch_size, self.trace_length, n_inputs])
 
-            rnn_cell = tf.contrib.rnn.LSTMCell(num_units=n_inputs, state_is_tuple=True, activation=tf.nn.softsign, use_peepholes=True)
-            rnn_cell = tf.contrib.rnn.DropoutWrapper(rnn_cell, output_keep_prob=1-rnn_dropout_prob)
-            rnn_cell = tf.contrib.rnn.MultiRNNCell([rnn_cell] * rnn_layers, state_is_tuple=True)
+            rnn_cells = []
+            for i in range(rnn_layers):
+                rnn_cell = tf.contrib.rnn.LSTMCell(num_units=n_inputs, activation=tf.nn.softsign, use_peepholes=True,
+                                                  name='rnn_cell_{}'.format(i))
+                rnn_cell = tf.contrib.rnn.DropoutWrapper(rnn_cell, output_keep_prob=1-rnn_dropout_prob)
+                rnn_cells.append(rnn_cell)
+            multi_cell = tf.contrib.rnn.MultiRNNCell(rnn_cells)
 
-            self.rnn_in = rnn_cell.zero_state(batch_size, dtype=tf.float32)
-            rnn, self.rnn_state = tf.nn.dynamic_rnn(rnn_cell, norm_flat, dtype=tf.float32, initial_state=self.rnn_in)
+            self.rnn_in = multi_cell.zero_state(batch_size, dtype=tf.float32)
+            rnn, self.rnn_state = tf.nn.dynamic_rnn(multi_cell, norm_flat, dtype=tf.float32, initial_state=self.rnn_in)
             rnn = tf.reshape(rnn, shape=tf.shape(norm_layer))
 
             l1_regularizer = tf.contrib.layers.l1_regularizer(reg_strength)
