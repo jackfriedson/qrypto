@@ -80,7 +80,7 @@ class FeatureLearningModel(object):
             # self.joint_loss = self.return_loss
             optimizer = tf.train.AdamOptimizer(learn_rate)
 
-            self.outputs = [self.return_out]
+            self.outputs = [self.return_out, self.variance_out]
             self.losses = [self.return_loss]
 
             update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
@@ -142,7 +142,7 @@ class FeatureLearningModel(object):
             self.outputs
         ]
 
-        summaries, step, _, losses, outputs = sess.run(tensors, feed_dict)
+        summaries, step, _, losses, _ = sess.run(tensors, feed_dict)
 
         if self.summary_writer:
             self.summary_writer.add_summary(summaries, step)
