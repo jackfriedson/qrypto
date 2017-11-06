@@ -74,11 +74,12 @@ class FeatureLearningModel(object):
                 with tf.variable_scope('variance'):
                     self.variance_out = tf.contrib.layers.fully_connected(hidden_layer, 1, activation_fn=None,
                                                                           weights_regularizer=l1_regularizer)
+                    self.variance_out = tf.square(self.variance_out)
 
                 self.return_losses = tf.losses.mean_squared_error(return_labels, self.return_out, reduction='none')
                 self.return_loss = tf.reduce_mean(self.return_losses)
 
-            self.joint_losses = (self.return_losses / (2. * self.variance_out**2)) + tf.log(self.variance_out**2)
+            self.joint_losses = (self.return_losses / (2. * self.variance_out)) + tf.log(self.variance_out)
             self.joint_loss = tf.reduce_mean(self.joint_losses)
             optimizer = tf.train.AdamOptimizer(learn_rate)
 
