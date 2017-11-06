@@ -66,15 +66,11 @@ class FeatureLearningModel(object):
                 hidden_layer = tf.layers.dropout(hidden_layer, dropout_prob, training=self.phase)
 
             with tf.variable_scope('output_layer'):
-                with tf.variable_scope('return'):
-                    self.return_out = tf.contrib.layers.fully_connected(hidden_layer, 1, activation_fn=None,
-                                                                          weights_regularizer=l1_regularizer)
-                    self.return_out = tf.reshape(self.return_out, shape=[tf.shape(self.inputs)[0]])
-
-                with tf.variable_scope('variance'):
-                    self.variance_out = tf.contrib.layers.fully_connected(hidden_layer, 1, activation_fn=None,
-                                                                          weights_regularizer=l1_regularizer)
-                    self.variance_out = tf.square(self.variance_out)
+                self.output = tf.contrib.layers.fully_connected(hidden_layer, 2, activation_fn=None,
+                                                                      weights_regularizer=l1_regularizer)
+                self.return_out, self.variance_out = tf.split(self.output, 2, axis=1)
+                self.return_out = tf.reshape(self.return_out, shape=[tf.shape(self.inputs)[0]])
+                self.variance_out = tf.square(self.variance_out)
 
                 self.return_losses = tf.losses.mean_squared_error(return_labels, self.return_out, reduction='none')
                 self.return_loss = tf.reduce_mean(self.return_losses)
