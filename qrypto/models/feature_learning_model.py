@@ -67,10 +67,10 @@ class FeatureLearningModel(object):
 
             with tf.variable_scope('output_layer'):
                 self.output = tf.contrib.layers.fully_connected(hidden_layer, 2, activation_fn=None,
-                                                                      weights_regularizer=l1_regularizer)
+                                                                weights_regularizer=l1_regularizer)
                 self.return_out, self.variance_out = tf.split(self.output, 2, axis=1)
                 self.return_out = tf.reshape(self.return_out, shape=[tf.shape(self.inputs)[0]])
-                self.variance_out = tf.square(self.variance_out)
+                self.variance_out = tf.square(self.variance_out) + EPSILON
 
                 self.return_losses = tf.losses.mean_squared_error(return_labels, self.return_out, reduction='none')
                 self.return_loss = tf.reduce_mean(self.return_losses)
