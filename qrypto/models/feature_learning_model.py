@@ -75,14 +75,15 @@ class FeatureLearningModel(object):
                 self.return_out = tf.reshape(self.return_out, shape=[tf.shape(self.inputs)[0]])
                 self.variance_out = tf.square(self.variance_out) + EPSILON
 
-                self.return_losses = tf.losses.mean_squared_error(return_labels, self.return_out, reduction='none')
+                self.return_losses = tf.losses.absolute_difference(return_labels, self.return_out, reduction='none')
                 self.return_loss = tf.reduce_mean(self.return_losses)
 
             self.joint_losses = (self.return_losses / (2. * self.variance_out)) + tf.log(self.variance_out)
             self.joint_loss = tf.reduce_mean(self.joint_losses)
+            # self.joint_loss = self.return_loss
             optimizer = tf.train.AdamOptimizer(learn_rate)
 
-            self.outputs = [self.return_out]
+            self.outputs = [self.return_out, self.variance_out]
             self.losses = [self.return_loss]
 
             update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
@@ -144,7 +145,7 @@ class FeatureLearningModel(object):
             self.outputs
         ]
 
-        summaries, step, _, losses, outputs = sess.run(tensors, feed_dict)
+        summaries, step, _, losses, _ = sess.run(tensors, feed_dict)
 
         if self.summary_writer:
             self.summary_writer.add_summary(summaries, step)
