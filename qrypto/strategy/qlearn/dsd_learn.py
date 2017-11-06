@@ -30,7 +30,8 @@ class DSDStrategy(LearnStrategy):
         super(DSDStrategy, self).__init__(FeatureLearningModel, 'dsd_learner', *args, **kwargs)
         indicators = settings.get_indicators(self.base_currency, [])[self.base_currency]
         self.addtl_currencies = []
-        self.data = QLearnDataset(self.ohlc_interval, indicators=indicators)
+        gkg_file = self.data_dir/'gkg'/'gkg_data.txt'
+        self.data = QLearnDataset(self.ohlc_interval, indicators=indicators, gkg_file=gkg_file)
 
     def train(self,
               start: str,
