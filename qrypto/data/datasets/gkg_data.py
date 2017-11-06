@@ -35,6 +35,7 @@ class GKGDataset(object):
             subset = all_data.loc[all_data['date'] == date]
             subset = subset.drop('date', axis=1)
             row = subset.agg('mean')
+            row['count'] = len(subset)
             row.name = date
             rows.append(row)
 
