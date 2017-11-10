@@ -8,7 +8,7 @@ class RegVarianceStrategy(LearnStrategy):
     tasks = ['return', 'variance']
 
     def __init__(self, *args, **kwargs):
-        super(RegVarianceStrategy, self).__init__(RegressorVarianceModel, 'rnn_multitask', *args, **kwargs)
+        super(RegVarianceStrategy, self).__init__(RegressorVarianceModel, 'reg_variance', *args, **kwargs)
 
     @staticmethod
     def _create_label(data):
