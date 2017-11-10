@@ -6,5 +6,6 @@ from qrypto.strategy.qlearn.classifier import ClassifierStrategy
 from qrypto.strategy.qlearn.regressor import RegressorStrategy
 from qrypto.strategy.qlearn.dsd_learn import DSDStrategy
 from qrypto.strategy.qlearn.multitask import MultitaskStrategy
+from qrypto.strategy.qlearn.reg_variance import RegVarianceStrategy
 from qrypto.strategy.qlearn.qtable import QTableStrategy
 from qrypto.strategy.qlearn.qnetwork import QNetworkStrategy
