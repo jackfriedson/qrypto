@@ -5,7 +5,7 @@ from qrypto.strategy import LearnStrategy
 
 
 class RegVarianceStrategy(LearnStrategy):
-    tasks = ['return', 'variance']
+    tasks = ['return', 'joint']
 
     def __init__(self, *args, **kwargs):
         super(RegVarianceStrategy, self).__init__(RegressorVarianceModel, 'reg_variance', *args, **kwargs)

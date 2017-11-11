@@ -67,7 +67,7 @@ class RegressorVarianceModel(object):
             self.joint_loss = tf.reduce_mean(self.joint_losses)
 
             self.outputs = [self.return_out, self.variance_out]
-            self.losses = [self.joint_loss]
+            self.losses = [self.return_loss, self.joint_loss]
 
             self.optimizer = tf.train.AdamOptimizer(learn_rate)
             update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
