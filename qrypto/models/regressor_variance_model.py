@@ -50,7 +50,7 @@ class RegressorVarianceModel(object):
 
             # Hidden Layer
             n_hiddens = hidden_units or n_inputs
-            self.hidden_layer = tf.contrib.layers.fully_connected(self.rnn, n_hiddens, activation_fn=tf.nn.tanh, weights_regularizer=l1_reg)
+            self.hidden_layer = tf.contrib.layers.fully_connected(self.rnn, n_hiddens, activation_fn=tf.nn.relu, weights_regularizer=l1_reg)
             self.dropout_layer = tf.layers.dropout(self.hidden_layer, dropout_prob, training=self.phase)
 
             # Output Layer
