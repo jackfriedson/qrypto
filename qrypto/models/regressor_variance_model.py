@@ -43,11 +43,15 @@ class RegressorVarianceModel(object):
             self.norm_flat = tf.reshape(self.norm_layer, shape=[batch_size, self.trace_length, n_inputs])
 
             # RNN
-            rnn_cell = tf.contrib.rnn.LSTMCell(num_units=n_inputs, state_is_tuple=True, activation=tf.nn.softsign, use_peepholes=True)
-            rnn_cell = tf.contrib.rnn.DropoutWrapper(rnn_cell, output_keep_prob=1-rnn_dropout_prob)
-            rnn_cell = tf.contrib.rnn.MultiRNNCell([rnn_cell] * rnn_layers, state_is_tuple=True)
-            self.rnn_in = rnn_cell.zero_state(batch_size, dtype=tf.float32)
-            self.rnn, self.rnn_state = tf.nn.dynamic_rnn(rnn_cell, self.norm_flat, dtype=tf.float32, initial_state=self.rnn_in)
+            rnn_cells = []
+            for i in range(rnn_layers):
+                rnn_cell = tf.contrib.rnn.LSTMCell(num_units=n_inputs, activation=tf.nn.softsign, use_peepholes=True,
+                                                  name='rnn_cell_{}'.format(i))
+                rnn_cell = tf.contrib.rnn.DropoutWrapper(rnn_cell, output_keep_prob=1-rnn_dropout_prob)
+                rnn_cells.append(rnn_cell)
+            multi_cell = tf.contrib.rnn.MultiRNNCell(rnn_cells)
+            self.rnn_in = multi_cell.zero_state(batch_size, dtype=tf.float32)
+            self.rnn, self.rnn_state = tf.nn.dynamic_rnn(multi_cell, norm_flat, dtype=tf.float32, initial_state=self.rnn_in)
             self.rnn = tf.reshape(self.rnn, shape=tf.shape(self.norm_layer))
 
             # Hidden Layer
