@@ -74,7 +74,7 @@ def cli(ctx, exchange, **kwargs):
 @click.option('--trace-days', type=int, default=7)
 @click.option('--dropout-prob', type=float, default=0.)
 @click.option('--rnn-dropout-prob', type=float, default=0.)
-@click.option('--reg-strength', type=float, default=0.1)
+@click.option('--reg-strength', type=float, default=0.)
 @click.pass_context
 def learn(ctx, model_type, train_start, train_end, **kwargs):
     exchange = ctx.obj.get('exchange')
