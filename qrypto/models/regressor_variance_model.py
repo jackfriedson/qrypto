@@ -57,8 +57,7 @@ class RegressorVarianceModel(object):
             self.return_out = tf.contrib.layers.fully_connected(self.dropout_layer, 1, activation_fn=None, weights_regularizer=l1_reg)
             self.return_out = tf.reshape(self.return_out, shape=[tf.shape(self.inputs)[0]])
             self.variance_out = tf.contrib.layers.fully_connected(self.dropout_layer, 1, activation_fn=None, weights_regularizer=l1_reg)
-            # Try using relu as activation fn instead of squaring
-            self.variance_out = tf.nn.relu(self.variance_out) + EPSILON
+            self.variance_out = tf.square(self.variance_out) + EPSILON
             self.variance_out = tf.reshape(self.variance_out, shape=[tf.shape(self.inputs)[0]])
 
             # Losses
