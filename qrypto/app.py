@@ -11,7 +11,7 @@ from qrypto import settings
 from qrypto.backtest import Backtest
 from qrypto.exchanges import Kraken, Poloniex
 from qrypto.strategy import (TakeProfitMomentumStrategy, MFIMomentumStrategy, QTableStrategy, QNetworkStrategy,
-                             ClassifierStrategy, RegressorStrategy, MultitaskStrategy, DSDStrategy)
+                             ClassifierStrategy, RegressorStrategy, MultitaskStrategy, DSDStrategy, RegVarianceStrategy)
 
 
 RANDOM_SEED = 12345
@@ -60,14 +60,14 @@ def cli(ctx, exchange, **kwargs):
 
 
 @cli.command()
-@click.option('--model-type', type=click.Choice(['classifier', 'regressor', 'multitask', 'dsd']),
+@click.option('--model-type', type=click.Choice(['classifier', 'regressor', 'multitask', 'dsd', 'reg_variance']),
               default='multitask')
 @click.option('--train-start', type=str, default='5/1/2017')
 @click.option('--train-end', type=str, default='10/11/2017')
-@click.option('--epochs', type=int, default=20)
-@click.option('--n-batches', type=int, default=500)
+@click.option('--epochs', type=int, default=100)
+@click.option('--n-batches', type=int, default=1000)
 @click.option('--validation-percent', type=float, default=0.2)
-@click.option('--learn-rate', type=float, default=0.005)
+@click.option('--learn-rate', type=float, default=0.001)
 @click.option('--hidden-units', type=int, default=None)
 @click.option('--rnn-layers', type=int, default=2)
 @click.option('--batch-size', type=int, default=32)
@@ -86,8 +86,8 @@ def learn(ctx, model_type, train_start, train_end, **kwargs):
         strategy = RegressorStrategy(exchange, **config)
     elif model_type == 'multitask':
         strategy = MultitaskStrategy(exchange, **config)
-    elif model_type == 'dsd':
-        strategy = DSDStrategy(exchange, **config)
+    elif model_type == 'reg_variance':
+        strategy = RegVarianceStrategy(exchange, **config)
 
     strategy.train(train_start, train_end, random_seed=RANDOM_SEED, **kwargs)
 

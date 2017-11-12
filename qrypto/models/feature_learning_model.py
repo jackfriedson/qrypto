@@ -79,7 +79,7 @@ class FeatureLearningModel(object):
                 self.return_losses = tf.losses.absolute_difference(return_labels, self.return_out, reduction='none')
                 self.return_loss = tf.reduce_mean(self.return_losses)
 
-            self.joint_losses = (self.return_losses / (2. * self.variance_out)) + tf.log(self.variance_out)
+            self.joint_losses = (self.return_losses / (2. * self.variance_out)) + (tf.log(self.variance_out) / 2.)
             self.joint_loss = tf.reduce_mean(self.joint_losses)
             optimizer = tf.train.AdamOptimizer(learn_rate)
 

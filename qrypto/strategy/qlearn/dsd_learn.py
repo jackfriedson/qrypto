@@ -137,6 +137,6 @@ class DSDStrategy(LearnStrategy):
 
         pred_return = output[0][0]
         pred_variance = output[1][0]
-        if pred_variance > 1 or pred_return < 0:
+        if pred_variance > .5 or pred_return < 0:
             return 0
         return 1
