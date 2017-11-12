@@ -50,7 +50,7 @@ class RegressorVarianceModel(object):
                 rnn_cells.append(rnn_cell)
             multi_cell = tf.contrib.rnn.MultiRNNCell(rnn_cells)
             self.rnn_in = multi_cell.zero_state(batch_size, dtype=tf.float32)
-            self.rnn, self.rnn_state = tf.nn.dynamic_rnn(multi_cell, norm_flat, dtype=tf.float32, initial_state=self.rnn_in)
+            self.rnn, self.rnn_state = tf.nn.dynamic_rnn(multi_cell, self.norm_flat, dtype=tf.float32, initial_state=self.rnn_in)
             self.rnn = tf.reshape(self.rnn, shape=tf.shape(self.norm_layer))
 
             # Hidden Layer
