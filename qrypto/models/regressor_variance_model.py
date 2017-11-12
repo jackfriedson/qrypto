@@ -2,8 +2,10 @@ import time
 
 import numpy as np
 import tensorflow as tf
+import tensorflow.contrib.keras.backend as K
 
 
+ALPHA = 100.
 EPSILON = 10e-9
 
 
@@ -61,9 +63,12 @@ class RegressorVarianceModel(object):
             self.variance_out = tf.reshape(self.variance_out, shape=[tf.shape(self.inputs)[0]])
 
             # Losses
-            self.return_losses = tf.losses.absolute_difference(self.return_labels, self.return_out, reduction='none')
+            different_signs = self.return_labels * self.return_out < 0.
+            diff_sign_error = (ALPHA * tf.square(self.return_out)) - (K.sign(self.return_labels) * self.return_out) + tf.abs(self.return_labels)
+            mean_avg_error = tf.losses.absolute_difference(self.return_labels, self.return_out, reduction='none')
+            self.return_losses = K.switch(different_signs, diff_sign_error, mean_avg_error)
             self.return_loss = tf.reduce_mean(self.return_losses)
-            self.joint_losses = (self.return_loss / (2. * self.variance_out)) + (tf.log(self.variance_out) / 2.)
+            self.joint_losses = self.return_loss / (2. * self.variance_out) + tf.log(self.variance_out) / 2.
             self.joint_loss = tf.reduce_mean(self.joint_losses)
 
             self.outputs = [self.return_out, self.variance_out]

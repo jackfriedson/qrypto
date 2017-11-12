@@ -86,8 +86,6 @@ def learn(ctx, model_type, train_start, train_end, **kwargs):
         strategy = RegressorStrategy(exchange, **config)
     elif model_type == 'multitask':
         strategy = MultitaskStrategy(exchange, **config)
-    elif model_type == 'dsd':
-        strategy = DSDStrategy(exchange, **config)
     elif model_type == 'reg_variance':
         strategy = RegVarianceStrategy(exchange, **config)
 
