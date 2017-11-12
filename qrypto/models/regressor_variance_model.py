@@ -2,7 +2,7 @@ import time
 
 import numpy as np
 import tensorflow as tf
-import tensorflow.contrib.keras.backend as K
+import tensorflow.keras.backend as K
 
 
 ALPHA = 100.
