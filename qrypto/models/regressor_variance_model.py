@@ -71,7 +71,7 @@ class RegressorVarianceModel(object):
             same_sign_error = tf.losses.mean_squared_error(self.return_labels, self.return_out, reduction='none')
             self.return_losses = tf.keras.backend.switch(different_signs, diff_sign_error, same_sign_error)
             self.return_loss = tf.reduce_mean(self.return_losses)
-            self.joint_losses = self.return_loss / (2. * self.variance_out) + tf.log(self.variance_out) / 2.
+            self.joint_losses = self.return_loss / (2. * self.variance_out) + tf.log(self.variance_out)
             self.joint_loss = tf.reduce_mean(self.joint_losses)
 
             self.outputs = [self.return_out, self.variance_out]
