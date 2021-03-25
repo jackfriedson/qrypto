@@ -45,7 +45,7 @@ pyparsing==2.2.0
 python-dateutil==2.6.1
 python-utils==2.2.0
 pytz==2017.2
-PyYAML==3.12
+PyYAML==5.4
 # -e git+https://github.com/jackfriedson/qrypto.git@b8d08edb74897e70d2eb4d45016810383ce3c965#egg=qrypto
 ratelimiter==1.2.0
 requests==2.18.4
