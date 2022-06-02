@@ -15,7 +15,7 @@ cryptography==2.0.3
 # -e git+git@github.com:astew/cryptowatch-python.git@98bb7d5d38ab92fd7fcb9320d4507e880b151e0d#egg=cryptowatch
 cycler==0.10.0
 decorator==4.1.2
-html5lib==0.9999999
+html5lib==0.99999999
 hyperlink==17.3.1
 idna==2.6
 incremental==17.5.0
