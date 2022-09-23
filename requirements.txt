@@ -34,7 +34,7 @@ pickleshare==0.7.4
 # Poloniex==0.0.1
 progressbar2==3.34.3
 prompt-toolkit==1.0.15
-protobuf==3.4.0
+protobuf==3.18.3
 ptyprocess==0.5.2
 pyasn1==0.3.2
 pyasn1-modules==0.0.11
